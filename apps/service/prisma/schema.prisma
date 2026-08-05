@@ -10,12 +10,19 @@ generator client {
 model Company {
   id              String       @id @default(uuid()) @db.Uuid
   name            String
+  // Tenancy root. Every other record reaches its owner through this column
+  // (Automation -> Company, Documents -> Automation -> Company, and so on), so
+  // scoping a query by company ownership scopes the whole object graph.
+  // Note: User.id is text, not uuid, so this column must match that type.
+  owner           User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId         String
   automations     Automation[]
   reports         Report[]
   onePagers       OnePager[]
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
+  @@index([ownerId], name: "idx_company_owner")
   @@map("companies")
 }
 
@@ -145,6 +152,7 @@ model User {
   created_at    DateTime     @default(now())
   companyId     String?      @db.Uuid
   refreshTokens RefreshToken[]
+  companies     Company[]
 
   @@map("users")
 }

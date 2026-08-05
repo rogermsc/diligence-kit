@@ -1,26 +1,9 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
+import { clearSessionCookies } from '@/lib/auth-server'
 
 export async function POST() {
   try {
-    const cookieStore = await cookies()
-    
-    cookieStore.set('access_token', '', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      maxAge: 0,
-      path: '/',
-    })
-
-    cookieStore.set('refresh_token', '', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      maxAge: 0,
-      path: '/',
-    })
-
+    await clearSessionCookies()
     return NextResponse.json({ success: true }, { status: 200 })
   } catch (error) {
     console.error('Error clearing cookies:', error)
@@ -29,4 +12,4 @@ export async function POST() {
       { status: 500 }
     )
   }
-} 
+}

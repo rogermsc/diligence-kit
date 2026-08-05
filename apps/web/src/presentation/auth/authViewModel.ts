@@ -22,34 +22,16 @@ export function useAuthViewModel() {
       setLoading(true)
       setError(null)
       
+      // /api/auth/login sets the session cookies server-side; no token ever
+      // reaches this code, so there is nothing to persist here.
       const result = await loginUseCase.execute(credentials)
-      console.log("Login successful:", result)
-      
-      // Save tokens to cookies via API route
-      if (result.access_token && result.refresh_token) {
-        const cookieResponse = await fetch('/api/auth/set-cookies', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            access_token: result.access_token,
-            refresh_token: result.refresh_token,
-          }),
-        })
 
-        if (!cookieResponse.ok) {
-          throw new Error('Failed to save authentication tokens')
-        }
-
-        console.log("Tokens saved to cookies successfully")
-        
-        // Redirect to dashboard after successful login
-        router.push('/dashboard')
-        return true
+      if (!result.success) {
+        return false
       }
-      
-      return false
+
+      router.push('/dashboard')
+      return true
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred"
       setError(errorMessage)

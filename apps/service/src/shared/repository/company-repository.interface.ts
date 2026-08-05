@@ -1,10 +1,16 @@
 import { Company } from "@/shared/domain/entities/company.entity"
-import { AutomationStatus, OutputDocumentStatus, OutputSector, ResultStatus } from "@prisma/client"
+import {
+    AutomationStatus,
+    OutputDocumentStatus,
+    OutputSector,
+    ResultStatus,
+} from "@prisma/client"
 import { ReportStatus } from "@/shared/domain/entities/report.entity"
 import { AutomationStageDomain } from "@/shared/domain/entities/automation.entity"
 
 export interface CreateCompanyData {
     name: string
+    ownerId: string
 }
 
 export interface UpdateCompanyData {
@@ -71,15 +77,33 @@ export interface CompanyWithAutomations {
     }>
 }
 
+/**
+ * Every read and write is scoped to an owner, and `ownerId` is a required
+ * argument rather than an optional filter on purpose: a caller that forgets it
+ * fails to compile instead of silently returning another tenant's data.
+ */
 export interface CompanyRepository {
     create(data: CreateCompanyData): Promise<Company>
-    findById(id: string): Promise<Company | null>
-    findByIdWithAutomations(id: string): Promise<CompanyWithAutomations | null>
-    findByName(name: string): Promise<Company | null>
-    findAll(): Promise<Company[]>
-    findAllWithAutomations(): Promise<CompanyWithAutomations[]>
-    update(id: string, data: UpdateCompanyData): Promise<Company>
-    delete(id: string): Promise<void>
-    exists(id: string): Promise<boolean>
-    existsByName(name: string): Promise<boolean>
+    findById(id: string, ownerId: string): Promise<Company | null>
+    /**
+     * Bypasses tenancy. Only for paths with no calling user — background jobs and
+     * agent webhooks — or paths that have already authorized the caller against
+     * this company. Never call this to serve a user-supplied id directly.
+     */
+    findByIdAsSystem(id: string): Promise<Company | null>
+    findByIdWithAutomations(
+        id: string,
+        ownerId: string,
+    ): Promise<CompanyWithAutomations | null>
+    findByName(name: string, ownerId: string): Promise<Company | null>
+    findAll(ownerId: string): Promise<Company[]>
+    findAllWithAutomations(ownerId: string): Promise<CompanyWithAutomations[]>
+    update(
+        id: string,
+        data: UpdateCompanyData,
+        ownerId: string,
+    ): Promise<Company>
+    delete(id: string, ownerId: string): Promise<void>
+    exists(id: string, ownerId: string): Promise<boolean>
+    existsByName(name: string, ownerId: string): Promise<boolean>
 }

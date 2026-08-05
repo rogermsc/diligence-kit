@@ -25,6 +25,31 @@ export async function getAuthHeaders(): Promise<{ Authorization: string } | null
   }
 }
 
+const SESSION_COOKIE = {
+  httpOnly: true,
+  secure: true,
+  sameSite: 'strict',
+  path: '/',
+} as const
+
+/**
+ * Write the session cookies. Server-side only, and deliberately not reachable from
+ * a route handler that accepts caller-supplied tokens: tokens must come straight
+ * from the backend's login/refresh response and never round-trip through the
+ * browser, or the httpOnly flag buys nothing.
+ */
+export async function setSessionCookies(accessToken: string, refreshToken: string) {
+  const cookieStore = await cookies()
+  cookieStore.set('access_token', accessToken, { ...SESSION_COOKIE, maxAge: 60 * 60 * 24 })
+  cookieStore.set('refresh_token', refreshToken, { ...SESSION_COOKIE, maxAge: 60 * 60 * 24 * 7 })
+}
+
+export async function clearSessionCookies() {
+  const cookieStore = await cookies()
+  cookieStore.set('access_token', '', { ...SESSION_COOKIE, maxAge: 0 })
+  cookieStore.set('refresh_token', '', { ...SESSION_COOKIE, maxAge: 0 })
+}
+
 /**
  * Create an unauthorized response
  */

@@ -7,6 +7,7 @@ import { CompanyDetailsMapper } from "@/shared/domain/mappers/company-details.ma
 
 export interface GetCompanyDetailsInput {
     id: string
+    userId: string
 }
 
 export interface GetCompanyDetailsOutput {
@@ -15,9 +16,10 @@ export interface GetCompanyDetailsOutput {
 }
 
 @Injectable()
-export class GetCompanyDetailsUseCase
-    implements Usecase<GetCompanyDetailsInput, CompanyDetailsResponseDTO>
-{
+export class GetCompanyDetailsUseCase implements Usecase<
+    GetCompanyDetailsInput,
+    CompanyDetailsResponseDTO
+> {
     constructor(
         @Inject("CompanyRepository")
         private readonly companyRepository: CompanyRepository,
@@ -27,7 +29,10 @@ export class GetCompanyDetailsUseCase
         input: GetCompanyDetailsInput,
     ): Promise<CompanyDetailsResponseDTO> {
         const companyWithAutomations =
-            await this.companyRepository.findByIdWithAutomations(input.id)
+            await this.companyRepository.findByIdWithAutomations(
+                input.id,
+                input.userId,
+            )
 
         if (!companyWithAutomations) {
             throw new CompanyNotFoundError()

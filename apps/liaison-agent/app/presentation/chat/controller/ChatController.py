@@ -41,15 +41,19 @@ async def chat_process(
 @router.get("/messages/{session_id}", response_model=ChatHistoryResponse)
 async def get_chat_messages(
     session_id: str,
+    user_id: str,
     auth: dict = Security(verify_service_account),
     db: AsyncSession = Depends(get_container_db)
 ):
     """
-    Retrieves chat message history for a specific session.
+    Retrieves chat message history for a session, scoped to its owner.
+
+    user_id is a required query parameter — the backend already sends it, and
+    without it a session id alone returned any user's conversation.
     """
     try:
         repo = DIContainer.get_chat_repository(db)
-        messages = await repo.get_history_by_session(session_id, limit=50)
+        messages = await repo.get_history_by_session(session_id, user_id, limit=50)
         
         return ChatHistoryResponse(
             session_id=session_id,

@@ -16,8 +16,12 @@ class IChatRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_history_by_session(self, session_id: str, limit: int = 30) -> List[ChatMessage]:
-        """Retrieves chat history for a specific session with a limit (default 30)"""
+    async def get_history_by_session(self, session_id: str, user_id: str, limit: int = 30) -> List[ChatMessage]:
+        """Retrieves chat history for a session owned by user_id.
+
+        user_id is required, not optional: a session id alone is a guessable
+        bearer of someone else's conversation.
+        """
         pass
 
     @abstractmethod

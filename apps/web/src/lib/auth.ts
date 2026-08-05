@@ -13,10 +13,9 @@ export async function logout() {
         },
       })
     } catch (error) {
-      console.warn('Failed to clear cookies via API, falling back to client-side:', error)
-      // Fallback: Clear cookies on client side by making them expire
-      document.cookie = 'access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-      document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+      // No client-side fallback is possible: the session cookies are httpOnly, so
+      // document.cookie cannot see or clear them. Redirecting is all we can do.
+      console.warn('Failed to clear session via API:', error)
     }
     
     // Redirect to login page

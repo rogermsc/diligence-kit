@@ -21,21 +21,13 @@ class ChatRepositoryImpl(IChatRepository):
         await self.db.refresh(db_message)
         return ChatMessage.model_validate(db_message)
 
-    async def get_history_by_session(self, session_id: str, limit: int = 30) -> List[ChatMessage]:
-        subquery = (
-            select(ChatMessageModel)
-            .filter(ChatMessageModel.session_id == session_id)
-            .order_by(ChatMessageModel.created_at.desc())
-            .limit(limit)
-        ).subquery()
-
-        query = select(subquery).order_by(subquery.c.created_at.asc())
-        
-        result = await self.db.execute(query)
-        
+    async def get_history_by_session(self, session_id: str, user_id: str, limit: int = 30) -> List[ChatMessage]:
         result = await self.db.execute(
             select(ChatMessageModel)
-            .filter(ChatMessageModel.session_id == session_id)
+            .filter(
+                ChatMessageModel.session_id == session_id,
+                ChatMessageModel.user_id == user_id,
+            )
             .order_by(ChatMessageModel.created_at.desc())
             .limit(limit)
         )

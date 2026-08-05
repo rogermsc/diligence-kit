@@ -1,12 +1,43 @@
 import logging
+import re
 from google.cloud import logging as glogging
 from google.cloud.logging import DESCENDING
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import datetime
 from app.domain.interfaces.GoogleLoggingInterface import LogRetriever
 from app.core.config.settings import settings
 
 logger = logging.getLogger(__name__)
+
+# Every id reaching this adapter originates from a chat payload, so it is
+# attacker-controlled. The Cloud Logging filter language has no parameter binding
+# — a value containing a double quote closes the literal and the rest is parsed as
+# filter syntax, which reads other tenants' logs. Ids in this system are UUIDs, so
+# validating the shape is both sufficient and exact.
+_UUID_RE = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
+
+_VALID_SEVERITIES = frozenset(
+    {"DEFAULT", "DEBUG", "INFO", "NOTICE", "WARNING", "ERROR", "CRITICAL", "ALERT", "EMERGENCY"}
+)
+
+
+def _safe_id(value: str, field: str) -> Optional[str]:
+    """Return value only if it is a well-formed UUID, else None."""
+    if isinstance(value, str) and _UUID_RE.match(value):
+        return value
+    logger.warning("Rejected malformed %s in log query: %r", field, value)
+    return None
+
+
+def _safe_severity(value: str) -> str:
+    """Severity is interpolated unquoted, so it must come from a fixed set."""
+    if isinstance(value, str) and value.upper() in _VALID_SEVERITIES:
+        return value.upper()
+    logger.warning("Rejected unknown severity %r, defaulting to ERROR", value)
+    return "ERROR"
+
 
 class GoogleCloudLogRetriever(LogRetriever):
     def __init__(self):
@@ -20,14 +51,15 @@ class GoogleCloudLogRetriever(LogRetriever):
         """
         Search logs in Google Cloud filtering by jsonPayload.automationId.
         """
-        if not automation_id:
+        safe_automation_id = _safe_id(automation_id, "automation_id")
+        if not safe_automation_id:
             return []
 
         one_day_ago = (datetime.datetime.utcnow() - datetime.timedelta(days=1)).isoformat() + "Z"
-        
+
         filter_str = (
-            f'jsonPayload.automationId="{automation_id}" '
-            f'AND severity >= {severity_min} '
+            f'jsonPayload.automationId="{safe_automation_id}" '
+            f'AND severity >= {_safe_severity(severity_min)} '
             f'AND timestamp >= "{one_day_ago}"'
         )
 
@@ -41,14 +73,15 @@ class GoogleCloudLogRetriever(LogRetriever):
         """
         Search logs in Google Cloud filtering by jsonPayload.companyId.
         """
-        if not company_id:
+        safe_company_id = _safe_id(company_id, "company_id")
+        if not safe_company_id:
             return []
 
         one_day_ago = (datetime.datetime.utcnow() - datetime.timedelta(days=1)).isoformat() + "Z"
-        
+
         filter_str = (
-            f'jsonPayload.companyId="{company_id}" '
-            f'AND severity >= {severity_min} '
+            f'jsonPayload.companyId="{safe_company_id}" '
+            f'AND severity >= {_safe_severity(severity_min)} '
             f'AND timestamp >= "{one_day_ago}"'
         )
 
@@ -62,15 +95,16 @@ class GoogleCloudLogRetriever(LogRetriever):
         """
         Search logs for multiple automation IDs.
         """
-        if not automation_ids:
+        safe_ids = [i for i in (_safe_id(aid, "automation_id") for aid in automation_ids) if i]
+        if not safe_ids:
             return []
 
         one_day_ago = (datetime.datetime.utcnow() - datetime.timedelta(days=1)).isoformat() + "Z"
-        automation_filters = ' OR '.join([f'jsonPayload.automationId="{aid}"' for aid in automation_ids])
-        
+        automation_filters = ' OR '.join([f'jsonPayload.automationId="{aid}"' for aid in safe_ids])
+
         filter_str = (
             f'({automation_filters}) '
-            f'AND severity >= {severity_min} '
+            f'AND severity >= {_safe_severity(severity_min)} '
             f'AND timestamp >= "{one_day_ago}"'
         )
 

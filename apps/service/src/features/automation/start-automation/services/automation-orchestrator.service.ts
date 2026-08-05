@@ -1,78 +1,90 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
-import { randomUUID } from 'crypto';
-import { EventBusPort } from '@/shared/domain/interfaces/event-bus.interface';
-import { IAutomationRepository } from '@/shared/repository/automation-repository.interface';
-import { CompanyRepository } from '@/shared/repository/company-repository.interface';
-import { AutomationStatus, AutomationStageDomain } from '@/shared/domain/entities/automation.entity';
-import { AutomationCompanyNotFoundError, AutomationAlreadyInProgressError } from '../domain/errors/automation-errors';
-import { AutomationCreationError } from '../domain/errors/automation-event-errors';
+import { Injectable, Inject, Logger } from "@nestjs/common"
+import { randomUUID } from "crypto"
+import { EventBusPort } from "@/shared/domain/interfaces/event-bus.interface"
+import { IAutomationRepository } from "@/shared/repository/automation-repository.interface"
+import { CompanyRepository } from "@/shared/repository/company-repository.interface"
+import {
+    AutomationStatus,
+    AutomationStageDomain,
+} from "@/shared/domain/entities/automation.entity"
+import {
+    AutomationCompanyNotFoundError,
+    AutomationAlreadyInProgressError,
+} from "../domain/errors/automation-errors"
+import { AutomationCreationError } from "../domain/errors/automation-event-errors"
 
 export interface CreateAutomationData {
-    companyId: string;
-    chunkIdentifier: string;
+    companyId: string
+    chunkIdentifier: string
     metadata: {
-        totalChunks: number;
-        filename: string;
-    };
-    automationId?: string;
+        totalChunks: number
+        filename: string
+    }
+    automationId?: string
 }
 
 @Injectable()
 export class AutomationOrchestrator {
-    private readonly logger = new Logger(AutomationOrchestrator.name);
+    private readonly logger = new Logger(AutomationOrchestrator.name)
 
     constructor(
-        @Inject('EventBusPort')
+        @Inject("EventBusPort")
         private readonly eventBus: EventBusPort,
-        @Inject('AutomationRepository')
+        @Inject("AutomationRepository")
         private readonly automationRepository: IAutomationRepository,
-        @Inject('CompanyRepository')
+        @Inject("CompanyRepository")
         private readonly companyRepository: CompanyRepository,
-    ) { }
+    ) {}
 
     async createAutomationForLastChunk(data: CreateAutomationData) {
-        this.logger.debug('Creating automation for last chunk', {
+        this.logger.debug("Creating automation for last chunk", {
             companyId: data.companyId,
-            chunkIdentifier: data.chunkIdentifier
-        });
+            chunkIdentifier: data.chunkIdentifier,
+        })
 
-        const companyResult = await this.companyRepository.findById(data.companyId);
+        // Caller (AutomationController) has already authorized this company.
+        const companyResult = await this.companyRepository.findByIdAsSystem(
+            data.companyId,
+        )
 
         if (!companyResult) {
-            throw new AutomationCompanyNotFoundError(data.companyId);
+            throw new AutomationCompanyNotFoundError(data.companyId)
         }
 
-        const existingAutomation = await this.automationRepository.findProcessingByCompanyId(data.companyId);
+        const existingAutomation =
+            await this.automationRepository.findProcessingByCompanyId(
+                data.companyId,
+            )
 
         if (existingAutomation) {
-            throw new AutomationAlreadyInProgressError();
+            throw new AutomationAlreadyInProgressError()
         }
 
         try {
             // Garante que sempre temos um automationId válido
-            const automationId = data.automationId || randomUUID();
+            const automationId = data.automationId || randomUUID()
 
             const automation = await this.automationRepository.create({
                 id: automationId,
                 companyId: data.companyId,
                 status: AutomationStatus.PENDING,
-            });
+            })
 
-            this.logger.log('Automation created successfully', {
+            this.logger.log("Automation created successfully", {
                 automationId: automation.id,
                 companyId: automation.companyId,
                 status: automation.status,
                 providedId: data.automationId,
-                usedId: automationId
-            });
+                usedId: automationId,
+            })
 
-            return automation;
+            return automation
         } catch (error) {
-            this.logger.error('Failed to create automation', {
+            this.logger.error("Failed to create automation", {
                 companyId: data.companyId,
-                error: error.message
-            });
-            throw new AutomationCreationError();
+                error: error.message,
+            })
+            throw new AutomationCreationError()
         }
     }
-} 
+}

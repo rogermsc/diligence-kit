@@ -13,16 +13,20 @@ export interface GetCompanyByIdOutput {
 }
 
 @Injectable()
-export class GetCompanyByIdUseCase
-    implements Usecase<GetCompanyByIdInput, GetCompanyByIdOutput>
-{
+export class GetCompanyByIdUseCase implements Usecase<
+    GetCompanyByIdInput,
+    GetCompanyByIdOutput
+> {
     constructor(
         @Inject("CompanyRepository")
         private readonly companyRepository: CompanyRepository,
     ) {}
 
     async execute(input: GetCompanyByIdInput): Promise<GetCompanyByIdOutput> {
-        const company = await this.companyRepository.findById(input.companyId)
+        // Callers authorize the company before invoking this.
+        const company = await this.companyRepository.findByIdAsSystem(
+            input.companyId,
+        )
         if (!company) {
             throw new CompanyNotFoundError()
         }

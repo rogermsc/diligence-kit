@@ -3,10 +3,13 @@ export interface LoginRequest {
   password: string;
 }
 
+/**
+ * Deliberately carries no tokens: the session cookies are written server-side by
+ * /api/auth/login, so credentials never enter client-side JavaScript.
+ */
 export interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
-  user: User;
+  success: boolean;
+  user: User | null;
 }
 
 export interface User {

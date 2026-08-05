@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getBaseUrl } from '@/lib/auth-server'
+import { getBaseUrl, setSessionCookies } from '@/lib/auth-server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +28,17 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json()
-    return NextResponse.json(data)
+
+    if (!data?.access_token || !data?.refresh_token) {
+      console.error('Login response missing tokens')
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    }
+
+    // Set here and never returned to the browser: the client only learns that
+    // login succeeded, so client-side JS never holds a credential.
+    await setSessionCookies(data.access_token, data.refresh_token)
+
+    return NextResponse.json({ success: true, user: data.user ?? null })
   } catch (error) {
     console.error('Error during login:', error)
     return NextResponse.json(

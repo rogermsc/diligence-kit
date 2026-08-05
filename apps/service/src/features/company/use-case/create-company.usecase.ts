@@ -6,6 +6,7 @@ import { Usecase } from "@/shared/interfaces/usecase"
 
 export interface CreateCompanyInput {
     name: string
+    userId: string
 }
 
 export interface CreateCompanyOutput {
@@ -13,24 +14,31 @@ export interface CreateCompanyOutput {
 }
 
 @Injectable()
-export class CreateCompanyUseCase
-    implements Usecase<CreateCompanyInput, CreateCompanyOutput>
-{
+export class CreateCompanyUseCase implements Usecase<
+    CreateCompanyInput,
+    CreateCompanyOutput
+> {
     constructor(
         @Inject("CompanyRepository")
         private readonly companyRepository: CompanyRepository,
     ) {}
 
     async execute(input: CreateCompanyInput): Promise<CreateCompanyOutput> {
+        // Name uniqueness is per-owner: two tenants may each have a company
+        // called "Acme" without colliding.
         const existingCompany = await this.companyRepository.findByName(
             input.name,
+            input.userId,
         )
 
         if (existingCompany) {
             throw new CompanyNameAlreadyExistsError()
         }
 
-        await this.companyRepository.create(input)
+        await this.companyRepository.create({
+            name: input.name,
+            ownerId: input.userId,
+        })
 
         return {
             message: "Empresa criada com sucesso!",

@@ -40,7 +40,9 @@ class ChatUseCase:
             else:
                 session_id = str(uuid.uuid4())
         
-        db_history = await self.repository.get_history_by_session(session_id, limit=30)
+        # Scoped to user_id so a supplied session_id cannot load, or be appended
+        # to, another user's conversation.
+        db_history = await self.repository.get_history_by_session(session_id, user_id, limit=30)
         current_history = self._hydrate_history(db_history)
         
         human_msg = HumanMessage(content=user_message)

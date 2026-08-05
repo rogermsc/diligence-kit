@@ -1,38 +1,40 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { Process, Processor } from '@nestjs/bull';
-import { Job } from 'bull';
-import { UploadReadyForAssemblyEvent } from '../domain/events/automation.events';
-import { UploadReadyForAssemblyEventSchema } from '../domain/events/automation.event-schemas';
+import { Injectable, Logger, Inject } from "@nestjs/common"
+import { Process, Processor } from "@nestjs/bull"
+import { Job } from "bull"
+import { UploadReadyForAssemblyEvent } from "../domain/events/automation.events"
+import { UploadReadyForAssemblyEventSchema } from "../domain/events/automation.event-schemas"
 
-import { EnhancedAssemblyCoordinatorService } from '../services/enhanced-assembly-coordinator.service';
-import { AutomationStatusUpdaterService } from '../services/automation-status-updater.service';
-import { EventBusPort } from '@/shared/domain/interfaces/event-bus.interface';
-import { CompanyRepository } from '@/shared/repository/company-repository.interface';
-import { StorageService } from '@/shared/services/storage.service';
-import { ZipParserService } from '@/shared/services/zip-parser.service';
-import { AutomationZipValidationError } from '../domain/errors/automation-errors';
-import { File as DomainFile } from '@/shared/domain/entities/file.entity';
+import { EnhancedAssemblyCoordinatorService } from "../services/enhanced-assembly-coordinator.service"
+import { AutomationStatusUpdaterService } from "../services/automation-status-updater.service"
+import { EventBusPort } from "@/shared/domain/interfaces/event-bus.interface"
+import { CompanyRepository } from "@/shared/repository/company-repository.interface"
+import { StorageService } from "@/shared/services/storage.service"
+import { ZipParserService } from "@/shared/services/zip-parser.service"
+import { AutomationZipValidationError } from "../domain/errors/automation-errors"
+import { File as DomainFile } from "@/shared/domain/entities/file.entity"
 
 @Injectable()
-@Processor('assembly-queue')
+@Processor("assembly-queue")
 export class AssemblyJobProcessor {
-    private readonly logger = new Logger(AssemblyJobProcessor.name);
+    private readonly logger = new Logger(AssemblyJobProcessor.name)
 
     constructor(
         private readonly enhancedAssemblyCoordinator: EnhancedAssemblyCoordinatorService,
         private readonly automationStatusUpdater: AutomationStatusUpdaterService,
-        @Inject('CompanyRepository')
+        @Inject("CompanyRepository")
         private readonly companyRepository: CompanyRepository,
-        @Inject('StorageService')
+        @Inject("StorageService")
         private readonly storageService: StorageService,
-        @Inject('ZipParserService')
+        @Inject("ZipParserService")
         private readonly zipParserService: ZipParserService,
-        @Inject('EventBusPort')
-        private readonly eventBus: EventBusPort
-    ) { }
+        @Inject("EventBusPort")
+        private readonly eventBus: EventBusPort,
+    ) {}
 
-    @Process('upload.ready.for.assembly')
-    async handleUploadReadyForAssembly(job: Job<UploadReadyForAssemblyEvent>): Promise<void> {
+    @Process("upload.ready.for.assembly")
+    async handleUploadReadyForAssembly(
+        job: Job<UploadReadyForAssemblyEvent>,
+    ): Promise<void> {
         const {
             uploadId,
             totalChunks,
@@ -41,47 +43,51 @@ export class AssemblyJobProcessor {
             companyId,
             companyName,
             automationId,
-        } = UploadReadyForAssemblyEventSchema.parse(job.data);
+        } = UploadReadyForAssemblyEventSchema.parse(job.data)
 
-        this.logger.log('Starting assembly process', {
+        this.logger.log("Starting assembly process", {
             uploadId,
             totalChunks,
             confirmedChunksCount: confirmedChunks.length,
             originalFilename,
-            automationId
-        });
+            automationId,
+        })
 
         try {
             // Busca nome da empresa se não fornecido
-            let finalCompanyName = companyName;
+            let finalCompanyName = companyName
 
             const companyNameNotProvided = !finalCompanyName
 
-            const isNecessaryToGetCompanyName = companyNameNotProvided && companyId
+            const isNecessaryToGetCompanyName =
+                companyNameNotProvided && companyId
 
             if (isNecessaryToGetCompanyName) {
-                const company = await this.companyRepository.findById(companyId);
-                finalCompanyName = company?.name || 'Unknown';
+                // Background job: no calling user to scope against.
+                const company =
+                    await this.companyRepository.findByIdAsSystem(companyId)
+                finalCompanyName = company?.name || "Unknown"
             }
 
-            const assemblyResult = await this.enhancedAssemblyCoordinator.startEnhancedAssembly(
-                uploadId,
-                totalChunks,
-                originalFilename
-            );
+            const assemblyResult =
+                await this.enhancedAssemblyCoordinator.startEnhancedAssembly(
+                    uploadId,
+                    totalChunks,
+                    originalFilename,
+                )
 
             if (!assemblyResult.success) {
-                throw new Error(`Assembly failed: ${assemblyResult.error}`);
+                throw new Error(`Assembly failed: ${assemblyResult.error}`)
             }
 
             // Parse do ZIP para estrutura de árvore e upload otimizado em batch
             const uploadedFiles = await this.parseAndUploadZipFiles(
                 assemblyResult.assembledFile,
                 automationId,
-                finalCompanyName || 'unknown'
-            );
+                finalCompanyName || "unknown",
+            )
 
-            await this.eventBus.emit('zip.assembled', {
+            await this.eventBus.emit("zip.assembled", {
                 automationId,
                 companyId,
                 companyName: finalCompanyName,
@@ -95,40 +101,43 @@ export class AssemblyJobProcessor {
                     fieldname: assemblyResult.assembledFile.fieldname,
                     // Metadados dos arquivos processados
                     uploadedFiles: uploadedFiles,
-                    totalFiles: uploadedFiles.length
+                    totalFiles: uploadedFiles.length,
                 } as any,
-                timestamp: new Date()
-            });
+                timestamp: new Date(),
+            })
 
-            this.logger.log('Assembly completed successfully', {
+            this.logger.log("Assembly completed successfully", {
                 uploadId,
                 originalFilename,
                 zipSize: assemblyResult.assembledFile.size,
                 totalFilesExtracted: uploadedFiles.length,
-                companyName: finalCompanyName
-            });
-
+                companyName: finalCompanyName,
+            })
         } catch (error) {
-            this.logger.error(`Assembly failed for upload ${uploadId}:`, error);
+            this.logger.error(`Assembly failed for upload ${uploadId}:`, error)
 
-            const isAutomationZipValidationError = error instanceof AutomationZipValidationError;
+            const isAutomationZipValidationError =
+                error instanceof AutomationZipValidationError
 
             if (isAutomationZipValidationError) {
                 await this.automationStatusUpdater.markAsFailed(
                     automationId,
-                    `ZIP validation failed: ${error.message}`
-                );
+                    `ZIP validation failed: ${error.message}`,
+                )
 
-                this.logger.log(`Automation marked as failed due to ZIP validation`, {
-                    automationId,
-                    uploadId,
-                    reason: error.message
-                });
+                this.logger.log(
+                    `Automation marked as failed due to ZIP validation`,
+                    {
+                        automationId,
+                        uploadId,
+                        reason: error.message,
+                    },
+                )
 
                 return // Return without throwing error to avoid retry in queue
             }
 
-            throw error;
+            throw error
         }
     }
 
@@ -138,48 +147,48 @@ export class AssemblyJobProcessor {
     private async parseAndUploadZipFiles(
         zipFile: any,
         automationId: string,
-        companyName: string
+        companyName: string,
     ): Promise<any[]> {
         try {
-            this.logger.log('Starting ZIP parsing and batch upload', {
+            this.logger.log("Starting ZIP parsing and batch upload", {
                 automationId,
                 zipSize: zipFile.size,
-                zipName: zipFile.originalname
-            });
+                zipName: zipFile.originalname,
+            })
 
             // 1. Parse ZIP para estrutura de árvore
             const rootFolder = await this.zipParserService.parseZipToFolder(
                 zipFile.buffer,
-                companyName // Nome da pasta raiz será o nome da empresa
-            );
+                companyName, // Nome da pasta raiz será o nome da empresa
+            )
 
-            this.logger.log('ZIP parsed successfully', {
+            this.logger.log("ZIP parsed successfully", {
                 automationId,
                 rootFolderName: rootFolder.getName(),
-                totalChildren: rootFolder.getChildren().length
-            });
+                totalChildren: rootFolder.getChildren().length,
+            })
 
             // 2. Upload otimizado em batch para o bucket
-            const uploadedFiles = await this.storageService.uploadFolderOnEnterpriseRoot(
-                companyName,
-                rootFolder
-            );
+            const uploadedFiles =
+                await this.storageService.uploadFolderOnEnterpriseRoot(
+                    companyName,
+                    rootFolder,
+                )
 
-            this.logger.log('Batch upload completed', {
+            this.logger.log("Batch upload completed", {
                 automationId,
                 totalFilesUploaded: uploadedFiles.length,
-                companyName
-            });
+                companyName,
+            })
 
-            return uploadedFiles;
-
+            return uploadedFiles
         } catch (error) {
-            this.logger.error('Failed to parse and upload ZIP files', {
+            this.logger.error("Failed to parse and upload ZIP files", {
                 automationId,
                 error: error.message,
-                zipName: zipFile.originalname
-            });
-            throw error;
+                zipName: zipFile.originalname,
+            })
+            throw error
         }
     }
 }

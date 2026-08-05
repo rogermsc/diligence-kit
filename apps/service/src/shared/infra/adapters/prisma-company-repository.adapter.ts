@@ -9,6 +9,7 @@ import {
 import {
     DatabaseAccessError,
     InvalidUUIDError,
+    RecordNotFoundError,
 } from "@/shared/errors/db/data-base-error"
 import { prisma } from "@/shared/infra/prisma"
 import { CompanyMapper } from "@/shared/domain/mappers/company.mapper"
@@ -22,6 +23,7 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
             const company = await prisma.company.create({
                 data: {
                     name: data.name,
+                    ownerId: data.ownerId,
                 },
             })
 
@@ -35,10 +37,10 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
         }
     }
 
-    async findById(id: string): Promise<Company | null> {
+    async findById(id: string, ownerId: string): Promise<Company | null> {
         try {
-            const company = await prisma.company.findUnique({
-                where: { id },
+            const company = await prisma.company.findFirst({
+                where: { id, ownerId },
             })
 
             if (!company) {
@@ -63,12 +65,31 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
         }
     }
 
+    async findByIdAsSystem(id: string): Promise<Company | null> {
+        try {
+            const company = await prisma.company.findUnique({ where: { id } })
+
+            return company ? CompanyMapper.toDomain(company) : null
+        } catch (error) {
+            if (error.message && error.message.includes("invalid character")) {
+                throw new InvalidUUIDError(id)
+            }
+
+            this.logger.error(
+                `Failed to find company by ID ${id}: ${error.message}`,
+                error.stack,
+            )
+            throw new DatabaseAccessError(`Failed to find company by ID`)
+        }
+    }
+
     async findByIdWithAutomations(
         id: string,
+        ownerId: string,
     ): Promise<CompanyWithAutomations | null> {
         try {
-            const companyWithAutomations = await prisma.company.findUnique({
-                where: { id },
+            const companyWithAutomations = await prisma.company.findFirst({
+                where: { id, ownerId },
                 include: {
                     automations: {
                         orderBy: { createdAt: "desc" },
@@ -79,21 +100,21 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
                                 include: {
                                     documents: {
                                         include: {
-                                            document: true
-                                        }
-                                    }
-                                }
+                                            document: true,
+                                        },
+                                    },
+                                },
                             },
                             Documents: true,
                             reports: {
-                                orderBy: { createdAt: "desc" }
+                                orderBy: { createdAt: "desc" },
                             },
                             onePagers: {
                                 orderBy: { createdAt: "desc" },
                                 take: 1,
-                                select: { url: true }
-                            }
-                        }
+                                select: { url: true },
+                            },
+                        },
                     },
                 },
             })
@@ -110,36 +131,38 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
                     status: automation.status,
                     stage: automation.stage,
                     parentAutomationId: automation.parentAutomationId,
-                    documents: automation.Documents.map(doc => ({
+                    documents: automation.Documents.map((doc) => ({
                         id: doc.id,
                         name: doc.name,
                         bucketPath: doc.bucketPath,
                         createdAt: doc.createdAt,
                         updatedAt: doc.updatedAt,
                     })),
-                    output_documents: automation.results.map(result => ({
+                    output_documents: automation.results.map((result) => ({
                         id: result.id,
                         status: result.status,
-                        documents: result.documents.map(doc => ({
+                        documents: result.documents.map((doc) => ({
                             id: doc.id,
                             name: doc.name,
                             status: doc.status,
                             sector: doc.sector,
                             documentId: doc.documentId,
-                            document: doc.document ? {
-                                id: doc.document.id,
-                                name: doc.document.name,
-                                bucketPath: doc.document.bucketPath,
-                                createdAt: doc.document.createdAt,
-                                updatedAt: doc.document.updatedAt,
-                            } : null,
+                            document: doc.document
+                                ? {
+                                      id: doc.document.id,
+                                      name: doc.document.name,
+                                      bucketPath: doc.document.bucketPath,
+                                      createdAt: doc.document.createdAt,
+                                      updatedAt: doc.document.updatedAt,
+                                  }
+                                : null,
                             createdAt: doc.createdAt,
                             updatedAt: doc.updatedAt,
                         })),
                         createdAt: result.createdAt,
                         updatedAt: result.updatedAt,
                     })),
-                    reports: automation.reports.map(report => ({
+                    reports: automation.reports.map((report) => ({
                         id: report.id,
                         automationId: report.automationId,
                         companyId: report.companyId,
@@ -149,7 +172,10 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
                         createdAt: report.createdAt,
                         updatedAt: report.updatedAt,
                     })),
-                    onePagerSummary: automation.onePagers.length > 0 ? automation.onePagers[0].url : null,
+                    onePagerSummary:
+                        automation.onePagers.length > 0
+                            ? automation.onePagers[0].url
+                            : null,
                     createdAt: automation.createdAt,
                     updatedAt: automation.updatedAt,
                 }),
@@ -178,10 +204,10 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
         }
     }
 
-    async findByName(name: string): Promise<Company | null> {
+    async findByName(name: string, ownerId: string): Promise<Company | null> {
         try {
             const company = await prisma.company.findFirst({
-                where: { name },
+                where: { name, ownerId },
             })
 
             if (!company) {
@@ -198,9 +224,10 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
         }
     }
 
-    async findAll(): Promise<Company[]> {
+    async findAll(ownerId: string): Promise<Company[]> {
         try {
             const companies = await prisma.company.findMany({
+                where: { ownerId },
                 orderBy: { createdAt: "desc" },
             })
 
@@ -214,9 +241,12 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
         }
     }
 
-    async findAllWithAutomations(): Promise<CompanyWithAutomations[]> {
+    async findAllWithAutomations(
+        ownerId: string,
+    ): Promise<CompanyWithAutomations[]> {
         try {
             const companiesWithAutomations = await prisma.company.findMany({
+                where: { ownerId },
                 orderBy: { createdAt: "desc" },
                 include: {
                     automations: {
@@ -228,21 +258,21 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
                                 include: {
                                     documents: {
                                         include: {
-                                            document: true
-                                        }
-                                    }
-                                }
+                                            document: true,
+                                        },
+                                    },
+                                },
                             },
                             Documents: true,
                             reports: {
-                                orderBy: { createdAt: "desc" }
+                                orderBy: { createdAt: "desc" },
                             },
                             onePagers: {
                                 orderBy: { createdAt: "desc" },
                                 take: 1,
-                                select: { url: true }
-                            }
-                        }
+                                select: { url: true },
+                            },
+                        },
                     },
                 },
             })
@@ -256,36 +286,38 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
                         status: automation.status,
                         stage: automation.stage,
                         parentAutomationId: automation.parentAutomationId,
-                        documents: automation.Documents.map(doc => ({
+                        documents: automation.Documents.map((doc) => ({
                             id: doc.id,
                             name: doc.name,
                             bucketPath: doc.bucketPath,
                             createdAt: doc.createdAt,
                             updatedAt: doc.updatedAt,
                         })),
-                        output_documents: automation.results.map(result => ({
+                        output_documents: automation.results.map((result) => ({
                             id: result.id,
                             status: result.status,
-                            documents: result.documents.map(doc => ({
+                            documents: result.documents.map((doc) => ({
                                 id: doc.id,
                                 name: doc.name,
                                 status: doc.status,
                                 sector: doc.sector,
                                 documentId: doc.documentId,
-                                document: doc.document ? {
-                                    id: doc.document.id,
-                                    name: doc.document.name,
-                                    bucketPath: doc.document.bucketPath,
-                                    createdAt: doc.document.createdAt,
-                                    updatedAt: doc.document.updatedAt,
-                                } : null,
+                                document: doc.document
+                                    ? {
+                                          id: doc.document.id,
+                                          name: doc.document.name,
+                                          bucketPath: doc.document.bucketPath,
+                                          createdAt: doc.document.createdAt,
+                                          updatedAt: doc.document.updatedAt,
+                                      }
+                                    : null,
                                 createdAt: doc.createdAt,
                                 updatedAt: doc.updatedAt,
                             })),
                             createdAt: result.createdAt,
                             updatedAt: result.updatedAt,
                         })),
-                        reports: automation.reports.map(report => ({
+                        reports: automation.reports.map((report) => ({
                             id: report.id,
                             automationId: report.automationId,
                             companyId: report.companyId,
@@ -295,7 +327,10 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
                             createdAt: report.createdAt,
                             updatedAt: report.updatedAt,
                         })),
-                        onePagerSummary: automation.onePagers.length > 0 ? automation.onePagers[0].url : null,
+                        onePagerSummary:
+                            automation.onePagers.length > 0
+                                ? automation.onePagers[0].url
+                                : null,
                         createdAt: automation.createdAt,
                         updatedAt: automation.updatedAt,
                     }),
@@ -311,21 +346,41 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
                 `Failed to find all companies with automations: ${error.message}`,
                 error.stack,
             )
-            throw new DatabaseAccessError(`Failed to find all companies with automations`)
+            throw new DatabaseAccessError(
+                `Failed to find all companies with automations`,
+            )
         }
     }
 
-    async update(id: string, data: UpdateCompanyData): Promise<Company> {
+    async update(
+        id: string,
+        data: UpdateCompanyData,
+        ownerId: string,
+    ): Promise<Company> {
         try {
-            const company = await prisma.company.update({
-                where: { id },
+            // updateMany, not update: `where` on update accepts only unique
+            // fields, which would drop the ownerId filter.
+            const { count } = await prisma.company.updateMany({
+                where: { id, ownerId },
                 data: {
                     ...(data.name && { name: data.name }),
                 },
             })
 
+            if (count === 0) {
+                throw new RecordNotFoundError(id)
+            }
+
+            const company = await prisma.company.findFirstOrThrow({
+                where: { id, ownerId },
+            })
+
             return CompanyMapper.toDomain(company)
         } catch (error) {
+            // A 404 from the owner-scoped write above is a real answer, not a
+            // database failure — do not rewrite it into a 500.
+            if (error instanceof RecordNotFoundError) throw error
+
             if (error.message && error.message.includes("invalid character")) {
                 this.logger.error(
                     `Invalid UUID format provided: ${id}`,
@@ -342,12 +397,20 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
         }
     }
 
-    async delete(id: string): Promise<void> {
+    async delete(id: string, ownerId: string): Promise<void> {
         try {
-            await prisma.company.delete({
-                where: { id },
+            const { count } = await prisma.company.deleteMany({
+                where: { id, ownerId },
             })
+
+            if (count === 0) {
+                throw new RecordNotFoundError(id)
+            }
         } catch (error) {
+            // A 404 from the owner-scoped write above is a real answer, not a
+            // database failure — do not rewrite it into a 500.
+            if (error instanceof RecordNotFoundError) throw error
+
             if (error.message && error.message.includes("invalid character")) {
                 this.logger.error(
                     `Invalid UUID format provided: ${id}`,
@@ -364,10 +427,10 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
         }
     }
 
-    async exists(id: string): Promise<boolean> {
+    async exists(id: string, ownerId: string): Promise<boolean> {
         try {
             const count = await prisma.company.count({
-                where: { id },
+                where: { id, ownerId },
             })
 
             return count > 0
@@ -388,10 +451,10 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
         }
     }
 
-    async existsByName(name: string): Promise<boolean> {
+    async existsByName(name: string, ownerId: string): Promise<boolean> {
         try {
             const count = await prisma.company.count({
-                where: { name },
+                where: { name, ownerId },
             })
 
             return count > 0

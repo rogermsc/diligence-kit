@@ -3,6 +3,7 @@ import { ApplicationError } from "@/shared/errors/errors"
 export enum InfraErrorType {
     DATABASE_ACCESS_ERROR = "DATABASE_ACCESS_ERROR",
     INVALID_UUID_ERROR = "INVALID_UUID_ERROR",
+    RECORD_NOT_FOUND_ERROR = "RECORD_NOT_FOUND_ERROR",
 }
 
 export class DatabaseAccessError extends ApplicationError<InfraErrorType> {
@@ -11,6 +12,21 @@ export class DatabaseAccessError extends ApplicationError<InfraErrorType> {
             message,
             code: 500,
             type: InfraErrorType.DATABASE_ACCESS_ERROR,
+        })
+    }
+}
+
+/**
+ * Raised when an owner-scoped write matched no rows. Deliberately a 404 with no
+ * detail: the record may exist and belong to someone else, and saying so would
+ * confirm the existence of another tenant's data.
+ */
+export class RecordNotFoundError extends ApplicationError<InfraErrorType> {
+    constructor(id: string) {
+        super({
+            message: `Record ${id} not found`,
+            code: 404,
+            type: InfraErrorType.RECORD_NOT_FOUND_ERROR,
         })
     }
 }

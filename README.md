@@ -128,6 +128,28 @@ Working software extracted from a production deployment, published as a starting
 finished product. There is **no test suite** — the `pnpm test` task exists but runs nothing. Treat the
 pipeline as sound and the edges as unproven, and read `CLAUDE.md` for the architectural detail.
 
+### Known issues
+
+An audit turned these up. They are listed rather than hidden, but they are not fixed — budget for them
+before running this on anything that matters:
+
+- **Retry double-prefixes the storage URL.** `retryAutomation` builds `gs://$BUCKET/${doc.bucketPath}`
+  where `bucketPath` is already a full `gs://` URI. The agent resolves nothing, and the run completes
+  on zero documents while reporting success.
+- **ZIP entries are flattened to basenames.** `2023/financials.pdf` and `2024/financials.pdf` collapse
+  into one document — the upsert key is `(automationId, name)` — and the loss is silent.
+- **The liaison-agent's Alembic migration FKs `users.id`**, which lives in the *other* database. The
+  documented `alembic upgrade head` fails until that FK is dropped or the schemas are merged.
+- **Agent analysis is fire-and-forget.** `asyncio.create_task` with no reference and an
+  `except Exception` handler that `CancelledError` bypasses; a restart mid-run strands the automation
+  in `PROCESSING` with no reaper.
+- **Scorecard categories are matched on exact strings**, and an unrecognized or missing one is silently
+  weighted `0.0` without re-normalizing — understating the headline score with no warning.
+- **`.csv` and `.txt` pass the upstream gates but are not in the agent's supported extensions**, so
+  they upload successfully and are then discarded.
+- **Lint is noisy.** `pnpm lint` reports ~590 pre-existing errors in `apps/service`. Inherited, not
+  triaged.
+
 Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License

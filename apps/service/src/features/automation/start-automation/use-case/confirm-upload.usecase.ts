@@ -6,6 +6,13 @@ import { CheckCompanyHasProcessingAutomationUseCase } from "./check-company-has-
 import { SaveDocumentsUseCase } from "./save-documents.usecase"
 import { NotifyAgentWithDocumentsUseCase } from "./notify-agent-with-documents.usecase"
 import { AutomationStatus } from "@/shared/domain/entities/automation.entity"
+import { BadRequestException } from "@nestjs/common"
+
+class InvalidGcsPathError extends BadRequestException {
+    constructor(fileName: string) {
+        super(`Upload path for "${fileName}" is not valid for this automation`)
+    }
+}
 
 export interface ConfirmUploadFile {
     fileName: string
@@ -24,8 +31,10 @@ export interface ConfirmUploadOutput {
 }
 
 @Injectable()
-export class ConfirmUploadUseCase
-    implements Usecase<ConfirmUploadInput, ConfirmUploadOutput> {
+export class ConfirmUploadUseCase implements Usecase<
+    ConfirmUploadInput,
+    ConfirmUploadOutput
+> {
     private readonly logger = new Logger(ConfirmUploadUseCase.name)
 
     constructor(
@@ -35,13 +44,35 @@ export class ConfirmUploadUseCase
         private readonly checkCompanyHasProcessingAutomationUseCase: CheckCompanyHasProcessingAutomationUseCase,
         private readonly saveDocumentsUseCase: SaveDocumentsUseCase,
         private readonly notifyAgentWithDocumentsUseCase: NotifyAgentWithDocumentsUseCase,
-    ) { }
+    ) {}
 
     async execute(input: ConfirmUploadInput): Promise<ConfirmUploadOutput> {
         const { automationId, companyId, files } = input
 
-        const { company } = await this.getCompanyByIdUseCase.execute({ companyId })
-        await this.checkCompanyHasProcessingAutomationUseCase.execute({ companyId })
+        const { company } = await this.getCompanyByIdUseCase.execute({
+            companyId,
+        })
+        await this.checkCompanyHasProcessingAutomationUseCase.execute({
+            companyId,
+        })
+
+        // gcsPath arrives from the client and is persisted as Documents.bucketPath,
+        // which the download endpoint later streams back verbatim. Unchecked, a
+        // caller could name any object in the bucket — including another tenant's
+        // dataroom — and read it back. Pin it to the prefix this automation's own
+        // uploads produce (see GoogleStorageService.uploadSingleFile).
+        const expectedPrefix = `gs://${process.env.GCLOUD_STORAGE_BUCKET}/${company.name}/${automationId}/`
+        for (const file of files) {
+            if (
+                !file.gcsPath.startsWith(expectedPrefix) ||
+                file.gcsPath.includes("..")
+            ) {
+                this.logger.warn(
+                    `Rejected gcsPath outside automation ${automationId}: ${file.gcsPath}`,
+                )
+                throw new InvalidGcsPathError(file.fileName)
+            }
+        }
 
         const automation = await this.automationRepository.create({
             id: automationId,
@@ -49,9 +80,11 @@ export class ConfirmUploadUseCase
             status: AutomationStatus.PENDING,
         })
 
-        this.logger.log(`Persisted automation ${automation.id} for company ${companyId}`)
+        this.logger.log(
+            `Persisted automation ${automation.id} for company ${companyId}`,
+        )
 
-        const uploadedFiles = files.map(f => ({
+        const uploadedFiles = files.map((f) => ({
             url: f.gcsPath,
             path: f.gcsPath,
             name: f.fileName,
@@ -62,9 +95,11 @@ export class ConfirmUploadUseCase
             uploadedFiles,
         })
 
-        this.logger.log(`Saved ${documents.length} documents for automation ${automation.id}`)
+        this.logger.log(
+            `Saved ${documents.length} documents for automation ${automation.id}`,
+        )
 
-        const agentDocuments = documents.map(doc => ({
+        const agentDocuments = documents.map((doc) => ({
             id: doc.id,
             url: doc.bucketPath,
         }))
