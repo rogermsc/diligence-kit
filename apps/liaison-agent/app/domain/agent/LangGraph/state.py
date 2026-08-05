@@ -1,0 +1,17 @@
+from typing import TypedDict, Annotated, List, Union, Dict, Any, Optional
+from langchain_core.messages import BaseMessage
+import operator
+from app.domain.entities.IntentEntity import Intent
+from app.domain.entities.AnalysisResultEntity import AnalysisResult
+from app.domain.repositories.CompanyRepository import ICompanyRepository
+
+class AgentState(TypedDict):
+    """
+    Agent Liaison state.
+    """
+    messages: Annotated[List[BaseMessage], operator.add]
+    session_id: str
+    context_data: Dict[str, Any]
+    current_intent: Optional[Intent]
+    analysis_context: Optional[AnalysisResult]
+    company_repository: Optional[ICompanyRepository]

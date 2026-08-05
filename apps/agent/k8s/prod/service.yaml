@@ -1,0 +1,15 @@
+apiVersion: "v1"
+kind: "Service"
+metadata:
+  name: "diligence-kit-agent-service"
+  namespace: "prod"
+  annotations:
+    cloud.google.com/backend-config: '{"default": "diligence-kit-agent-backend-config"}'
+spec:
+  type: ClusterIP
+  selector:
+    app: "diligence-kit-agent"
+  ports:
+  - port: 8000
+    targetPort: 8000
+    name: http

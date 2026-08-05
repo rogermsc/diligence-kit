@@ -1,0 +1,94 @@
+name: Deploy
+
+# Single orchestrator for all four apps, with one job per app that actually
+# needs to be redeployed (decided by paths-filter).
+#
+# Manual workflow_dispatch from this file deploys ALL apps. To deploy a single
+# app on demand, run that app's specific deploy-<app>.yml from the Actions UI.
+#
+# NOTE: this ships as a reference implementation and is manual-only. Point the
+# placeholders in apps/*/k8s/prod/ at your own GCP project, set the GCP_*
+# repository secrets, then re-add a push trigger:
+#   push:
+#     branches: [main, 'release/*']
+on:
+  workflow_dispatch:
+
+# Called workflows can only request permissions that the orchestrator already
+# holds. The deploy jobs need OIDC auth to GCP, so grant id-token: write here.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  changes:
+    name: Detect changed apps
+    runs-on: ubuntu-latest
+    outputs:
+      service: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.service == 'true' }}
+      web: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.web == 'true' }}
+      agent: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.agent == 'true' }}
+      liaison_agent: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.liaison_agent == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36  # v3.0.2
+        with:
+          filters: |
+            service:
+              - 'apps/service/**'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'package.json'
+              - '.npmrc'
+              - '.dockerignore'
+              - '.github/workflows/deploy.yml'
+              - '.github/workflows/deploy-service.yml'
+            web:
+              - 'apps/web/**'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'package.json'
+              - '.npmrc'
+              - '.dockerignore'
+              - '.github/workflows/deploy.yml'
+              - '.github/workflows/deploy-web.yml'
+            agent:
+              - 'apps/agent/**'
+              - '.github/workflows/deploy.yml'
+              - '.github/workflows/deploy-agent.yml'
+            liaison_agent:
+              - 'apps/liaison-agent/**'
+              - '.github/workflows/deploy.yml'
+              - '.github/workflows/deploy-liaison-agent.yml'
+
+  service:
+    name: Deploy service
+    needs: changes
+    if: needs.changes.outputs.service == 'true'
+    uses: ./.github/workflows/deploy-service.yml
+    secrets: inherit
+
+  web:
+    name: Deploy web
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    uses: ./.github/workflows/deploy-web.yml
+    secrets: inherit
+
+  agent:
+    name: Deploy agent
+    needs: changes
+    if: needs.changes.outputs.agent == 'true'
+    uses: ./.github/workflows/deploy-agent.yml
+    secrets: inherit
+
+  liaison_agent:
+    name: Deploy liaison-agent
+    needs: changes
+    if: needs.changes.outputs.liaison_agent == 'true'
+    uses: ./.github/workflows/deploy-liaison-agent.yml
+    secrets: inherit

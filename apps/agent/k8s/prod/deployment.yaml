@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: diligence-kit-agent
+  namespace: prod
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: diligence-kit-agent
+  template:
+    metadata:
+      labels:
+        app: diligence-kit-agent
+    spec:
+      serviceAccountName: diligence-kit-agent
+      containers:
+        - name: diligence-kit-agent
+          image: us-central1-docker.pkg.dev/your-gcp-project-id/diligence-kit-artifacts/diligence-kit-agent-prod:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: API_RELOAD
+              value: "false"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-agent-secret
+                  key: openai-api-key
+            - name: GOOGLE_CLOUD_PROJECT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-agent-secret
+                  key: google-cloud-project-id
+            - name: GOOGLE_CLOUD_BUCKET_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-agent-secret
+                  key: google-cloud-bucket-name
+            - name: AGENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-agent-secret
+                  key: agent-secret
+            - name: BACKEND_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-agent-secret
+                  key: backend-base-url
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-agent-secret
+                  key: api-key
+            - name: WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-agent-secret
+                  key: webhook-secret
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 2
+              memory: 4Gi
+      restartPolicy: Always

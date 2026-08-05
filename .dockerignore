@@ -1,0 +1,55 @@
+# Applied when build context is the monorepo root (used by JS apps).
+# Python app builds use apps/<name>/.dockerignore (their own dir as context).
+
+# VCS / CI
+.git
+.gitignore
+.github
+.dockerignore
+
+# Node / Turbo
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/coverage
+**/*.tsbuildinfo
+
+# Python
+**/__pycache__
+**/*.pyc
+**/.venv
+**/venv
+**/.pytest_cache
+
+# Env / secrets — never bake into image
+**/.env
+**/.env.local
+**/.env.*.local
+**/.gcp
+**/.gcp/credentials.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.cert
+
+# Editor / OS
+.idea
+.vscode
+.DS_Store
+Thumbs.db
+
+# Docs / planning files (not needed in image)
+**/README.md
+**/SECURITY_*.md
+**/DEPLOYMENT.md
+**/API_CONTRACT.md
+**/ENV_VARIABLES.md
+
+# K8s manifests don't go in images
+**/k8s
+
+# Sibling Python apps shouldn't ship in JS images
+apps/agent
+apps/liaison-agent

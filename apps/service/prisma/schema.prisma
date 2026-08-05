@@ -1,0 +1,197 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Company {
+  id              String       @id @default(uuid()) @db.Uuid
+  name            String
+  automations     Automation[]
+  reports         Report[]
+  onePagers       OnePager[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("companies")
+}
+
+enum AutomationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  NOT_STARTED
+}
+
+
+enum AutomationStage {
+  TRIAGE
+  DILLIGENCE_OPERATIONAL
+  DILLIGENCE_COMMERCIAL
+  DILLIGENCE_FINANCIAL
+  DILLIGENCE_CAP_TABLE_AND_LEGAL_REVIEW
+}
+
+model Automation {
+  id        String           @id @default(uuid()) @db.Uuid
+  company   Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId String          @db.Uuid
+  status    AutomationStatus @default(NOT_STARTED)
+  stage     AutomationStage  @default(TRIAGE)
+  
+  // Self-referencing relation for parent-child automations
+  parentAutomation   Automation? @relation("AutomationParent", fields: [parentAutomationId], references: [id])
+  parentAutomationId String?     @db.Uuid
+  childAutomations   Automation[] @relation("AutomationParent")
+
+  results   Result[]
+  reports   Report[]
+  onePagers OnePager[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  Documents Documents[]
+
+  @@index([companyId], name: "idx_automation_company")
+  @@index([parentAutomationId], name: "idx_automation_parent")
+  // @@index([stage], name: "idx_automation_stage")
+  @@map("automations")
+}
+
+model Documents {
+  id             String           @id @default(uuid()) @db.Uuid
+  automation     Automation       @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  automationId   String          @db.Uuid
+  outputDocuments OutputDocument[]
+  name           String
+  bucketPath     String
+  openaiFileId   String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@unique([automationId, name])
+  @@map("documents")
+}
+
+enum ResultStatus {
+  OK
+  MISSING_DOCS
+}
+
+enum OutputDocumentStatus {
+  OK
+  MISSING
+  OPTIONAL
+}
+
+enum OutputSector {
+  COMPANY_SUMMARY
+  TEAM
+  CORPORATE
+  CLIENTS
+  INVESTMENT
+  LEGAL
+  FINANCIAL
+}
+
+model Result {
+  id           String     @id @default(uuid()) @db.Uuid
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  automationId String     @db.Uuid
+  status       ResultStatus @default(OK)
+  documents    OutputDocument[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([automationId], name: "idx_result_automation")
+  @@map("results")
+}
+
+model OutputDocument {
+  id           String     @id @default(uuid()) @db.Uuid
+  result       Result     @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  resultId     String     @db.Uuid
+  document     Documents? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId   String?    @db.Uuid
+  name         String
+  status       OutputDocumentStatus
+  sector       OutputSector
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([resultId], name: "idx_output_document_result")
+  @@index([documentId], name: "idx_output_document_document")
+  @@map("output_documents")
+}
+
+model RefreshToken {
+  id        String   @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model User {
+  id            String        @id @default(uuid())
+  email         String       @unique
+  password      String
+  created_at    DateTime     @default(now())
+  companyId     String?      @db.Uuid
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+enum AgentType {
+  OPERATIONAL
+  COMMERCIAL
+  FINANCIAL
+  CAP_TABLE_AND_LEGAL_REVIEW
+}
+
+enum ReportStatus {
+  COMPLETED
+  FAILED
+  UNTRACKED
+}
+
+model Report {
+  id           String       @id @default(uuid()) @db.Uuid
+  automation   Automation   @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  automationId String       @db.Uuid
+  company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId    String       @db.Uuid
+  domain       AgentType
+  status       ReportStatus @default(UNTRACKED)
+  reportUrl    String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([automationId], name: "idx_report_automation")
+  @@index([companyId], name: "idx_report_company")
+  @@index([domain], name: "idx_report_domain")
+  @@unique([automationId, domain], name: "unique_automation_domain")
+  @@map("reports")
+}
+
+model OnePager {
+  id            String      @id @default(uuid()) @db.Uuid
+  automation    Automation  @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  automationId  String      @db.Uuid @unique
+  company       Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId     String      @db.Uuid
+  url           String      @db.Text
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([automationId], name: "idx_onepager_automation")
+  @@index([companyId], name: "idx_onepager_company")
+  @@map("one_pagers")
+}

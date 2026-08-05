@@ -1,0 +1,53 @@
+# Local dev infrastructure for diligence-kit.
+# Run apps natively (pnpm dev / python -m src.main) — these containers provide deps only.
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up -d
+#   docker compose -f docker-compose.dev.yml down
+#   docker compose -f docker-compose.dev.yml logs -f <service>
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: diligence-kit-dev-postgres
+    environment:
+      POSTGRES_USER: diligence_kit
+      POSTGRES_PASSWORD: diligence_kit
+      POSTGRES_DB: diligence_kit
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/dev/postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - diligence-kit-dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U diligence_kit"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: diligence-kit-dev-redis
+    # apps/service/.env.example expects REDIS_PORT=6381 to avoid clashing with a
+    # system Redis on the default 6379. Map the host port accordingly.
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - diligence-kit-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+networks:
+  diligence-kit-dev:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:

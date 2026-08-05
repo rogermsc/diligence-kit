@@ -1,0 +1,9 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: diligence-kit-service-certificate
+  namespace: prod
+spec:
+  domains:
+    - api.dashboard.example.com
+

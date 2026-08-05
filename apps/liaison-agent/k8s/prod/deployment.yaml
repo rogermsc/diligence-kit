@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: diligence-kit-liaison-agent
+  namespace: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: diligence-kit-liaison-agent
+  template:
+    metadata:
+      labels:
+        app: diligence-kit-liaison-agent
+    spec:
+      serviceAccountName: diligence-kit-liaison-agent
+      containers:
+        - name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest
+          args:
+            - "--address=0.0.0.0"
+            - "--port=5432"
+            - "your-gcp-project-id:us-central1:your-cloudsql-instance"
+          securityContext:
+            runAsNonRoot: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+        - name: diligence-kit-liaison-agent
+          image: us-central1-docker.pkg.dev/your-gcp-project-id/diligence-kit-artifacts/diligence-kit-liaison-agent-prod:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-liaison-app-secret
+                  key: api-key
+            - name: GOOGLE_CLOUD_PROJECT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-liaison-app-secret
+                  key: gcp-project-id
+            - name: GOOGLE_CLOUD_LOCATION
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-liaison-app-secret
+                  key: gcp-location
+            - name: ENV
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-liaison-app-secret
+                  key: env
+            - name: LOG_LEVEL
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-liaison-app-secret
+                  key: log-level
+            - name: HOST
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-liaison-app-secret
+                  key: host
+            - name: PORT
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-liaison-app-secret
+                  key: port
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-liaison-app-secret
+                  key: database-url
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1
+              memory: 2Gi
+      restartPolicy: Always

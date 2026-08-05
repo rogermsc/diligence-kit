@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: diligence-kit-agent-ingress
+  namespace: prod
+spec:
+  podSelector:
+    matchLabels:
+      app: diligence-kit-agent
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: prod
+          podSelector:
+            matchLabels:
+              app: diligence-kit-service
+      ports:
+        - protocol: TCP
+          port: 8000

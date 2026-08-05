@@ -1,0 +1,190 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: diligence-kit-service
+  namespace: prod
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: diligence-kit-service
+  template:
+    metadata:
+      labels:
+        app: diligence-kit-service
+    spec:
+      serviceAccountName: diligence-kit-service
+      containers:
+        - name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy@sha256:90157984b88810cc6ce12d118df6ab7d3ef8de6fc4c075d16c1ff6c9e0a18412
+          args:
+            - "--address=0.0.0.0"
+            - "--port=5432"
+            - "your-gcp-project-id:us-central1:your-cloudsql-instance"
+          securityContext:
+            runAsNonRoot: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+        - name: diligence-kit-service
+          image: us-central1-docker.pkg.dev/your-gcp-project-id/diligence-kit-artifacts/diligence-kit-service-prod:latest
+          ports:
+            - containerPort: 3001
+          env:
+            - name: PORT
+              value: "3001"
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-db-secret
+                  key: database-username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-db-secret
+                  key: database-password
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-db-secret
+                  key: database-url
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-jwt-secret
+                  key: jwt-secret
+            - name: REDIS_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-redis-secret
+                  key: redis-host
+            - name: REDIS_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-redis-secret
+                  key: redis-port
+            - name: GCLOUD_STORAGE_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-gcp-secret
+                  key: gcp-storage-bucket
+            - name: SMTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-smtp-secret
+                  key: smtp-host
+            - name: SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-smtp-secret
+                  key: smtp-port
+            - name: SMTP_SECURE
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-smtp-secret
+                  key: smtp-secure
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-smtp-secret
+                  key: smtp-user
+            - name: SMTP_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-smtp-secret
+                  key: smtp-password
+            - name: EMAIL_SENDER
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-smtp-secret
+                  key: email-sender
+            - name: EMAIL_DESTINATION
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-smtp-secret
+                  key: email-destination
+            - name: AGENT_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-app-secret
+                  key: agent-api-url
+            - name: LIAISON_AGENT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-liaison-secret
+                  key: liaison-agent-url
+            - name: LIAISON_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-liaison-secret
+                  key: liaison-api-key
+            - name: ONEPAGER_INCREMENTAL_ENABLED
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-app-secret
+                  key: onepager-incremental
+            - name: NODE_ENV
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-app-secret
+                  key: node-env
+            - name: AGENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-app-secret
+                  key: agent-secret
+            - name: AGENT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-app-secret
+                  key: agent-api-key
+            - name: WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-app-secret
+                  key: webhook-secret
+            - name: CORS_ORIGIN
+              valueFrom:
+                secretKeyRef:
+                  name: diligence-kit-app-secret
+                  key: cors-origin
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1
+              memory: 2Gi
+        - name: redis
+          image: redis@sha256:7aec734b2bb298a1d769fd8729f13b8514a41bf90fcdd1f38ec52267fbaa8ee6
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+      restartPolicy: Always
+
