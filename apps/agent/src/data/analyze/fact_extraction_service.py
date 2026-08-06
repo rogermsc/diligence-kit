@@ -3,10 +3,7 @@ import base64
 import json
 from typing import List
 
-import httpx
-from openai import AsyncOpenAI
-
-from src.core.config import settings
+from src.core.llm import respond_json, upload_file
 from src.core.logging import get_logger
 from src.core.prompts.fact_extraction import (
     EXTRACTION_FIELDS as DEFAULT_EXTRACTION_FIELDS,
@@ -31,17 +28,6 @@ class FactExtractionService:
         financial_fields: set = None,
         information_types: list = None,
     ):
-        self._client = AsyncOpenAI(
-            api_key=settings.openai_api_key,
-            timeout=httpx.Timeout(180.0, connect=10.0),
-            http_client=httpx.AsyncClient(
-                limits=httpx.Limits(
-                    max_connections=100,
-                    max_keepalive_connections=50,
-                ),
-                timeout=httpx.Timeout(180.0, connect=10.0),
-            ),
-        )
         self._extraction_fields = extraction_fields or DEFAULT_EXTRACTION_FIELDS
         self._financial_fields = financial_fields or DEFAULT_FINANCIAL_FIELDS
         self._information_types = information_types or DEFAULT_INFORMATION_TYPES
@@ -105,17 +91,7 @@ class FactExtractionService:
 
         user_content = await self._build_user_content(doc)
 
-        response = await self._client.responses.create(
-            model="gpt-5-mini",
-            instructions=system_prompt,
-            input=[{
-                "role": "user",
-                "content": user_content,
-            }],
-            text={"format": {"type": "json_object"}},
-        )
-
-        raw_text = response.output_text
+        raw_text = await respond_json("fact_extraction", system_prompt, user_content)
 
         parsed = self._parse_response(raw_text, doc)
 
@@ -151,14 +127,11 @@ class FactExtractionService:
         # Fallback: upload on the fly (shouldn't happen after Step 0)
         pdf_bytes = base64.b64decode(doc.pdf_data)
         upload_name = doc.file_name if doc.file_name.endswith(".pdf") else doc.file_name + ".pdf"
-        file = await self._client.files.create(
-            file=(upload_name, pdf_bytes),
-            purpose="user_data",
-        )
-        logger.info(f"Uploaded {doc.file_name} to Files API: {file.id}")
+        file_id = await upload_file(upload_name, pdf_bytes)
+        logger.info(f"Uploaded {doc.file_name} to Files API: {file_id}")
 
         return [
-            {"type": "input_file", "file_id": file.id},
+            {"type": "input_file", "file_id": file_id},
             {"type": "input_text", "text": user_prompt},
         ]
 

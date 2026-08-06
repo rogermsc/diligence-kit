@@ -4,7 +4,7 @@ import tempfile
 from typing import List
 
 from src.core.logging import get_logger
-from src.data.analyze.gcs_client import GCSClient
+from src.data.storage import get_storage
 from src.data.analyze.extractors import excel_extractor, vision_extractor
 from src.domain.analyze.entities import Document, PreparedDocument
 
@@ -22,7 +22,7 @@ SUPPORTED_EXTENSIONS = EXCEL_EXTENSIONS | {
 
 class ExtractionService:
     def __init__(self):
-        self._gcs = GCSClient()
+        self._gcs = get_storage()
 
     async def prepare_all(self, documents: List[Document]) -> List[PreparedDocument]:
         """Download and prepare all documents in parallel.

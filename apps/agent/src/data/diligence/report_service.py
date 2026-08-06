@@ -3,9 +3,7 @@
 import json
 from datetime import date
 
-from openai import AsyncOpenAI
-
-from src.core.config import settings
+from src.core.llm import complete_json
 from src.core.logging import get_logger
 from src.core.prompts.diligence_synthesis import DOMAIN_SYNTHESIS_PROMPTS
 from src.domain.analyze.entities import MergedFacts
@@ -15,9 +13,6 @@ logger = get_logger(__name__)
 
 
 class DiligenceReportService:
-    def __init__(self):
-        self._client = AsyncOpenAI(api_key=settings.openai_api_key)
-
     async def generate(
         self, domain: str, company_name: str, merged: MergedFacts
     ) -> DiligenceReport:
@@ -72,20 +67,7 @@ class DiligenceReportService:
             f"[{domain}] Diligence synthesis GPT call started ({len(facts_json)} chars of facts)"
         )
 
-        response = await self._client.chat.completions.create(
-            model="gpt-5.2",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            response_format={"type": "json_object"},
-        )
-
-        raw_text = response.choices[0].message.content
-        finish_reason = response.choices[0].finish_reason
-
-        if finish_reason != "stop":
-            logger.warning(f"[{domain}] Synthesis finish_reason={finish_reason}")
+        raw_text = await complete_json("diligence_report", user_prompt, system_prompt)
 
         if not raw_text:
             raise RuntimeError(f"Empty response from {domain} synthesis GPT call")

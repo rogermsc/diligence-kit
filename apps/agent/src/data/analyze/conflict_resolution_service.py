@@ -2,9 +2,7 @@ import asyncio
 import json
 from typing import List
 
-from openai import AsyncOpenAI
-
-from src.core.config import settings
+from src.core.llm import complete_json
 from src.core.logging import get_logger
 from src.domain.analyze.entities import Conflict
 
@@ -40,9 +38,6 @@ Respond with valid JSON:
 
 
 class ConflictResolutionService:
-    def __init__(self):
-        self._client = AsyncOpenAI(api_key=settings.openai_api_key)
-
     async def resolve(self, conflicts: List[Conflict]) -> List[Conflict]:
         """Filter out false-positive conflicts using GPT."""
         if not conflicts:
@@ -52,15 +47,10 @@ class ConflictResolutionService:
         for c in conflicts:
             conflicts_text += f"\nField: {c.field}\nValues: {c.values}\n"
 
-        response = await self._client.chat.completions.create(
-            model="gpt-5-mini",
-            messages=[
-                {"role": "user", "content": CONFLICT_RESOLUTION_PROMPT.format(conflicts=conflicts_text)},
-            ],
-            response_format={"type": "json_object"},
+        raw_text = await complete_json(
+            "conflict_resolution",
+            CONFLICT_RESOLUTION_PROMPT.format(conflicts=conflicts_text),
         )
-
-        raw_text = response.choices[0].message.content
         if not raw_text:
             logger.warning("Empty response from conflict resolution, keeping all conflicts")
             return conflicts

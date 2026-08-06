@@ -6,7 +6,7 @@ from src.data.analyze.conflict_resolution_service import ConflictResolutionServi
 from src.data.analyze.extraction_service import ExtractionService
 from src.data.analyze.fact_extraction_service import FactExtractionService
 from src.data.analyze.file_preparation_service import FilePreparationService
-from src.data.analyze.gcs_client import GCSClient
+from src.data.storage import get_storage
 from src.data.analyze.document_renderer import render_docx, convert_docx_to_pdf
 from src.data.analyze.one_pager_service import OnePagerService
 from src.domain.analyze.entities import AnalyzeInput, Document, MergedFacts
@@ -21,7 +21,7 @@ class AnalyzeUseCase:
         self._fact_extraction_service = FactExtractionService()
         self._conflict_resolution_service = ConflictResolutionService()
         self._file_preparation_service = FilePreparationService()
-        self._gcs = GCSClient()
+        self._gcs = get_storage()
         self._one_pager_service = OnePagerService()
 
     async def execute(self, input: AnalyzeInput) -> Tuple[str, List[Document], MergedFacts]:

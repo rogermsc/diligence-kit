@@ -48,6 +48,9 @@ venv/
 *.swp
 *.swo
 
+# Local object storage (STORAGE_DRIVER=local)
+.data/
+
 # OS
 .DS_Store
 Thumbs.db

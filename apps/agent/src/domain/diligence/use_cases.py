@@ -8,7 +8,7 @@ from src.data.analyze.conflict_resolution_service import ConflictResolutionServi
 from src.data.analyze.extraction_service import ExtractionService
 from src.data.analyze.fact_extraction_service import FactExtractionService
 from src.data.analyze.file_preparation_service import FilePreparationService
-from src.data.analyze.gcs_client import GCSClient
+from src.data.storage import get_storage
 from src.data.diligence.document_renderer import render_diligence_docx
 from src.data.analyze.document_renderer import convert_docx_to_pdf
 from src.data.diligence.report_service import DiligenceReportService
@@ -33,7 +33,7 @@ class DiligenceUseCase:
             information_types=config.information_types,
         )
         self._conflict_resolution_service = ConflictResolutionService()
-        self._gcs = GCSClient()
+        self._gcs = get_storage()
         self._report_service = DiligenceReportService()
 
         # Merge parameters

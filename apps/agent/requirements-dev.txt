@@ -1,0 +1,5 @@
+# Test and lint tooling. Not installed in the production image.
+-r requirements.txt
+pytest==8.4.2
+pytest-asyncio==1.2.0
+ruff==0.14.2

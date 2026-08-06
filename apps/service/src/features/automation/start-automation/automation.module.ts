@@ -3,6 +3,7 @@ import { BullModule } from "@nestjs/bull"
 import { AutomationController } from "./presentation/automation.controller"
 import { AutomationZipUploadUseCase } from "./use-case/automation-zip-upload.usecase"
 import { GoogleStorageService } from "@/shared/services/google-storage.service"
+import { LocalStorageService } from "@/shared/services/local-storage.service"
 import { YauzlZipParserService } from "@/shared/services/yauzl-zip-parser.service"
 import { AgentGatewayAxiosAdapter } from "./gateway/agent-gateway-axios.adapter"
 import { GetCompanyByIdUseCase } from "./use-case/get-company-by-id.usecase"
@@ -110,7 +111,10 @@ import { OwnershipService } from "@/shared/services/ownership.service"
         // Storage and infrastructure
         {
             provide: "StorageService",
-            useClass: GoogleStorageService,
+            useClass:
+                process.env.STORAGE_DRIVER === "local"
+                    ? LocalStorageService
+                    : GoogleStorageService,
         },
         {
             provide: "ChunkUploadProgressTracker",

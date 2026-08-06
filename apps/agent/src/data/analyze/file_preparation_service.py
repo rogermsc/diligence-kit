@@ -10,11 +10,9 @@ import asyncio
 import base64
 import os
 
-import httpx
-from openai import AsyncOpenAI
 from typing import List
 
-from src.core.config import settings
+from src.core.llm import upload_file
 from src.core.logging import get_logger
 from src.data.analyze.extraction_service import ExtractionService, EXCEL_EXTENSIONS
 from src.domain.analyze.entities import Document
@@ -27,17 +25,6 @@ class FilePreparationService:
 
     def __init__(self):
         self._extraction_service = ExtractionService()
-        self._client = AsyncOpenAI(
-            api_key=settings.openai_api_key,
-            timeout=httpx.Timeout(180.0, connect=10.0),
-            http_client=httpx.AsyncClient(
-                limits=httpx.Limits(
-                    max_connections=50,
-                    max_keepalive_connections=25,
-                ),
-                timeout=httpx.Timeout(180.0, connect=10.0),
-            ),
-        )
 
     async def prepare_all(self, documents: List[Document]) -> List[Document]:
         """Returns documents with openai_file_id set for non-Excel files."""
@@ -73,14 +60,11 @@ class FilePreparationService:
                     # Upload to OpenAI Files API
                     pdf_bytes = base64.b64decode(pdf_b64)
                     upload_name = file_name if file_name.endswith(".pdf") else file_name + ".pdf"
-                    file = await self._client.files.create(
-                        file=(upload_name, pdf_bytes),
-                        purpose="user_data",
-                    )
-                    logger.info(f"Pre-uploaded {file_name} to Files API: {file.id}")
+                    file_id = await upload_file(upload_name, pdf_bytes)
+                    logger.info(f"Pre-uploaded {file_name} to Files API: {file_id}")
 
                     # pdf_bytes and pdf_b64 go out of scope → GC'd
-                    return doc.model_copy(update={"openai_file_id": file.id})
+                    return doc.model_copy(update={"openai_file_id": file_id})
 
                 except Exception as e:
                     logger.error(f"Pre-upload failed for {doc.url}: {e}")

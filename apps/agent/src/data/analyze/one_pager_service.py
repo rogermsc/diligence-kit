@@ -2,9 +2,7 @@ import json
 import re
 from datetime import date
 
-from openai import AsyncOpenAI
-
-from src.core.config import settings
+from src.core.llm import complete_json
 from src.core.logging import get_logger
 from src.core.prompts.one_pager import ONE_PAGER_SYSTEM_PROMPT, ONE_PAGER_USER_PROMPT
 from src.domain.analyze.entities import (
@@ -36,9 +34,6 @@ CATEGORY_WEIGHTS = {
 
 
 class OnePagerService:
-    def __init__(self):
-        self._client = AsyncOpenAI(api_key=settings.openai_api_key)
-
     async def generate(self, company_name: str, merged: MergedFacts) -> OnePager:
         """Generate a one-pager from merged facts via a single GPT call."""
         # Build a compact facts representation — deduplicate by value only,
@@ -90,20 +85,7 @@ class OnePagerService:
 
         logger.info(f"One-pager GPT call started ({len(facts_json)} chars of facts)")
 
-        response = await self._client.chat.completions.create(
-            model="gpt-5.2",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            response_format={"type": "json_object"},
-        )
-
-        raw_text = response.choices[0].message.content
-        finish_reason = response.choices[0].finish_reason
-
-        if finish_reason != "stop":
-            logger.warning(f"One-pager finish_reason={finish_reason}")
+        raw_text = await complete_json("one_pager", user_prompt, system_prompt)
 
         return self._parse_response(raw_text)
 
@@ -113,15 +95,31 @@ class OnePagerService:
 
         data = json.loads(raw_text)
 
-        # Compute scorecard weighted scores and overall score deterministically
+        # Compute scorecard weighted scores and overall score deterministically.
+        #
+        # The overall is normalised by the weight actually present, not by the
+        # full 1.0. A model that renames a category or returns fewer than eight
+        # of them would otherwise have those categories weighted 0.0 and drag the
+        # headline down silently — one renamed category turned a 4.0 into a 3.2.
+        # An unrecognised category still contributes nothing, but it is warned
+        # about and no longer distorts the rest.
         scorecard = []
         total_weighted = 0.0
+        total_weight = 0.0
         for s in data["scorecard"]:
             category = s["category"]
             score = self._parse_score(s["score"])
-            weight = CATEGORY_WEIGHTS.get(category, 0.0)
+            weight = CATEGORY_WEIGHTS.get(category)
+            if weight is None:
+                logger.warning(
+                    f"Scorecard category not recognised: '{category}' — excluded "
+                    f"from the overall score. Expected one of: "
+                    f"{', '.join(CATEGORY_WEIGHTS)}"
+                )
+                weight = 0.0
             weighted = score * weight
             total_weighted += weighted
+            total_weight += weight
             scorecard.append(ScorecardCategory(
                 category=category,
                 score=f"{score:.1f}/5",
@@ -129,7 +127,14 @@ class OnePagerService:
                 key_issues=s.get("key_issues", []),
             ))
 
-        overall_score = f"{total_weighted:.1f}/5.0"
+        if total_weight < 1.0:
+            logger.warning(
+                f"Scorecard covers {total_weight:.2f} of the 1.0 weight — "
+                f"normalising the overall score over the categories present."
+            )
+
+        overall = total_weighted / total_weight if total_weight else 0.0
+        overall_score = f"{overall:.1f}/5.0"
 
         fh = data["financial_highlights"]
 
