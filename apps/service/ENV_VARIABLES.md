@@ -50,6 +50,13 @@ These variables have default values and are optional:
 | `EMAIL_DESTINATION` | - | Default destination email |
 | `RESEND_API_KEY` | - | Resend service API key |
 
+### Stale-run reaper
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `AUTOMATION_TIMEOUT_MINUTES` | `60` | How long an automation may sit in `PROCESSING` before it is marked `FAILED`. Set it above the longest real run: the agent's callback is what normally ends the run, so anything still processing past this never received one. |
+| `AUTOMATION_REAPER_INTERVAL_MINUTES` | `5` | How often to sweep. |
+| `AUTOMATION_REAPER_ENABLED` | `true` | Set to `false` to disable. Interrupted runs then stay `PROCESSING` until someone updates them by hand. |
+
 ### Feature Flags
 | Variable | Default | Description |
 |----------|---------|-------------|

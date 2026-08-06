@@ -14,6 +14,7 @@ import { HealthController } from "@/shared/infra/health/health.controller"
 import { APP_INTERCEPTOR } from "@nestjs/core"
 import { TenancyInterceptor } from "@/shared/tenancy/tenancy.interceptor"
 import { OwnershipService } from "@/shared/services/ownership.service"
+import { StaleAutomationReaper } from "@/shared/services/stale-automation-reaper.service"
 
 config()
 
@@ -41,6 +42,9 @@ config()
     providers: [
         ErrorDispatcherService,
         OwnershipService,
+        // Nothing else ever revisits an automation whose agent callback
+        // never arrived, so without this they stay PROCESSING forever.
+        StaleAutomationReaper,
         // Global and deny-by-default: an authenticated route that declares no
         // tenancy rule is refused rather than quietly serving another tenant.
         // An interceptor, not a guard — global guards run before the

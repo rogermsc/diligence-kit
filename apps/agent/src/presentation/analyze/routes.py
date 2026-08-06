@@ -1,10 +1,10 @@
-import asyncio
 from typing import List
 
 import httpx
 import jwt
 from fastapi import APIRouter, Depends
 
+from src.core.background import spawn
 from src.core.config import settings
 from src.core.logging import get_logger
 from src.core.security import verify_api_key
@@ -30,7 +30,7 @@ async def analyze(payload: AnalyzeRequest):
         retry=payload.retry,
     )
 
-    asyncio.create_task(_run_analysis(input))
+    spawn(_run_analysis(input), name=f"analyze:{payload.automation_id}")
 
     return AnalyzeResponse(
         success=True,

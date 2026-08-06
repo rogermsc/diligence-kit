@@ -1,9 +1,8 @@
-import asyncio
-
 import httpx
 import jwt
 from fastapi import APIRouter, Depends
 
+from src.core.background import spawn
 from src.core.config import settings
 from src.core.logging import get_logger
 from src.core.security import verify_api_key
@@ -25,7 +24,10 @@ router = APIRouter(prefix="/api/v1", tags=["diligence"])
 @router.post("/diligence", response_model=DiligenceResponse, dependencies=[Depends(verify_api_key)])
 async def diligence(payload: DiligenceRequest):
     for automation in payload.automations:
-        asyncio.create_task(_run_diligence(automation))
+        spawn(
+            _run_diligence(automation),
+            name=f"diligence:{automation.domain}:{automation.automation_id}",
+        )
 
     return DiligenceResponse(
         success=True,

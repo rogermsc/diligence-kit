@@ -169,6 +169,17 @@ Re-record with `python scripts/record_demo_fixtures.py`.
 The ~575 inherited type-safety lint violations are captured in `apps/service/eslint-suppressions.json`
 so they don't block work; any newly introduced error fails the build.
 
+### Authorization
+
+Every authenticated route declares what it touches — `@Tenancy({automation: "param:automationId"})`,
+or `@NoTenancy("reason")` for routes that create a record or list records the repository already
+scopes to the caller. A global interceptor enforces the declaration and **denies by default**, so a
+route that authenticates a user and declares nothing is refused rather than quietly serving. A spec
+walks every registered route and fails the build if any lacks a declaration.
+
+Ownership failures return 404, not 403: a 403 confirms that an id exists, which is what an
+id-guessing attacker is trying to learn.
+
 ### Upgrading
 
 Access and refresh tokens now carry a `typ` claim that both verifiers require, so **every token issued
@@ -207,9 +218,6 @@ before running this on anything that matters:
   into one document — the upsert key is `(automationId, name)` — and the loss is silent.
 - **The liaison-agent's Alembic migration FKs `users.id`**, which lives in the *other* database. The
   documented `alembic upgrade head` fails until that FK is dropped or the schemas are merged.
-- **Agent analysis is fire-and-forget.** `asyncio.create_task` with no reference and an
-  `except Exception` handler that `CancelledError` bypasses; a restart mid-run strands the automation
-  in `PROCESSING` with no reaper.
 - **`.csv` and `.txt` pass the upstream gates but are not in the agent's supported extensions**, so
   they upload successfully and are then discarded.
 - **Lint is noisy.** `pnpm lint` reports ~590 pre-existing errors in `apps/service`. Inherited, not
