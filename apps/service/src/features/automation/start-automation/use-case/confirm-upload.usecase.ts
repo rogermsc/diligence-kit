@@ -63,10 +63,10 @@ export class ConfirmUploadUseCase implements Usecase<
         // uploads produce (see GoogleStorageService.uploadSingleFile).
         const expectedPrefix = `gs://${process.env.GCLOUD_STORAGE_BUCKET}/${company.name}/${automationId}/`
         for (const file of files) {
-            if (
-                !file.gcsPath.startsWith(expectedPrefix) ||
-                file.gcsPath.includes("..")
-            ) {
+            // startsWith is the whole check: GCS object names are flat strings,
+            // so ".." carries no traversal meaning and rejecting it would fail
+            // legitimate names like "FY2023..2024 financials.pdf".
+            if (!file.gcsPath.startsWith(expectedPrefix)) {
                 this.logger.warn(
                     `Rejected gcsPath outside automation ${automationId}: ${file.gcsPath}`,
                 )

@@ -2,6 +2,7 @@ import { Controller, Post, Get, Body, UseGuards, Req, Param, Inject } from '@nes
 import { AuthGuard } from '@/features/auth/guards/auth.guard';
 import { LiaisonGateway } from '../domain/interfaces/liaison-gateway.interface';
 import { ChatRequestDto, chatRequestSchema } from '../data/dtos/chat-request.schema';
+import { OwnershipService } from '@/shared/services/ownership.service';
 import { RequestValidator } from '@/shared/validators/request-validator';
 import { z } from 'zod';
 
@@ -13,6 +14,7 @@ export class LiaisonController {
   constructor(
     @Inject('LiaisonGateway')
     private readonly liaisonGateway: LiaisonGateway,
+    private readonly ownershipService: OwnershipService,
   ) {}
 
   @Post('chat')
@@ -20,12 +22,29 @@ export class LiaisonController {
     const validatedData = RequestValidator.validate(body, chatRequestSchema);
     const userId = request.user.id;
 
+    // automation_id and company_context steer which Cloud Logging entries and
+    // which company record the agent reads. They arrive from the client, so
+    // anything the caller does not own is dropped rather than forwarded — the
+    // liaison agent has no way to check ownership itself.
+    const automationId = validatedData.automation_id;
+    if (automationId) {
+      await this.ownershipService.assertAutomationOwned(automationId, userId);
+    }
+
+    const companyContext = validatedData.company_context as
+      | Record<string, string>
+      | undefined;
+    const contextCompanyId = companyContext?.id ?? companyContext?.company_id;
+    if (contextCompanyId) {
+      await this.ownershipService.assertCompanyOwned(contextCompanyId, userId);
+    }
+
     return this.liaisonGateway.sendMessage({
       message: validatedData.message,
       session_id: validatedData.session_id,
       user_id: userId,
-      automation_id: validatedData.automation_id,
-      company_context: validatedData.company_context,
+      automation_id: automationId,
+      company_context: companyContext,
     });
   }
 

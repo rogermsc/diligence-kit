@@ -128,10 +128,36 @@ Working software extracted from a production deployment, published as a starting
 finished product. There is **no test suite** — the `pnpm test` task exists but runs nothing. Treat the
 pipeline as sound and the edges as unproven, and read `CLAUDE.md` for the architectural detail.
 
+### Upgrading
+
+Access and refresh tokens now carry a `typ` claim that both verifiers require, so **every token issued
+before this change is rejected** — all users must log in again after deploying. The dashboard has no
+refresh route, so a stale cookie renders as logged-in while every data call 401s; clearing cookies
+fixes it. Adding a refresh endpoint to the web BFF is the obvious follow-up: `setSessionCookies`
+already writes a 7-day refresh cookie that nothing currently reads, so sessions expire hard at 24h.
+
+Run the ownership migration before anyone logs in, then check who owns what — see the query at the
+top of `prisma/migrations/*_add_company_owner/migration.sql`.
+
 ### Known issues
 
 An audit turned these up. They are listed rather than hidden, but they are not fixed — budget for them
 before running this on anything that matters:
+
+- **Storage paths are namespaced by company *name*, not id.** That is why company names must be
+  globally unique rather than per-owner, which leaks the existence of other tenants' company names at
+  creation time. Namespacing by company id would remove both problems; it touches the chunked-upload
+  subsystem, so it is not done here.
+- **Chunked upload trusts a caller-chosen `identifier`.** The Redis registry keys (`upload:<id>`) have
+  no tenant component, so a caller who guesses an in-flight identifier can rebind that upload to their
+  own automation. Reachable only via `POST /automation/start/:companyId`, which the UI does not call.
+- **The liaison agent resolves companies by unscoped `ILIKE`.** A chat message naming a substring of
+  another tenant's company can resolve to that company. The backend now validates any company id or
+  automation id the client passes, so this is limited to name-based resolution inside the agent.
+- **Chat defaults `user_id` to the literal `"default_user"`** when the caller omits it, pooling those
+  conversations under one identity that the per-user history filter then treats as a single owner.
+- **`confirm` reports `PROCESSING` even when the agent call failed** and the row was written `FAILED`,
+  so the dashboard shows an upload as succeeded.
 
 - **Retry double-prefixes the storage URL.** `retryAutomation` builds `gs://$BUCKET/${doc.bucketPath}`
   where `bucketPath` is already a full `gs://` URI. The agent resolves nothing, and the run completes

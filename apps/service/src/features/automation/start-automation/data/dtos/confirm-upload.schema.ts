@@ -21,7 +21,9 @@ export const ConfirmUploadSchema = z.object({
             }),
         )
         .min(1, "At least one file is required")
-        .max(500, "Too many files in a single confirm"),
+        // Generous on purpose: the uploader has no matching cap, so a limit low
+        // enough to hit in practice would orphan every already-uploaded object.
+        .max(10000, "Too many files in a single confirm"),
 })
 
 export type ConfirmUploadDto = z.infer<typeof ConfirmUploadSchema>

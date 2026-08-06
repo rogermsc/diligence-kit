@@ -5,6 +5,7 @@ import {
     CompanyDeletionFailedError,
 } from "../domain/errors/company-errors"
 import { Usecase } from "@/shared/interfaces/usecase"
+import { RecordNotFoundError } from "@/shared/errors/db/data-base-error"
 
 export interface DeleteCompanyInput {
     id: string
@@ -43,6 +44,10 @@ export class DeleteCompanyUseCase implements Usecase<
                 message: `Company "${company.name}" and all related data deleted successfully`,
             }
         } catch (error) {
+            // The repository raises a deliberate 404 when the owner-scoped delete
+            // matches nothing (e.g. a concurrent delete). Preserve it.
+            if (error instanceof RecordNotFoundError) throw error
+
             throw new CompanyDeletionFailedError(id, error.message)
         }
     }

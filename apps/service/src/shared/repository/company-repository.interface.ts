@@ -91,6 +91,13 @@ export interface CompanyRepository {
      * this company. Never call this to serve a user-supplied id directly.
      */
     findByIdAsSystem(id: string): Promise<Company | null>
+    /**
+     * Global, cross-tenant name lookup. Company names must stay unique across all
+     * owners because object-storage paths are namespaced by company NAME, not id
+     * (see GoogleStorageService.uploadSingleFile) — two tenants sharing a name
+     * would share a storage prefix and overwrite each other's documents.
+     */
+    findByNameAsSystem(name: string): Promise<Company | null>
     findByIdWithAutomations(
         id: string,
         ownerId: string,

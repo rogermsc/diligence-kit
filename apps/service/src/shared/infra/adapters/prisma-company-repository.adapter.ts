@@ -14,6 +14,18 @@ import {
 import { prisma } from "@/shared/infra/prisma"
 import { CompanyMapper } from "@/shared/domain/mappers/company.mapper"
 
+/**
+ * Prisma reads `undefined` in a `where` clause as "no filter". On deleteMany that
+ * turns `{ id: undefined, ownerId }` into "delete every company this user owns",
+ * which reports success because count > 0. Never let an absent id reach a query.
+ */
+function requireId(value: string, field: string): string {
+    if (typeof value !== "string" || value.length === 0) {
+        throw new RecordNotFoundError(`${field} (missing)`)
+    }
+    return value
+}
+
 @Injectable()
 export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
     private readonly logger = new Logger(PrismaCompanyRepositoryAdapter.name)
@@ -40,7 +52,7 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
     async findById(id: string, ownerId: string): Promise<Company | null> {
         try {
             const company = await prisma.company.findFirst({
-                where: { id, ownerId },
+                where: { id: requireId(id, "id"), ownerId: requireId(ownerId, "ownerId") },
             })
 
             if (!company) {
@@ -83,13 +95,27 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
         }
     }
 
+    async findByNameAsSystem(name: string): Promise<Company | null> {
+        try {
+            const company = await prisma.company.findFirst({ where: { name } })
+
+            return company ? CompanyMapper.toDomain(company) : null
+        } catch (error) {
+            this.logger.error(
+                `Failed to find company by name: ${error.message}`,
+                error.stack,
+            )
+            throw new DatabaseAccessError(`Failed to find company by name`)
+        }
+    }
+
     async findByIdWithAutomations(
         id: string,
         ownerId: string,
     ): Promise<CompanyWithAutomations | null> {
         try {
             const companyWithAutomations = await prisma.company.findFirst({
-                where: { id, ownerId },
+                where: { id: requireId(id, "id"), ownerId: requireId(ownerId, "ownerId") },
                 include: {
                     automations: {
                         orderBy: { createdAt: "desc" },
@@ -207,7 +233,7 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
     async findByName(name: string, ownerId: string): Promise<Company | null> {
         try {
             const company = await prisma.company.findFirst({
-                where: { name, ownerId },
+                where: { name, ownerId: requireId(ownerId, "ownerId") },
             })
 
             if (!company) {
@@ -227,7 +253,7 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
     async findAll(ownerId: string): Promise<Company[]> {
         try {
             const companies = await prisma.company.findMany({
-                where: { ownerId },
+                where: { ownerId: requireId(ownerId, "ownerId") },
                 orderBy: { createdAt: "desc" },
             })
 
@@ -246,7 +272,7 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
     ): Promise<CompanyWithAutomations[]> {
         try {
             const companiesWithAutomations = await prisma.company.findMany({
-                where: { ownerId },
+                where: { ownerId: requireId(ownerId, "ownerId") },
                 orderBy: { createdAt: "desc" },
                 include: {
                     automations: {
@@ -361,7 +387,7 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
             // updateMany, not update: `where` on update accepts only unique
             // fields, which would drop the ownerId filter.
             const { count } = await prisma.company.updateMany({
-                where: { id, ownerId },
+                where: { id: requireId(id, "id"), ownerId: requireId(ownerId, "ownerId") },
                 data: {
                     ...(data.name && { name: data.name }),
                 },
@@ -372,7 +398,7 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
             }
 
             const company = await prisma.company.findFirstOrThrow({
-                where: { id, ownerId },
+                where: { id: requireId(id, "id"), ownerId: requireId(ownerId, "ownerId") },
             })
 
             return CompanyMapper.toDomain(company)
@@ -400,7 +426,7 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
     async delete(id: string, ownerId: string): Promise<void> {
         try {
             const { count } = await prisma.company.deleteMany({
-                where: { id, ownerId },
+                where: { id: requireId(id, "id"), ownerId: requireId(ownerId, "ownerId") },
             })
 
             if (count === 0) {
@@ -430,7 +456,7 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
     async exists(id: string, ownerId: string): Promise<boolean> {
         try {
             const count = await prisma.company.count({
-                where: { id, ownerId },
+                where: { id: requireId(id, "id"), ownerId: requireId(ownerId, "ownerId") },
             })
 
             return count > 0
@@ -454,7 +480,7 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
     async existsByName(name: string, ownerId: string): Promise<boolean> {
         try {
             const count = await prisma.company.count({
-                where: { name, ownerId },
+                where: { name, ownerId: requireId(ownerId, "ownerId") },
             })
 
             return count > 0

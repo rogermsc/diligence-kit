@@ -1,5 +1,18 @@
-import { Injectable, NotFoundException } from "@nestjs/common"
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common"
 import { prisma } from "@/shared/infra/prisma"
+
+/**
+ * Prisma treats an `undefined` value in a `where` clause as "no filter", so
+ * `{ id: undefined, ownerId }` silently becomes `WHERE ownerId = ?` and matches
+ * the caller's own first record — the assertion passes having verified nothing.
+ * Every id must therefore be proven present before it reaches a query.
+ */
+function requireId(value: string, field: string): string {
+    if (typeof value !== "string" || value.length === 0) {
+        throw new BadRequestException(`${field} is required`)
+    }
+    return value
+}
 
 /**
  * Authorization checks for records reached by id.
@@ -19,7 +32,10 @@ export class OwnershipService {
         userId: string,
     ): Promise<void> {
         const automation = await prisma.automation.findFirst({
-            where: { id: automationId, company: { ownerId: userId } },
+            where: {
+                id: requireId(automationId, "automationId"),
+                company: { ownerId: requireId(userId, "userId") },
+            },
             select: { id: true },
         })
 
@@ -30,7 +46,10 @@ export class OwnershipService {
 
     async assertCompanyOwned(companyId: string, userId: string): Promise<void> {
         const company = await prisma.company.findFirst({
-            where: { id: companyId, ownerId: userId },
+            where: {
+                id: requireId(companyId, "companyId"),
+                ownerId: requireId(userId, "userId"),
+            },
             select: { id: true },
         })
 
@@ -45,8 +64,8 @@ export class OwnershipService {
     ): Promise<void> {
         const document = await prisma.documents.findFirst({
             where: {
-                id: documentId,
-                automation: { company: { ownerId: userId } },
+                id: requireId(documentId, "documentId"),
+                automation: { company: { ownerId: requireId(userId, "userId") } },
             },
             select: { id: true },
         })
