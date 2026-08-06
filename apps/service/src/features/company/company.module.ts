@@ -9,14 +9,12 @@ import { DeleteCompanyUseCase } from "./use-case/delete-company.usecase"
 import { AuthModule } from "@/features/auth/auth.module"
 import { MarkdownFileHelper } from "./domain/helpers/markdown-file.helper"
 import { StorageFileReaderAdapter } from "./domain/interfaces/storage-file-reader.adapter"
-import { OwnershipService } from "@/shared/services/ownership.service"
 import { AutomationModule as StartAutomationModule } from "@/features/automation/start-automation/automation.module" // ✅ Módulo correto
 
 @Module({
     imports: [AuthModule, StartAutomationModule],
     controllers: [CompanyController],
     providers: [
-        OwnershipService,
         {
             provide: "CompanyRepository",
             useClass: PrismaCompanyRepositoryAdapter,

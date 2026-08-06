@@ -14,7 +14,7 @@ import {
     ChatRequestDto,
     chatRequestSchema,
 } from "../data/dtos/chat-request.schema"
-import { OwnershipService } from "@/shared/services/ownership.service"
+import { Tenancy, NoTenancy } from "@/shared/tenancy/tenancy.decorator"
 import { RequestValidator } from "@/shared/validators/request-validator"
 import { z } from "zod"
 
@@ -28,39 +28,30 @@ export class LiaisonController {
     constructor(
         @Inject("LiaisonGateway")
         private readonly liaisonGateway: LiaisonGateway,
-        private readonly ownershipService: OwnershipService,
     ) {}
 
     @Post("chat")
+    // automation_id and company_context steer which Cloud Logging entries and
+    // which company record the agent reads, and both arrive from the client. The
+    // company id is resolved the way ContextExtractor.py resolves it — Python
+    // `or` is falsy-aware, so `{id: "", company_id: "<victim>"}` reaches
+    // company_id there and must reach it here too.
+    @Tenancy({
+        automation: { from: "body:automation_id", optional: true },
+        company: {
+            from: [
+                "body:company_context.id",
+                "body:company_context.company_id",
+            ],
+            optional: true,
+        },
+    })
     async sendMessage(@Body() body: unknown, @Req() request: any) {
         const validatedData = RequestValidator.validate(body, chatRequestSchema)
         const userId = request.user.id
 
-        // automation_id and company_context steer which Cloud Logging entries and
-        // which company record the agent reads. They arrive from the client, so
-        // anything the caller does not own is dropped rather than forwarded — the
-        // liaison agent has no way to check ownership itself.
         const automationId = validatedData.automation_id
-        if (automationId) {
-            await this.ownershipService.assertAutomationOwned(
-                automationId,
-                userId,
-            )
-        }
-
         const companyContext = validatedData.company_context
-        // Must match how the agent resolves this field. ContextExtractor.py uses
-        // Python `or`, which is falsy-aware, so `{id: "", company_id: "<victim>"}`
-        // resolves to company_id there. `??` only falls through on null/undefined,
-        // so it would have yielded "" here and skipped the check entirely.
-        const contextCompanyId =
-            companyContext?.id || companyContext?.company_id
-        if (contextCompanyId) {
-            await this.ownershipService.assertCompanyOwned(
-                contextCompanyId,
-                userId,
-            )
-        }
 
         return this.liaisonGateway.sendMessage({
             message: validatedData.message,
@@ -72,18 +63,21 @@ export class LiaisonController {
     }
 
     @Get("session/last")
+    @NoTenancy("the agent scopes the session to the caller's user id")
     async getOrCreateSession(@Req() request: any) {
         const userId = request.user.id
         return this.liaisonGateway.getOrCreateSession(userId)
     }
 
     @Post("session/create")
+    @NoTenancy("creates a session owned by the caller")
     async createNewSession(@Req() request: any) {
         const userId = request.user.id
         return this.liaisonGateway.createNewSession(userId)
     }
 
     @Get("messages/:sessionId")
+    @NoTenancy("the agent filters history by the caller's user id")
     async getMessageHistory(@Param() params: unknown, @Req() request: any) {
         const { sessionId } = RequestValidator.validate(params, sessionIdSchema)
         const userId = request.user.id

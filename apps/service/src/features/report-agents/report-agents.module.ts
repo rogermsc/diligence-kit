@@ -12,7 +12,6 @@ import { MultiQueueEventBusAdapter } from "@/shared/infra/adapters/multi-queue-e
 import { AuthModule } from "@/features/auth/auth.module"
 import { AgentModule } from "@/features/onePager-agent/agent/agent.module"
 import { ReportAgentsExceptionFilter } from "./infra/filters/report-agents-exception.filter"
-import { OwnershipService } from "@/shared/services/ownership.service"
 
 @Module({
     imports: [
@@ -25,7 +24,6 @@ import { OwnershipService } from "@/shared/services/ownership.service"
     ],
     controllers: [TriggerSecondStageController],
     providers: [
-        OwnershipService,
         // Exception filters
         ReportAgentsExceptionFilter,
 

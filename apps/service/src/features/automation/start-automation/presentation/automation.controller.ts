@@ -35,7 +35,7 @@ import { UploadDocumentUseCase } from "../use-case/upload-document.usecase"
 import { ConfirmUploadUseCase } from "../use-case/confirm-upload.usecase"
 import { GetCompanyByIdUseCase } from "../use-case/get-company-by-id.usecase"
 import { AutomationRepository } from "../domain/repository/automation-repository.interface"
-import { OwnershipService } from "@/shared/services/ownership.service"
+import { Tenancy } from "@/shared/tenancy/tenancy.decorator"
 import { RequestValidator } from "@/shared/validators/request-validator"
 import {
     ConfirmUploadDto,
@@ -85,22 +85,10 @@ export class AutomationController {
         private readonly documentRepository: DocumentRepository,
         @Inject("AgentGateway")
         private readonly agentGateway: AgentGateway,
-        private readonly ownershipService: OwnershipService,
     ) {}
 
-    /**
-     * Existence alone is not authorization: every id here arrives from the URL,
-     * so an automation that exists but belongs to another tenant must be
-     * indistinguishable from one that does not exist.
-     */
-    private async assertAutomationAccessible(
-        automationId: string,
-        userId: string,
-    ): Promise<void> {
-        await this.ownershipService.assertAutomationOwned(automationId, userId)
-    }
-
     @Post("start/:companyId")
+    @Tenancy({ company: "param:companyId" })
     @UseInterceptors(
         FileInterceptor("file", { limits: { fileSize: 100 * 1024 * 1024 } }),
         AutomationIdInterceptor,
@@ -110,11 +98,10 @@ export class AutomationController {
         @Param("companyId", new ParseUUIDPipe()) companyId: string,
         @UploadedFile() file: MulterFile,
         @Body() chunkData: unknown,
+        // Still needed: AutomationIdMiddleware puts the generated id here.
         @Req() req: AutomationRequest,
     ) {
         const logger = new Logger("StartAutomation")
-
-        await this.ownershipService.assertCompanyOwned(companyId, req.user!.id)
 
         const validatedChunkData = this.chunkValidator.validate(chunkData)
 
@@ -215,15 +202,15 @@ export class AutomationController {
     }
 
     @Post("create/:companyId")
+    @Tenancy({ company: "param:companyId" })
     async createAutomation(
         @Param("companyId", new ParseUUIDPipe()) companyId: string,
-        @Req() req: AutomationRequest,
     ) {
-        await this.ownershipService.assertCompanyOwned(companyId, req.user!.id)
         return this.createAutomationUseCase.execute({ companyId })
     }
 
     @Post(":automationId/upload-document")
+    @Tenancy({ company: "body:companyId" })
     @UseInterceptors(
         FileInterceptor("file", { limits: { fileSize: 100 * 1024 * 1024 } }),
     )
@@ -231,12 +218,10 @@ export class AutomationController {
         @Param("automationId", new ParseUUIDPipe()) automationId: string,
         @Body("companyId") companyId: string,
         @UploadedFile() file: MulterFile,
-        @Req() req: AutomationRequest,
     ) {
         // The automation row is only persisted at the confirm step, so it does
         // not exist yet during create/upload — authorize against the company,
         // which does exist, instead of the automation.
-        await this.ownershipService.assertCompanyOwned(companyId, req.user!.id)
         return this.uploadDocumentUseCase.execute({
             automationId,
             companyId,
@@ -250,10 +235,10 @@ export class AutomationController {
     }
 
     @Post(":automationId/confirm")
+    @Tenancy({ company: "body:companyId" })
     async confirmUpload(
         @Param("automationId", new ParseUUIDPipe()) automationId: string,
         @Body() body: unknown,
-        @Req() req: AutomationRequest,
     ) {
         // This handler previously took the body as a bare type assertion with no
         // runtime validation, unlike every other controller here.
@@ -265,10 +250,6 @@ export class AutomationController {
         // confirm is the step that actually persists the automation row, so it
         // must not require the automation to already exist — authorize against
         // the company instead.
-        await this.ownershipService.assertCompanyOwned(
-            input.companyId,
-            req.user!.id,
-        )
 
         return this.confirmUploadUseCase.execute({
             automationId,
@@ -278,13 +259,11 @@ export class AutomationController {
     }
 
     @Get(":automationId/documents")
+    @Tenancy({ automation: "param:automationId" })
     @ApiGetDocumentsByAutomationId()
     async getDocumentsByAutomationId(
         @Param("automationId", new ParseUUIDPipe()) automationId: string,
-        @Req() req: AutomationRequest,
     ) {
-        await this.assertAutomationAccessible(automationId, req.user!.id)
-
         const result = await this.getDocumentsByAutomationIdUseCase.execute({
             automationId,
         })
@@ -295,18 +274,14 @@ export class AutomationController {
     }
 
     @Get("documents/:documentId/download")
+    @Tenancy({ document: "param:documentId" })
     @ApiDownloadDocument()
     async downloadDocument(
         @Param("documentId", new ParseUUIDPipe()) documentId: string,
-        @Req() req: AutomationRequest,
     ): Promise<StreamableFile> {
         // This already 404s with the same message when the row is absent or is
         // not the caller's, and DownloadDocumentUseCase reads the row itself —
         // so an extra fetch here would be a dead round trip per download.
-        await this.ownershipService.assertDocumentOwned(
-            documentId,
-            req.user!.id,
-        )
 
         const result = await this.downloadDocumentUseCase.execute({
             documentId,
@@ -316,13 +291,11 @@ export class AutomationController {
     }
 
     @Get(":automationId/download-one-pager")
+    @Tenancy({ automation: "param:automationId" })
     @ApiDownloadOnePager()
     async downloadOnePager(
         @Param("automationId", new ParseUUIDPipe()) automationId: string,
-        @Req() req: AutomationRequest,
     ): Promise<StreamableFile> {
-        await this.assertAutomationAccessible(automationId, req.user!.id)
-
         const result = await this.downloadOnePagerUseCase.execute({
             automationId,
         })
@@ -330,14 +303,12 @@ export class AutomationController {
     }
 
     @Get(":automationId/download-report")
+    @Tenancy({ automation: "param:automationId" })
     @ApiDownloadReport()
     async downloadReport(
         @Param("automationId", new ParseUUIDPipe()) automationId: string,
         @Res() res: Response,
-        @Req() req: AutomationRequest,
     ) {
-        await this.assertAutomationAccessible(automationId, req.user!.id)
-
         const { fileName, fileBuffer, mimeType } =
             await this.downloadReportUseCase.execute({
                 automationId,
@@ -353,13 +324,11 @@ export class AutomationController {
     }
 
     @Post(":automationId/retry")
+    @Tenancy({ automation: "param:automationId" })
     async retryAutomation(
         @Param("automationId", new ParseUUIDPipe()) automationId: string,
-        @Req() req: AutomationRequest,
     ) {
         this.logger.log(`Retry requested for automation ${automationId}`)
-
-        await this.assertAutomationAccessible(automationId, req.user!.id)
 
         const automation =
             await this.automationRepository.findById(automationId)

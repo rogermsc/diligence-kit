@@ -43,7 +43,6 @@ import { EnhancedAssemblyCoordinatorService } from "./services/enhanced-assembly
 import { ChunkProcessingOptimizerService } from "./services/chunk-processing-optimizer.service"
 import { AutomationIdMiddleware } from "./middleware/automation-id.middleware"
 import { AutomationIdInterceptor } from "./interceptors/automation-id.interceptor"
-import { OwnershipService } from "@/shared/services/ownership.service"
 
 @Module({
     imports: [
@@ -71,7 +70,6 @@ import { OwnershipService } from "@/shared/services/ownership.service"
     ],
     controllers: [AutomationController],
     providers: [
-        OwnershipService,
         // Event-driven architecture components
         {
             provide: "EventBusPort",

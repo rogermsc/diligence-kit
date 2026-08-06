@@ -7,11 +7,8 @@ import {
     Logger,
     UseGuards,
     UseFilters,
-    Req,
 } from "@nestjs/common"
-import { Request } from "express"
-import { UserJwt } from "@/features/auth/domain/interfaces/token-manager.interface"
-import { OwnershipService } from "@/shared/services/ownership.service"
+import { Tenancy } from "@/shared/tenancy/tenancy.decorator"
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger"
 import { TriggerSecondStageUseCase } from "../use-cases/trigger-second-stage.usecase"
 import {
@@ -38,15 +35,14 @@ export class TriggerSecondStageController {
 
     constructor(
         private readonly triggerSecondStageUseCase: TriggerSecondStageUseCase,
-        private readonly ownershipService: OwnershipService,
     ) {}
 
     @Post(":automationId/second-stage")
+    @Tenancy({ automation: "param:automationId" })
     @HttpCode(HttpStatus.ACCEPTED)
     @ApiTriggerSecondStage()
     async triggerSecondStage(
         @Param() params: unknown,
-        @Req() req: Request & { user: UserJwt },
     ): Promise<TriggerSecondStageResponse> {
         // Validate UUID format
         const { automationId } = RequestValidator.validate<AutomationIdDto>(
@@ -57,10 +53,6 @@ export class TriggerSecondStageController {
         // Starting stage 2 writes four new automations and dispatches the
         // dataroom to the agent, so it must be owner-checked like every other
         // automation endpoint.
-        await this.ownershipService.assertAutomationOwned(
-            automationId,
-            req.user.id,
-        )
 
         this.logger.log(
             `Triggering second stage for automation: ${automationId}`,

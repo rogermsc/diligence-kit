@@ -11,6 +11,9 @@ import { config } from "dotenv"
 import { AgentModule } from "@/features/onePager-agent/agent/agent.module"
 import { ReportModule } from "@/features/onePager-agent/report"
 import { HealthController } from "@/shared/infra/health/health.controller"
+import { APP_INTERCEPTOR } from "@nestjs/core"
+import { TenancyInterceptor } from "@/shared/tenancy/tenancy.interceptor"
+import { OwnershipService } from "@/shared/services/ownership.service"
 
 config()
 
@@ -35,6 +38,15 @@ config()
         LiaisonModule,
     ],
     controllers: [HealthController],
-    providers: [ErrorDispatcherService],
+    providers: [
+        ErrorDispatcherService,
+        OwnershipService,
+        // Global and deny-by-default: an authenticated route that declares no
+        // tenancy rule is refused rather than quietly serving another tenant.
+        // An interceptor, not a guard — global guards run before the
+        // controller-scoped AuthGuard that sets request.user, so as a guard it
+        // saw no user and allowed everything. See tenancy.interceptor.ts.
+        { provide: APP_INTERCEPTOR, useClass: TenancyInterceptor },
+    ],
 })
 export class AppModule {}

@@ -13,7 +13,7 @@ import {
 } from "@nestjs/common"
 import { Request, Response } from "express"
 import { UserJwt } from "@/features/auth/domain/interfaces/token-manager.interface"
-import { OwnershipService } from "@/shared/services/ownership.service"
+import { Tenancy, NoTenancy } from "@/shared/tenancy/tenancy.decorator"
 import { RequestValidator } from "@/shared/validators/request-validator"
 import {
     CreateCompanyDto,
@@ -47,7 +47,6 @@ interface AuthenticatedRequest extends Request {
 @UseGuards(AuthGuard)
 export class CompanyController {
     constructor(
-        private readonly ownershipService: OwnershipService,
         private readonly createCompanyUseCase: CreateCompanyUseCase,
         private readonly listCompaniesUseCase: ListCompaniesUseCase,
         private readonly getCompanyDetailsUseCase: GetCompanyDetailsUseCase,
@@ -57,6 +56,7 @@ export class CompanyController {
 
     @Post()
     @ApiCreateCompany()
+    @NoTenancy("creates the record; the new company is owned by the caller")
     async create(@Body() body: unknown, @Req() req: AuthenticatedRequest) {
         const input = RequestValidator.validate<CreateCompanyDto>(
             body,
@@ -70,12 +70,14 @@ export class CompanyController {
 
     @Get()
     @ApiListCompanies()
+    @NoTenancy("the repository scopes the list to the caller's ownerId")
     async findAll(@Req() req: AuthenticatedRequest) {
         return this.listCompaniesUseCase.execute({ userId: req.user.id })
     }
 
     @Get(":id")
     @ApiGetCompanyDetails()
+    @Tenancy({ company: "param:id" })
     async findById(@Param() params: unknown, @Req() req: AuthenticatedRequest) {
         const { id } = RequestValidator.validate<CompanyIdDto>(
             params,
@@ -88,11 +90,8 @@ export class CompanyController {
     }
     @Get("automation/:automationId/one-pager")
     @ApiGetCompanyOnePager()
-    async getOnePager(
-        @Param() params: unknown,
-        @Res() res: Response,
-        @Req() req: AuthenticatedRequest,
-    ) {
+    @Tenancy({ automation: "param:automationId" })
+    async getOnePager(@Param() params: unknown, @Res() res: Response) {
         const AutomationIdSchema = z.object({
             automationId: z.string().uuid("Invalid automation ID format"),
         })
@@ -100,13 +99,6 @@ export class CompanyController {
         const { automationId } = RequestValidator.validate(
             params,
             AutomationIdSchema,
-        )
-
-        // Addressed by automation id, so company-repository scoping does not
-        // apply here — check ownership explicitly before streaming the file.
-        await this.ownershipService.assertAutomationOwned(
-            automationId,
-            req.user.id,
         )
 
         const { fileName, fileBuffer, mimeType } =
@@ -122,6 +114,7 @@ export class CompanyController {
     }
 
     @Delete(":id")
+    @Tenancy({ company: "param:id" })
     @HttpCode(HttpStatus.OK)
     @ApiDeleteCompany()
     async delete(@Param() params: unknown, @Req() req: AuthenticatedRequest) {
