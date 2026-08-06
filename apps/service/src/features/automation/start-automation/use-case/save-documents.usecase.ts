@@ -5,6 +5,7 @@ import { DocumentRepository } from "@/shared/repository/document-repository.inte
 import { UploadedFile } from "@/shared/services/storage.service"
 import { AutomationNotFoundError } from "@/features/automation/start-automation/domain/errors/automation-errors"
 import { IAutomationRepository } from "@/shared/repository/automation-repository.interface"
+import { documentNameFrom } from "../helpers/document-name.helper"
 
 export interface SaveDocumentsInput {
     automationId: string
@@ -43,7 +44,9 @@ export class SaveDocumentsUseCase implements Usecase<
 
         const documentsData = uploadedFiles.map((file) => ({
             automationId,
-            name: file.name,
+            // The path inside the dataroom, not the basename — two files named
+            // the same in different folders are two documents.
+            name: documentNameFrom(file.url, automationId, file.name),
             bucketPath: file.url,
         }))
 

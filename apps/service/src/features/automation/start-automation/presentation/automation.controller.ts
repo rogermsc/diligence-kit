@@ -356,7 +356,11 @@ export class AutomationController {
             await this.documentRepository.findByAutomationId(automationId)
         const agentDocuments = documents.map((doc) => ({
             id: doc.id,
-            url: `gs://${process.env.GCLOUD_STORAGE_BUCKET}/${doc.bucketPath}`,
+            // bucketPath is already a full gs:// URI — prefixing it again
+            // produced gs://bucket/gs://bucket/..., which resolves to nothing.
+            // The agent then completed the retry on zero documents and
+            // reported success.
+            url: doc.bucketPath,
         }))
 
         await this.automationRepository.updateStatus(

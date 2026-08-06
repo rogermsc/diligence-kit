@@ -206,22 +206,8 @@ before running this on anything that matters:
 - **The liaison agent resolves companies by unscoped `ILIKE`.** A chat message naming a substring of
   another tenant's company can resolve to that company. The backend now validates any company id or
   automation id the client passes, so this is limited to name-based resolution inside the agent.
-- **Chat defaults `user_id` to the literal `"default_user"`** when the caller omits it, pooling those
-  conversations under one identity that the per-user history filter then treats as a single owner.
-- **`confirm` reports `PROCESSING` even when the agent call failed** and the row was written `FAILED`,
-  so the dashboard shows an upload as succeeded.
-
-- **Retry double-prefixes the storage URL.** `retryAutomation` builds `gs://$BUCKET/${doc.bucketPath}`
-  where `bucketPath` is already a full `gs://` URI. The agent resolves nothing, and the run completes
-  on zero documents while reporting success.
-- **ZIP entries are flattened to basenames.** `2023/financials.pdf` and `2024/financials.pdf` collapse
-  into one document — the upsert key is `(automationId, name)` — and the loss is silent.
 - **The liaison-agent's Alembic migration FKs `users.id`**, which lives in the *other* database. The
   documented `alembic upgrade head` fails until that FK is dropped or the schemas are merged.
-- **`.csv` and `.txt` pass the upstream gates but are not in the agent's supported extensions**, so
-  they upload successfully and are then discarded.
-- **Lint is noisy.** `pnpm lint` reports ~590 pre-existing errors in `apps/service`. Inherited, not
-  triaged.
 
 Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 

@@ -16,9 +16,19 @@ export interface NotifyAgentWithDocumentsInput {
     documents: AgentDocument[]
 }
 
+/**
+ * Whether the agent accepted the run. Typed rather than `any` because callers
+ * decide what to report to the user from it — confirm-upload used to discard it
+ * and hardcode PROCESSING, so a run that never started showed as in progress.
+ */
+export interface AgentDispatchResult {
+    status: AutomationStatus
+    message: string
+}
+
 export interface NotifyAgentWithDocumentsOutput {
     automation: Automation
-    agentResponse: any
+    agentResponse: AgentDispatchResult
 }
 
 @Injectable()

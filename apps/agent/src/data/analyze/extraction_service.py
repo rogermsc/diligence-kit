@@ -1,5 +1,6 @@
 import asyncio
 import os
+import pathlib
 import tempfile
 from typing import List
 
@@ -12,12 +13,36 @@ logger = get_logger(__name__)
 
 EXCEL_EXTENSIONS = {".xlsx", ".xls"}
 
-SUPPORTED_EXTENSIONS = EXCEL_EXTENSIONS | {
+# Read as text rather than rendered to PDF. The upload path has always accepted
+# these (apps/web/src/lib/zipFileFilter.ts), but they were absent here, so they
+# uploaded successfully and were then discarded with only a log line — a
+# dataroom of CSV exports analysed as an empty dataroom.
+TEXT_EXTENSIONS = {".csv", ".txt"}
+
+SUPPORTED_EXTENSIONS = EXCEL_EXTENSIONS | TEXT_EXTENSIONS | {
     ".pdf",
     ".doc", ".docx",
     ".ppt", ".pptx",
     ".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".webp",
 }
+
+
+def _read_text(path: str) -> str:
+    """Decode a text document without failing on an unexpected encoding.
+
+    Datarooms carry exports from every locale; a UnicodeDecodeError here would
+    lose the whole document rather than a few characters.
+    """
+    raw = pathlib.Path(path).read_bytes()
+    # utf-8-sig before utf-8: plain utf-8 decodes a BOM-prefixed file happily and
+    # leaves the BOM glued to the first character, so a CSV exported from Excel
+    # would arrive with its first column named "\ufeffperiod".
+    for encoding in ("utf-8-sig", "cp1252", "latin-1"):
+        try:
+            return raw.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    return raw.decode("utf-8", errors="replace")
 
 
 class ExtractionService:
@@ -72,6 +97,17 @@ class ExtractionService:
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             local_path = self._gcs.download(doc.url, tmp_dir)
+
+            if ext in TEXT_EXTENSIONS:
+                text = _read_text(local_path)
+                if not text.strip():
+                    logger.warning(f"Empty extraction for {file_name}")
+                    return []
+                return [PreparedDocument(
+                    document_id=doc.id,
+                    file_name=file_name,
+                    text_content=text,
+                )]
 
             if ext in EXCEL_EXTENSIONS:
                 sheets = excel_extractor.extract_sheets(local_path)

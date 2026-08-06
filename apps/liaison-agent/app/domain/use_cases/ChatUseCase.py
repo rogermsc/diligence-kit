@@ -24,12 +24,12 @@ class ChatUseCase:
         return history
 
     async def execute(
-        self, 
-        user_message: str, 
-        session_id: Optional[str] = None, 
-        user_id: str = "default_user",
+        self,
+        user_message: str,
+        user_id: str,
+        session_id: Optional[str] = None,
         automation_id: Optional[str] = None,
-        company_context: Optional[Dict[str, Any]] = None
+        company_context: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, str]:
         """
         Orchestrates the chat flow: session management, agent execution, and persistence.

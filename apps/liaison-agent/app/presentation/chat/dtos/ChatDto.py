@@ -7,7 +7,12 @@ from pydantic import BaseModel, Field
 class ChatRequest(BaseModel):
     message: str = Field(..., description="User message")
     session_id: Optional[str] = Field(None, description="Session ID to maintain context. If not provided, the backend will try to find the last active session or create a new one.")
-    user_id: Optional[str] = Field(None, description="User ID to link the session. Required if session_id is missing.")
+    # Required, not optional. It used to default to the literal "default_user",
+    # which pooled every caller who omitted it into one identity — and the
+    # per-user history filter then treated that pool as a single owner, so one
+    # user read another's conversations. The only caller is the backend, which
+    # takes this from the authenticated JWT and has always sent it.
+    user_id: str = Field(..., min_length=1, description="Authenticated user the session belongs to.")
     automation_id: Optional[str] = Field(None, description="UUID of the automation related to the chat")
     company_context: Optional[Dict[str, Any]] = Field(
         default=None, 

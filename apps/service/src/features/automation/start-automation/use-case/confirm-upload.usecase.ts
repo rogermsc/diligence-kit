@@ -120,17 +120,24 @@ export class ConfirmUploadUseCase implements Usecase<
             url: doc.bucketPath,
         }))
 
-        await this.notifyAgentWithDocumentsUseCase.execute({
-            automation,
-            companyName: company.name,
-            documents: agentDocuments,
-        })
+        // The notify use case already writes FAILED and reports it when the
+        // agent call throws. Hardcoding PROCESSING here threw that away, so a
+        // run that never started showed as in progress and sat there until the
+        // reaper timed it out.
+        const { agentResponse } =
+            await this.notifyAgentWithDocumentsUseCase.execute({
+                automation,
+                companyName: company.name,
+                documents: agentDocuments,
+            })
 
-        this.logger.log(`Notified agent for automation ${automation.id}`)
+        this.logger.log(
+            `Notified agent for automation ${automation.id}: ${agentResponse.status}`,
+        )
 
         return {
             automationId: automation.id,
-            status: AutomationStatus.PROCESSING,
+            status: agentResponse.status,
         }
     }
 }

@@ -29,7 +29,7 @@ async def chat_process(
         result = await use_case.execute(
             user_message=request.message,
             session_id=request.session_id,
-            user_id=request.user_id or "default_user",
+            user_id=request.user_id,
             automation_id=request.automation_id,
             company_context=request.company_context
         )

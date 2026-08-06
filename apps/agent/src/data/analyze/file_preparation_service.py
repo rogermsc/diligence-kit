@@ -13,7 +13,11 @@ from typing import List
 
 from src.core.llm import upload_file
 from src.core.logging import get_logger
-from src.data.analyze.extraction_service import EXCEL_EXTENSIONS, ExtractionService
+from src.data.analyze.extraction_service import (
+    EXCEL_EXTENSIONS,
+    TEXT_EXTENSIONS,
+    ExtractionService,
+)
 from src.domain.analyze.entities import Document
 
 logger = get_logger(__name__)
@@ -40,8 +44,9 @@ class FilePreparationService:
                 return doc
 
             ext = os.path.splitext(url_path)[1].lower()
-            if ext in EXCEL_EXTENSIONS:
-                return doc  # Excel — handled by ExtractionService directly
+            if ext in EXCEL_EXTENSIONS or ext in TEXT_EXTENSIONS:
+                # Read as text by ExtractionService; there is no PDF to upload.
+                return doc
 
             async with semaphore:
                 try:
