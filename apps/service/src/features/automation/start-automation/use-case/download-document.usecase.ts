@@ -15,16 +15,20 @@ export interface DownloadDocumentOutput {
 }
 
 @Injectable()
-export class DownloadDocumentUseCase
-    implements Usecase<DownloadDocumentInput, DownloadDocumentOutput> {
+export class DownloadDocumentUseCase implements Usecase<
+    DownloadDocumentInput,
+    DownloadDocumentOutput
+> {
     constructor(
         @Inject("DocumentRepository")
         private readonly documentRepository: DocumentRepository,
         @Inject("StorageService")
         private readonly storageService: StorageService,
-    ) { }
+    ) {}
 
-    async execute(input: DownloadDocumentInput): Promise<DownloadDocumentOutput> {
+    async execute(
+        input: DownloadDocumentInput,
+    ): Promise<DownloadDocumentOutput> {
         const { documentId } = input
 
         // Get document metadata from database
@@ -35,7 +39,9 @@ export class DownloadDocumentUseCase
         }
 
         // Download file from storage
-        const fileBuffer = await this.storageService.downloadFile(document.bucketPath)
+        const fileBuffer = await this.storageService.downloadFile(
+            document.bucketPath,
+        )
 
         // Determine MIME type from file extension
         const mimeType = this.getMimeTypeFromFileName(document.name)
@@ -65,4 +71,4 @@ export class DownloadDocumentUseCase
 
         return mimeTypes[extension || ""] || "application/octet-stream"
     }
-} 
+}

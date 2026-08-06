@@ -7,5 +7,5 @@ export class Document {
         public readonly createdAt: Date,
         public readonly updatedAt: Date,
         public readonly openaiFileId?: string,
-    ) { }
+    ) {}
 }

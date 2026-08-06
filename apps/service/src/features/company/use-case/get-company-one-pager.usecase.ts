@@ -2,12 +2,18 @@ import { Injectable, Inject } from "@nestjs/common"
 import { Usecase } from "@/shared/interfaces/usecase"
 import { StorageService } from "@/shared/services/storage.service"
 import { IAutomationRepository } from "@/shared/repository/automation-repository.interface"
-import { AutomationStageDomain, AutomationStatus } from "@/shared/domain/entities/automation.entity"
+import {
+    AutomationStageDomain,
+    AutomationStatus,
+} from "@/shared/domain/entities/automation.entity"
 import {
     OnePagerNotFoundError,
     OnePagerDownloadFailedError,
 } from "@/features/company/domain/errors/company-errors"
-import { AutomationNotFoundError, InvalidAutomationStageError } from "@/features/report-agents/domain/errors/report-agent.errors"
+import {
+    AutomationNotFoundError,
+    InvalidAutomationStageError,
+} from "@/features/report-agents/domain/errors/report-agent.errors"
 
 export interface GetCompanyOnePagerInput {
     id: string // ID da automação de triagem
@@ -20,14 +26,16 @@ export interface GetCompanyOnePagerOutput {
 }
 
 @Injectable()
-export class GetCompanyOnePagerUseCase
-    implements Usecase<GetCompanyOnePagerInput, GetCompanyOnePagerOutput> {
+export class GetCompanyOnePagerUseCase implements Usecase<
+    GetCompanyOnePagerInput,
+    GetCompanyOnePagerOutput
+> {
     constructor(
         @Inject("AutomationRepository")
         private readonly automationRepository: IAutomationRepository,
-        @Inject('StorageService')
+        @Inject("StorageService")
         private readonly storageService: StorageService,
-    ) { }
+    ) {}
 
     async execute(
         input: GetCompanyOnePagerInput,
@@ -39,17 +47,21 @@ export class GetCompanyOnePagerUseCase
             throw new AutomationNotFoundError()
         }
 
-        const isAutomationCompleted = automation.status === AutomationStatus.COMPLETED
+        const isAutomationCompleted =
+            automation.status === AutomationStatus.COMPLETED
 
-        const isAutomationTriage = automation.stage === AutomationStageDomain.TRIAGE
+        const isAutomationTriage =
+            automation.stage === AutomationStageDomain.TRIAGE
 
-        const isValidTriageAutomation = isAutomationCompleted && isAutomationTriage
+        const isValidTriageAutomation =
+            isAutomationCompleted && isAutomationTriage
 
         if (!isValidTriageAutomation) {
             throw new InvalidAutomationStageError()
         }
 
-        const onePager = await this.automationRepository.findOnePagerByAutomationId(input.id)
+        const onePager =
+            await this.automationRepository.findOnePagerByAutomationId(input.id)
 
         if (!onePager) {
             throw new OnePagerNotFoundError(input.id)
@@ -57,7 +69,9 @@ export class GetCompanyOnePagerUseCase
 
         try {
             // Fazer download do PDF do storage
-            const fileBuffer = await this.storageService.downloadFile(onePager.url)
+            const fileBuffer = await this.storageService.downloadFile(
+                onePager.url,
+            )
 
             // Extrair nome do arquivo da URL
             const fileName = this.extractFileNameFromUrl(onePager.url)
@@ -78,8 +92,8 @@ export class GetCompanyOnePagerUseCase
     private extractFileNameFromUrl(url: string): string {
         // Extrair nome do arquivo da URL do Google Cloud Storage
         // Exemplo: gs://bucket/path/file.pdf -> file.pdf
-        const parts = url.split('/')
-        return parts[parts.length - 1] || 'one-pager.pdf'
+        const parts = url.split("/")
+        return parts[parts.length - 1] || "one-pager.pdf"
     }
 
     private getMimeTypeFromFileName(fileName: string): string {

@@ -6,7 +6,7 @@ export class OnePager {
         public readonly url: string,
         public readonly createdAt: Date,
         public readonly updatedAt: Date,
-    ) { }
+    ) {}
 
     static create(props: {
         id?: string

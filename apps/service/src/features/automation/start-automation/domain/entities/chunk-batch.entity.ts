@@ -1,4 +1,4 @@
-import { File as MulterFile } from 'multer'
+import { File as MulterFile } from "multer"
 
 export interface ChunkBatchMetadata {
     readonly uploadId: string
@@ -28,19 +28,22 @@ export class ChunkBatch {
         const chunkAlreadyExists = this.chunks.has(chunkItem.chunkNumber)
 
         if (chunkAlreadyExists) {
-            throw new Error(`Chunk ${chunkItem.chunkNumber} already exists in batch`)
+            throw new Error(
+                `Chunk ${chunkItem.chunkNumber} already exists in batch`,
+            )
         }
 
         this.chunks.set(chunkItem.chunkNumber, chunkItem)
     }
 
     getChunks(): ChunkItem[] {
-        return Array.from(this.chunks.values())
-            .sort((chunkA, chunkB) => chunkA.chunkNumber - chunkB.chunkNumber)
+        return Array.from(this.chunks.values()).sort(
+            (chunkA, chunkB) => chunkA.chunkNumber - chunkB.chunkNumber,
+        )
     }
 
     getChunkNumbers(): number[] {
-        return this.getChunks().map(chunk => chunk.chunkNumber)
+        return this.getChunks().map((chunk) => chunk.chunkNumber)
     }
 
     getBatchSize(): number {

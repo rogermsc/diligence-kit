@@ -16,14 +16,16 @@ export interface SaveDocumentsOutput {
 }
 
 @Injectable()
-export class SaveDocumentsUseCase
-    implements Usecase<SaveDocumentsInput, SaveDocumentsOutput> {
+export class SaveDocumentsUseCase implements Usecase<
+    SaveDocumentsInput,
+    SaveDocumentsOutput
+> {
     constructor(
         @Inject("DocumentRepository")
         private readonly documentRepository: DocumentRepository,
         @Inject("AutomationRepository")
         private readonly automationRepository: IAutomationRepository,
-    ) { }
+    ) {}
 
     async execute(input: SaveDocumentsInput): Promise<SaveDocumentsOutput> {
         const { automationId, uploadedFiles } = input
@@ -32,7 +34,8 @@ export class SaveDocumentsUseCase
             return { documents: [] }
         }
 
-        const automation = await this.automationRepository.findById(automationId)
+        const automation =
+            await this.automationRepository.findById(automationId)
 
         if (!automation) {
             throw new AutomationNotFoundError()

@@ -1,7 +1,10 @@
 import { Injectable, Inject, Logger } from "@nestjs/common"
 import { AgentDocument, AgentGateway } from "../gateway/agent-gateway.interface"
 import { Usecase } from "@/shared/interfaces/usecase"
-import { Automation, AutomationStatus } from "@/shared/domain/entities/automation.entity"
+import {
+    Automation,
+    AutomationStatus,
+} from "@/shared/domain/entities/automation.entity"
 import { AutomationStatusValidator } from "@/shared/validators/automation-status-validator"
 import { UploadedDocument } from "./automation-upload.usecase"
 import { AutomationRepository } from "../domain/repository/automation-repository.interface"
@@ -19,17 +22,21 @@ export interface NotifyAgentWithDocumentsOutput {
 }
 
 @Injectable()
-export class NotifyAgentWithDocumentsUseCase
-    implements Usecase<NotifyAgentWithDocumentsInput, NotifyAgentWithDocumentsOutput> {
+export class NotifyAgentWithDocumentsUseCase implements Usecase<
+    NotifyAgentWithDocumentsInput,
+    NotifyAgentWithDocumentsOutput
+> {
     private readonly logger = new Logger(NotifyAgentWithDocumentsUseCase.name)
 
     constructor(
         @Inject("AutomationRepository")
         private readonly automationRepository: AutomationRepository,
         @Inject("AgentGateway") private readonly agentGateway: AgentGateway,
-    ) { }
+    ) {}
 
-    async execute(input: NotifyAgentWithDocumentsInput): Promise<NotifyAgentWithDocumentsOutput> {
+    async execute(
+        input: NotifyAgentWithDocumentsInput,
+    ): Promise<NotifyAgentWithDocumentsOutput> {
         const { automation, companyName, documents } = input
 
         try {
@@ -37,12 +44,15 @@ export class NotifyAgentWithDocumentsUseCase
                 throw new AutomationCannotStartTriageError()
             }
 
-            await this.automationRepository.updateStatus(automation.id,
+            await this.automationRepository.updateStatus(
+                automation.id,
                 AutomationStatus.PROCESSING,
             )
 
             // Atualizar a entidade local com o novo status
-            const processingAutomation = automation.updateStatus(AutomationStatus.PROCESSING)
+            const processingAutomation = automation.updateStatus(
+                AutomationStatus.PROCESSING,
+            )
 
             // Chamar o agente após atualizar o status
             await this.agentGateway.startAgentAutomation({
@@ -87,4 +97,4 @@ export class NotifyAgentWithDocumentsUseCase
             }
         }
     }
-} 
+}

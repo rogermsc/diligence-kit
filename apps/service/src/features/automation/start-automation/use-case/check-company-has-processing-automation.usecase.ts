@@ -12,13 +12,10 @@ export interface CheckCompanyHasProcessingAutomationOutput {
 }
 
 @Injectable()
-export class CheckCompanyHasProcessingAutomationUseCase
-    implements
-        Usecase<
-            CheckCompanyHasProcessingAutomationInput,
-            CheckCompanyHasProcessingAutomationOutput
-        >
-{
+export class CheckCompanyHasProcessingAutomationUseCase implements Usecase<
+    CheckCompanyHasProcessingAutomationInput,
+    CheckCompanyHasProcessingAutomationOutput
+> {
     constructor(
         @Inject("AutomationRepository")
         private readonly automationRepository: IAutomationRepository,

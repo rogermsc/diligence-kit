@@ -4,7 +4,7 @@ export class Company {
         public readonly name: string,
         public readonly createdAt: Date,
         public readonly updatedAt: Date,
-    ) { }
+    ) {}
 
     static create(props: {
         id?: string

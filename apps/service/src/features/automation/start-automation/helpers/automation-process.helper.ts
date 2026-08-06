@@ -26,6 +26,4 @@ export class AutomationProcessHelper {
     ) {
         await checkCompanyHasProcessingAutomationUseCase.execute({ companyId })
     }
-
-
 }

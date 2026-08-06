@@ -1,7 +1,13 @@
-import { Injectable, Logger, Inject } from '@nestjs/common'
-import { File as MulterFile } from 'multer'
-import { BatchChunkProcessorService, BatchChunkProcessResult } from './batch-chunk-processor.service'
-import { ChunkRegistry, ChunkMetadata } from '../infra/repositories/redis-chunk-registry.repository'
+import { Injectable, Logger, Inject } from "@nestjs/common"
+import { File as MulterFile } from "multer"
+import {
+    BatchChunkProcessorService,
+    BatchChunkProcessResult,
+} from "./batch-chunk-processor.service"
+import {
+    ChunkRegistry,
+    ChunkMetadata,
+} from "../infra/repositories/redis-chunk-registry.repository"
 
 export interface EnhancedChunkProcessResult {
     readonly success: boolean
@@ -18,16 +24,16 @@ export class EnhancedChunkProcessorService {
 
     constructor(
         private readonly batchProcessor: BatchChunkProcessorService,
-        @Inject('ChunkRegistry')
-        private readonly chunkRegistry: ChunkRegistry
-    ) { }
+        @Inject("ChunkRegistry")
+        private readonly chunkRegistry: ChunkRegistry,
+    ) {}
 
     async processChunk(
         uploadedChunk: MulterFile,
         chunkNumber: number,
         totalChunks: number,
         uploadId: string,
-        metadata: ChunkMetadata
+        metadata: ChunkMetadata,
     ): Promise<EnhancedChunkProcessResult> {
         try {
             const batchResult = await this.batchProcessor.processChunkInBatch(
@@ -35,19 +41,22 @@ export class EnhancedChunkProcessorService {
                 chunkNumber,
                 totalChunks,
                 uploadId,
-                metadata
+                metadata,
             )
 
-            const allChunksReceived = this.checkIfAllChunksReceived(batchResult.processedCount, totalChunks)
+            const allChunksReceived = this.checkIfAllChunksReceived(
+                batchResult.processedCount,
+                totalChunks,
+            )
 
             // If all chunks received, flush any pending batch
             if (allChunksReceived) {
                 await this.batchProcessor.flushPendingBatches(uploadId)
 
-                this.logger.log('All chunks processed for upload', {
+                this.logger.log("All chunks processed for upload", {
                     uploadId,
                     totalChunks,
-                    processedCount: batchResult.processedCount
+                    processedCount: batchResult.processedCount,
                 })
             }
 
@@ -57,17 +66,23 @@ export class EnhancedChunkProcessorService {
                 totalChunks: batchResult.totalChunks,
                 batchProcessed: batchResult.batchProcessed,
                 allChunksReceived,
-                error: batchResult.error
+                error: batchResult.error,
             }
-
         } catch (error) {
-            this.logger.error(`Enhanced chunk processing failed for chunk ${chunkNumber}`, {
-                uploadId,
-                error: error.message
-            })
+            this.logger.error(
+                `Enhanced chunk processing failed for chunk ${chunkNumber}`,
+                {
+                    uploadId,
+                    error: error.message,
+                },
+            )
 
-            const processedCount = await this.chunkRegistry.getProcessedCount(uploadId)
-            const allChunksReceived = this.checkIfAllChunksReceived(processedCount, totalChunks)
+            const processedCount =
+                await this.chunkRegistry.getProcessedCount(uploadId)
+            const allChunksReceived = this.checkIfAllChunksReceived(
+                processedCount,
+                totalChunks,
+            )
 
             return {
                 success: false,
@@ -75,12 +90,15 @@ export class EnhancedChunkProcessorService {
                 totalChunks,
                 batchProcessed: false,
                 allChunksReceived,
-                error: error.message
+                error: error.message,
             }
         }
     }
 
-    private checkIfAllChunksReceived(processedCount: number, totalChunks: number): boolean {
+    private checkIfAllChunksReceived(
+        processedCount: number,
+        totalChunks: number,
+    ): boolean {
         return processedCount >= totalChunks
     }
 }

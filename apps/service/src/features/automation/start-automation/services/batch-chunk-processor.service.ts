@@ -1,10 +1,16 @@
-import { Injectable, Logger, Inject } from '@nestjs/common'
-import { File as MulterFile } from 'multer'
-import { ChunkBatchAccumulatorService } from './chunk-batch-accumulator.service'
-import { BatchUploadAdapterService } from './batch-upload-adapter.service'
-import { ChunkItem, ChunkBatchMetadata } from '../domain/entities/chunk-batch.entity'
-import { ChunkRegistry, ChunkMetadata } from '../infra/repositories/redis-chunk-registry.repository'
-import { BatchUploadResult } from '../domain/interfaces/batch-upload.interface'
+import { Injectable, Logger, Inject } from "@nestjs/common"
+import { File as MulterFile } from "multer"
+import { ChunkBatchAccumulatorService } from "./chunk-batch-accumulator.service"
+import { BatchUploadAdapterService } from "./batch-upload-adapter.service"
+import {
+    ChunkItem,
+    ChunkBatchMetadata,
+} from "../domain/entities/chunk-batch.entity"
+import {
+    ChunkRegistry,
+    ChunkMetadata,
+} from "../infra/repositories/redis-chunk-registry.repository"
+import { BatchUploadResult } from "../domain/interfaces/batch-upload.interface"
 
 export interface BatchChunkProcessResult {
     readonly success: boolean
@@ -17,66 +23,91 @@ export interface BatchChunkProcessResult {
 @Injectable()
 export class BatchChunkProcessorService {
     private readonly logger = new Logger(BatchChunkProcessorService.name)
-    private readonly batchAccumulators = new Map<string, ChunkBatchAccumulatorService>()
+    private readonly batchAccumulators = new Map<
+        string,
+        ChunkBatchAccumulatorService
+    >()
 
     constructor(
         private readonly batchUploadAdapter: BatchUploadAdapterService,
-        @Inject('ChunkRegistry')
-        private readonly chunkRegistry: ChunkRegistry
-    ) { }
+        @Inject("ChunkRegistry")
+        private readonly chunkRegistry: ChunkRegistry,
+    ) {}
 
     async processChunkInBatch(
         uploadedChunk: MulterFile,
         chunkNumber: number,
         totalChunks: number,
         uploadId: string,
-        chunkMetadata: ChunkMetadata
+        chunkMetadata: ChunkMetadata,
     ): Promise<BatchChunkProcessResult> {
         try {
-            const batchMetadata = this.createBatchMetadata(uploadId, totalChunks, chunkMetadata)
-            const chunkItem = this.createChunkItem(uploadedChunk, chunkNumber, batchMetadata)
+            const batchMetadata = this.createBatchMetadata(
+                uploadId,
+                totalChunks,
+                chunkMetadata,
+            )
+            const chunkItem = this.createChunkItem(
+                uploadedChunk,
+                chunkNumber,
+                batchMetadata,
+            )
 
-            const batchAccumulator = this.getOrCreateBatchAccumulator(uploadId, totalChunks)
-            const batchWasFlushed = await batchAccumulator.addChunkToBatch(chunkItem)
+            const batchAccumulator = this.getOrCreateBatchAccumulator(
+                uploadId,
+                totalChunks,
+            )
+            const batchWasFlushed =
+                await batchAccumulator.addChunkToBatch(chunkItem)
 
             // Register chunk in registry for tracking
-            await this.chunkRegistry.registerChunk(uploadId, chunkNumber, chunkMetadata)
-            const processedCount = await this.chunkRegistry.incrementProcessedCount(uploadId)
+            await this.chunkRegistry.registerChunk(
+                uploadId,
+                chunkNumber,
+                chunkMetadata,
+            )
+            const processedCount =
+                await this.chunkRegistry.incrementProcessedCount(uploadId)
 
-            this.logger.debug('Chunk added to batch', {
+            this.logger.debug("Chunk added to batch", {
                 uploadId,
                 chunkNumber,
                 processedCount,
                 totalChunks,
-                batchWasFlushed
+                batchWasFlushed,
             })
 
             return {
                 success: true,
                 processedCount,
                 totalChunks,
-                batchProcessed: batchWasFlushed
+                batchProcessed: batchWasFlushed,
             }
-
         } catch (error) {
-            this.logger.error(`Failed to process chunk ${chunkNumber} in batch`, {
-                uploadId,
-                error: error.message
-            })
+            this.logger.error(
+                `Failed to process chunk ${chunkNumber} in batch`,
+                {
+                    uploadId,
+                    error: error.message,
+                },
+            )
 
-            const processedCount = await this.chunkRegistry.getProcessedCount(uploadId)
+            const processedCount =
+                await this.chunkRegistry.getProcessedCount(uploadId)
 
             return {
                 success: false,
                 processedCount,
                 totalChunks,
                 batchProcessed: false,
-                error: error.message
+                error: error.message,
             }
         }
     }
 
-    async flushPendingBatches(uploadId: string): Promise<BatchUploadResult | null> {
+    async flushPendingBatches(
+        uploadId: string,
+    ): Promise<BatchUploadResult | null> {
         const batchAccumulator = this.batchAccumulators.get(uploadId)
         const noBatchAccumulatorExists = !batchAccumulator
 
@@ -95,17 +126,16 @@ export class BatchChunkProcessorService {
             const flushResult = await batchAccumulator.flushCurrentBatch()
             this.cleanupBatchAccumulator(uploadId)
 
-            this.logger.log('Final batch flushed for upload', {
+            this.logger.log("Final batch flushed for upload", {
                 uploadId,
-                result: flushResult
+                result: flushResult,
             })
 
             return flushResult
-
         } catch (error) {
-            this.logger.error('Failed to flush pending batch', {
+            this.logger.error("Failed to flush pending batch", {
                 uploadId,
-                error: error.message
+                error: error.message,
             })
 
             this.cleanupBatchAccumulator(uploadId)
@@ -113,7 +143,10 @@ export class BatchChunkProcessorService {
         }
     }
 
-    private getOrCreateBatchAccumulator(uploadId: string, totalChunks: number): ChunkBatchAccumulatorService {
+    private getOrCreateBatchAccumulator(
+        uploadId: string,
+        totalChunks: number,
+    ): ChunkBatchAccumulatorService {
         const existingAccumulator = this.batchAccumulators.get(uploadId)
         const accumulatorAlreadyExists = existingAccumulator !== undefined
 
@@ -122,20 +155,24 @@ export class BatchChunkProcessorService {
         }
 
         const averageChunkSize = this.estimateAverageChunkSize()
-        const optimalBatchSize = this.batchUploadAdapter.calculateOptimalBatchSize(totalChunks, averageChunkSize)
+        const optimalBatchSize =
+            this.batchUploadAdapter.calculateOptimalBatchSize(
+                totalChunks,
+                averageChunkSize,
+            )
 
         const newAccumulator = new ChunkBatchAccumulatorService(
             uploadId,
             this.batchUploadAdapter,
-            optimalBatchSize
+            optimalBatchSize,
         )
 
         this.batchAccumulators.set(uploadId, newAccumulator)
 
-        this.logger.debug('Created new batch accumulator', {
+        this.logger.debug("Created new batch accumulator", {
             uploadId,
             optimalBatchSize,
-            totalChunks
+            totalChunks,
         })
 
         return newAccumulator
@@ -144,35 +181,35 @@ export class BatchChunkProcessorService {
     private createBatchMetadata(
         uploadId: string,
         totalChunks: number,
-        chunkMetadata: ChunkMetadata
+        chunkMetadata: ChunkMetadata,
     ): ChunkBatchMetadata {
         return {
             uploadId,
             totalChunks,
             originalFilename: chunkMetadata.filename,
             totalSize: chunkMetadata.totalSize,
-            companyId: chunkMetadata.companyId || '',
+            companyId: chunkMetadata.companyId || "",
         }
     }
 
     private createChunkItem(
         uploadedChunk: MulterFile,
         chunkNumber: number,
-        batchMetadata: ChunkBatchMetadata
+        batchMetadata: ChunkBatchMetadata,
     ): ChunkItem {
         return {
             chunkNumber,
             file: uploadedChunk,
-            metadata: batchMetadata
+            metadata: batchMetadata,
         }
     }
 
     private cleanupBatchAccumulator(uploadId: string): void {
         this.batchAccumulators.delete(uploadId)
 
-        this.logger.debug('Cleaned up batch accumulator', {
+        this.logger.debug("Cleaned up batch accumulator", {
             uploadId,
-            remainingAccumulators: this.batchAccumulators.size
+            remainingAccumulators: this.batchAccumulators.size,
         })
     }
 

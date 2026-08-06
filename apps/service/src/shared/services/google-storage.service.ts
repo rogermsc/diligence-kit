@@ -122,15 +122,19 @@ export class GoogleStorageService implements StorageService {
                     name: file.getName(),
                 }
             } catch (err: any) {
-                const isRateLimited = err.code === 429 || err.errors?.some((e: any) => e.reason === 'rateLimitExceeded');
+                const isRateLimited =
+                    err.code === 429 ||
+                    err.errors?.some(
+                        (e: any) => e.reason === "rateLimitExceeded",
+                    )
 
                 if (isRateLimited && attempt < this.MAX_RETRIES) {
-                    const delay = this.BASE_DELAY_MS * Math.pow(2, attempt);
+                    const delay = this.BASE_DELAY_MS * Math.pow(2, attempt)
                     this.logger.warn(
                         `GCS rate limited uploading "${file.getName()}", retrying in ${delay}ms (attempt ${attempt + 1}/${this.MAX_RETRIES})`,
-                    );
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    continue;
+                    )
+                    await new Promise((resolve) => setTimeout(resolve, delay))
+                    continue
                 }
 
                 throw new StorageError(
@@ -154,47 +158,51 @@ export class GoogleStorageService implements StorageService {
         file: File,
         subPath?: string,
     ): Promise<UploadedFile> {
-        const finalPath = subPath ? `${path}/${subPath}` : path;
-        const destinationPath = `${finalPath}/${file.getName()}`;
+        const finalPath = subPath ? `${path}/${subPath}` : path
+        const destinationPath = `${finalPath}/${file.getName()}`
 
         for (let attempt = 0; attempt <= this.MAX_RETRIES; attempt++) {
             try {
-                const bucket = this.storage.bucket(this.bucketName);
-                const fileRef = bucket.file(destinationPath);
+                const bucket = this.storage.bucket(this.bucketName)
+                const fileRef = bucket.file(destinationPath)
 
                 await fileRef.save(file.getBuffer(), {
                     contentType: file.getMimeType(),
                     resumable: false,
-                });
+                })
 
                 return {
                     url: `gs://${this.bucketName}/${destinationPath}`,
                     path: destinationPath,
                     name: file.getName(),
-                };
+                }
             } catch (err: any) {
-                const isRateLimited = err.code === 429 || err.errors?.some((e: any) => e.reason === 'rateLimitExceeded');
+                const isRateLimited =
+                    err.code === 429 ||
+                    err.errors?.some(
+                        (e: any) => e.reason === "rateLimitExceeded",
+                    )
 
                 if (isRateLimited && attempt < this.MAX_RETRIES) {
-                    const delay = this.BASE_DELAY_MS * Math.pow(2, attempt);
+                    const delay = this.BASE_DELAY_MS * Math.pow(2, attempt)
                     this.logger.warn(
                         `GCS rate limited uploading "${file.getName()}", retrying in ${delay}ms (attempt ${attempt + 1}/${this.MAX_RETRIES})`,
-                    );
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    continue;
+                    )
+                    await new Promise((resolve) => setTimeout(resolve, delay))
+                    continue
                 }
 
                 throw new StorageError(
                     StorageErrorType.UPLOAD_ERROR,
                     `Failed to upload file ${file.getName()}: ${err.message}`,
-                );
+                )
             }
         }
 
         throw new StorageError(
             StorageErrorType.UPLOAD_ERROR,
             `Failed to upload file ${file.getName()} after ${this.MAX_RETRIES} retries`,
-        );
+        )
     }
 
     async downloadFile(filePath: string): Promise<Buffer> {
@@ -207,7 +215,10 @@ export class GoogleStorageService implements StorageService {
 
         try {
             // Remove o prefixo gs://{bucket}/ se existir
-            const normalizedPath = filePath.replace(`gs://${this.bucketName}/`, '')
+            const normalizedPath = filePath.replace(
+                `gs://${this.bucketName}/`,
+                "",
+            )
 
             const bucket = this.storage.bucket(this.bucketName)
             const file = bucket.file(normalizedPath)
@@ -231,12 +242,15 @@ export class GoogleStorageService implements StorageService {
         }
 
         try {
-            const normalizedPath = filePath.replace(`gs://${this.bucketName}/`, '')
+            const normalizedPath = filePath.replace(
+                `gs://${this.bucketName}/`,
+                "",
+            )
             const bucket = this.storage.bucket(this.bucketName)
             const file = bucket.file(normalizedPath)
             await file.delete()
         } catch (err: any) {
-            this.logger.error(`Failed to delete file ${filePath}:`, err);
+            this.logger.error(`Failed to delete file ${filePath}:`, err)
             throw new StorageError(
                 StorageErrorType.UPLOAD_ERROR,
                 "Storage error",
@@ -253,27 +267,31 @@ export class GoogleStorageService implements StorageService {
         }
 
         try {
-            const normalizedPath = folderPath.replace(`gs://${this.bucketName}/`, '').replace(/\/*$/, '')
+            const normalizedPath = folderPath
+                .replace(`gs://${this.bucketName}/`, "")
+                .replace(/\/*$/, "")
             const bucket = this.storage.bucket(this.bucketName)
 
-            this.logger.debug(`Deleting all files in folder: ${normalizedPath}`);
+            this.logger.debug(`Deleting all files in folder: ${normalizedPath}`)
 
             // Lista todos os arquivos no prefixo (pasta)
             const [files] = await bucket.getFiles({
-                prefix: `${normalizedPath}/`
-            });
+                prefix: `${normalizedPath}/`,
+            })
 
             if (files.length === 0) {
-                this.logger.debug(`No files found in folder: ${normalizedPath}`);
-                return;
+                this.logger.debug(`No files found in folder: ${normalizedPath}`)
+                return
             }
 
             // Deleta todos os arquivos em paralelo
-            await Promise.all(files.map(file => file.delete()));
+            await Promise.all(files.map((file) => file.delete()))
 
-            this.logger.debug(`Successfully deleted ${files.length} files from folder: ${normalizedPath}`);
+            this.logger.debug(
+                `Successfully deleted ${files.length} files from folder: ${normalizedPath}`,
+            )
         } catch (err: any) {
-            this.logger.error(`Failed to delete folder ${folderPath}:`, err);
+            this.logger.error(`Failed to delete folder ${folderPath}:`, err)
             throw new StorageError(
                 StorageErrorType.UPLOAD_ERROR,
                 `Failed to delete folder ${folderPath}: ${err.message}`,

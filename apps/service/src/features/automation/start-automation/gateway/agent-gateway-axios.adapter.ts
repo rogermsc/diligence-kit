@@ -14,10 +14,10 @@ export class AgentGatewayAxiosAdapter implements AgentGateway {
             input,
             {
                 headers: {
-                    'X-API-Key': process.env.AGENT_API_KEY,
+                    "X-API-Key": process.env.AGENT_API_KEY,
                 },
                 timeout: 30_000,
-            }
+            },
         )
         return {
             status: response.data.status,

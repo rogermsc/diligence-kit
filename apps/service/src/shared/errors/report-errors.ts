@@ -37,7 +37,6 @@ export class ReportCompletedUrlNotFoundError extends ApplicationError<ReportErro
 
 export class ReportCreationFailedError extends ApplicationError<ReportErrorType> {
     constructor() {
-
         super({
             message: "Report creation failed",
             code: 500,
@@ -71,7 +70,11 @@ export class InvalidAutomationDomainError extends ApplicationError<ReportErrorTy
 }
 
 export class IncompleteAgentReportsError extends ApplicationError<ReportErrorType> {
-    constructor(automationId: string, currentCount: number, requiredCount: number = 4) {
+    constructor(
+        automationId: string,
+        currentCount: number,
+        requiredCount: number = 4,
+    ) {
         super({
             message: `Incomplete agent reports for automation ${automationId}. Found ${currentCount} of ${requiredCount} required reports`,
             code: 422,

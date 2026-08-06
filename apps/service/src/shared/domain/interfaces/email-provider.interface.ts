@@ -3,6 +3,6 @@ export interface IEmailProvider {
         from: string,
         to: string,
         subject: string,
-        html?: string
+        html?: string,
     ): Promise<void>
-} 
+}

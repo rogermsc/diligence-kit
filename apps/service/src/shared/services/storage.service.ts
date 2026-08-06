@@ -1,7 +1,7 @@
 import {
     FileSystemComponent,
     Folder,
-    File
+    File,
 } from "@/shared/domain/entities/file.entity"
 
 export interface UploadedFile {

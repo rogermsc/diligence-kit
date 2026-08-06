@@ -21,12 +21,14 @@ export interface AutomationUploadOutput {
 }
 
 @Injectable()
-export class AutomationUploadUseCase
-    implements Usecase<AutomationUploadInput, AutomationUploadOutput> {
+export class AutomationUploadUseCase implements Usecase<
+    AutomationUploadInput,
+    AutomationUploadOutput
+> {
     constructor(
-        @Inject('StorageService')
-        private readonly storage: StorageService
-    ) { }
+        @Inject("StorageService")
+        private readonly storage: StorageService,
+    ) {}
 
     async execute(
         input: AutomationUploadInput,

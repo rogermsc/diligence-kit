@@ -1,6 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common'
-import { ChunkBatch, ChunkItem, ChunkBatchMetadata } from '../domain/entities/chunk-batch.entity'
-import { ChunkBatchAccumulator, BatchUploadResult, BatchUploadPort } from '../domain/interfaces/batch-upload.interface'
+import { Injectable, Logger } from "@nestjs/common"
+import {
+    ChunkBatch,
+    ChunkItem,
+    ChunkBatchMetadata,
+} from "../domain/entities/chunk-batch.entity"
+import {
+    ChunkBatchAccumulator,
+    BatchUploadResult,
+    BatchUploadPort,
+} from "../domain/interfaces/batch-upload.interface"
 
 @Injectable()
 export class ChunkBatchAccumulatorService implements ChunkBatchAccumulator {
@@ -12,17 +20,20 @@ export class ChunkBatchAccumulatorService implements ChunkBatchAccumulator {
     constructor(
         uploadId: string,
         batchUploadPort: BatchUploadPort,
-        private readonly optimalBatchSize: number = 5
+        private readonly optimalBatchSize: number = 5,
     ) {
         this.uploadId = uploadId
         this.batchUploadPort = batchUploadPort
     }
 
     async addChunkToBatch(chunkItem: ChunkItem): Promise<boolean> {
-        const chunkBelongsToThisUpload = chunkItem.metadata.uploadId === this.uploadId
+        const chunkBelongsToThisUpload =
+            chunkItem.metadata.uploadId === this.uploadId
 
         if (!chunkBelongsToThisUpload) {
-            throw new Error(`Chunk belongs to different upload. Expected: ${this.uploadId}, Got: ${chunkItem.metadata.uploadId}`)
+            throw new Error(
+                `Chunk belongs to different upload. Expected: ${this.uploadId}, Got: ${chunkItem.metadata.uploadId}`,
+            )
         }
 
         const needsNewBatch = this.shouldCreateNewBatch()
@@ -65,30 +76,30 @@ export class ChunkBatchAccumulatorService implements ChunkBatchAccumulator {
         const batchToUpload = this.currentBatch!
         const chunkNumbers = batchToUpload.getChunkNumbers()
 
-        this.logger.debug('Flushing batch for upload', {
+        this.logger.debug("Flushing batch for upload", {
             uploadId: this.uploadId,
             batchSize: batchToUpload.getBatchSize(),
-            chunkNumbers
+            chunkNumbers,
         })
 
         try {
-            const uploadResult = await this.batchUploadPort.uploadChunkBatch(batchToUpload)
+            const uploadResult =
+                await this.batchUploadPort.uploadChunkBatch(batchToUpload)
 
-            this.logger.log('Batch upload completed', {
+            this.logger.log("Batch upload completed", {
                 uploadId: this.uploadId,
                 successfulChunks: uploadResult.successfulChunks.length,
                 failedChunks: uploadResult.failedChunks.length,
-                durationMs: uploadResult.uploadDurationMs
+                durationMs: uploadResult.uploadDurationMs,
             })
 
             this.clearCurrentBatch()
             return uploadResult
-
         } catch (error) {
-            this.logger.error('Batch upload failed', {
+            this.logger.error("Batch upload failed", {
                 uploadId: this.uploadId,
                 chunkNumbers,
-                error: error.message
+                error: error.message,
             })
 
             this.clearCurrentBatch()

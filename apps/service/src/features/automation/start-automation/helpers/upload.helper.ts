@@ -41,12 +41,14 @@ export class UploadHelper {
                 uploadedFiles: uploadResult.uploadedFiles,
             }
         } catch (err) {
-            Logger.error('Error uploading ZIP documents', err);
+            Logger.error("Error uploading ZIP documents", err)
 
             // Re-throw validation errors to preserve specific error messages
-            if (err.message?.includes('ZIP file is empty') ||
-                err.message?.includes('Invalid file type')) {
-                throw err;
+            if (
+                err.message?.includes("ZIP file is empty") ||
+                err.message?.includes("Invalid file type")
+            ) {
+                throw err
             }
 
             throw new AutomationUploadFailedError()

@@ -1,8 +1,11 @@
-import { Injectable, Logger, Inject } from '@nestjs/common'
-import { File as MulterFile } from 'multer'
-import { BatchDownloadAdapterService } from './batch-download-adapter.service'
-import { ChunkDownloadTask, ChunkAssemblyResult } from '../domain/interfaces/batch-download.interface'
-import { StorageError, StorageErrorType } from '@/shared/errors/storage-error'
+import { Injectable, Logger, Inject } from "@nestjs/common"
+import { File as MulterFile } from "multer"
+import { BatchDownloadAdapterService } from "./batch-download-adapter.service"
+import {
+    ChunkDownloadTask,
+    ChunkAssemblyResult,
+} from "../domain/interfaces/batch-download.interface"
+import { StorageError, StorageErrorType } from "@/shared/errors/storage-error"
 
 export interface EnhancedAssemblyResult {
     readonly success: boolean
@@ -15,43 +18,49 @@ export interface EnhancedAssemblyResult {
 
 @Injectable()
 export class EnhancedAssemblyCoordinatorService {
-    private readonly logger = new Logger(EnhancedAssemblyCoordinatorService.name)
-    private readonly TEMP_FOLDER_PREFIX = 'temp'
-    private readonly CHUNK_FILE_EXTENSION = '.chunk'
+    private readonly logger = new Logger(
+        EnhancedAssemblyCoordinatorService.name,
+    )
+    private readonly TEMP_FOLDER_PREFIX = "temp"
+    private readonly CHUNK_FILE_EXTENSION = ".chunk"
 
     constructor(
-        private readonly batchDownloadAdapter: BatchDownloadAdapterService
-    ) { }
+        private readonly batchDownloadAdapter: BatchDownloadAdapterService,
+    ) {}
 
     async startEnhancedAssembly(
         uploadId: string,
         totalChunks: number,
-        originalFilename: string
+        originalFilename: string,
     ): Promise<EnhancedAssemblyResult> {
         const assemblyStartTime = Date.now()
 
-        this.logger.log('Starting enhanced assembly with batch download', {
+        this.logger.log("Starting enhanced assembly with batch download", {
             uploadId,
             totalChunks,
-            originalFilename
+            originalFilename,
         })
 
         try {
-            const assemblyResult = await this.downloadAndAssembleChunksInBatches(
-                uploadId,
-                totalChunks
-            )
+            const assemblyResult =
+                await this.downloadAndAssembleChunksInBatches(
+                    uploadId,
+                    totalChunks,
+                )
 
-            const assembledFile = this.createAssembledFile(originalFilename, assemblyResult.assembledBuffer)
+            const assembledFile = this.createAssembledFile(
+                originalFilename,
+                assemblyResult.assembledBuffer,
+            )
             const totalAssemblyDurationMs = Date.now() - assemblyStartTime
 
-            this.logger.log('Enhanced assembly completed successfully', {
+            this.logger.log("Enhanced assembly completed successfully", {
                 uploadId,
                 totalChunks,
                 finalFileSize: assemblyResult.assembledBuffer.length,
                 downloadDurationMs: assemblyResult.downloadDurationMs,
                 assemblyDurationMs: assemblyResult.assemblyDurationMs,
-                totalDurationMs: totalAssemblyDurationMs
+                totalDurationMs: totalAssemblyDurationMs,
             })
 
             return {
@@ -59,17 +68,16 @@ export class EnhancedAssemblyCoordinatorService {
                 assembledFile,
                 assemblyDurationMs: totalAssemblyDurationMs,
                 downloadDurationMs: assemblyResult.downloadDurationMs,
-                totalChunks
+                totalChunks,
             }
-
         } catch (error) {
             const totalAssemblyDurationMs = Date.now() - assemblyStartTime
 
-            this.logger.error('Enhanced assembly failed', {
+            this.logger.error("Enhanced assembly failed", {
                 uploadId,
                 totalChunks,
                 error: error.message,
-                durationMs: totalAssemblyDurationMs
+                durationMs: totalAssemblyDurationMs,
             })
 
             return {
@@ -77,50 +85,72 @@ export class EnhancedAssemblyCoordinatorService {
                 error: error.message,
                 assemblyDurationMs: totalAssemblyDurationMs,
                 downloadDurationMs: 0,
-                totalChunks
+                totalChunks,
             }
         }
     }
 
     private async downloadAndAssembleChunksInBatches(
         uploadId: string,
-        totalChunks: number
+        totalChunks: number,
     ): Promise<ChunkAssemblyResult> {
         const downloadStartTime = Date.now()
 
         const downloadTasks = this.createDownloadTasks(uploadId, totalChunks)
-        const optimalBatchSize = this.batchDownloadAdapter.calculateOptimalDownloadBatchSize(totalChunks)
+        const optimalBatchSize =
+            this.batchDownloadAdapter.calculateOptimalDownloadBatchSize(
+                totalChunks,
+            )
 
-        this.logger.debug('Processing chunks in batches', {
+        this.logger.debug("Processing chunks in batches", {
             uploadId,
             totalChunks,
             optimalBatchSize,
-            totalBatches: Math.ceil(downloadTasks.length / optimalBatchSize)
+            totalBatches: Math.ceil(downloadTasks.length / optimalBatchSize),
         })
 
         const allChunkBuffers = new Map<number, Buffer>()
 
         // Process chunks in batches
-        for (let batchStartIndex = 0; batchStartIndex < downloadTasks.length; batchStartIndex += optimalBatchSize) {
-            const batchEndIndex = Math.min(batchStartIndex + optimalBatchSize, downloadTasks.length)
-            const currentBatch = downloadTasks.slice(batchStartIndex, batchEndIndex)
-            const batchNumber = Math.floor(batchStartIndex / optimalBatchSize) + 1
-            const totalBatches = Math.ceil(downloadTasks.length / optimalBatchSize)
+        for (
+            let batchStartIndex = 0;
+            batchStartIndex < downloadTasks.length;
+            batchStartIndex += optimalBatchSize
+        ) {
+            const batchEndIndex = Math.min(
+                batchStartIndex + optimalBatchSize,
+                downloadTasks.length,
+            )
+            const currentBatch = downloadTasks.slice(
+                batchStartIndex,
+                batchEndIndex,
+            )
+            const batchNumber =
+                Math.floor(batchStartIndex / optimalBatchSize) + 1
+            const totalBatches = Math.ceil(
+                downloadTasks.length / optimalBatchSize,
+            )
 
-            this.logger.debug(`Processing batch ${batchNumber}/${totalBatches}`, {
-                uploadId,
-                batchSize: currentBatch.length,
-                chunkNumbers: currentBatch.map(task => task.chunkNumber)
-            })
+            this.logger.debug(
+                `Processing batch ${batchNumber}/${totalBatches}`,
+                {
+                    uploadId,
+                    batchSize: currentBatch.length,
+                    chunkNumbers: currentBatch.map((task) => task.chunkNumber),
+                },
+            )
 
-            const batchResult = await this.batchDownloadAdapter.downloadChunksBatch(currentBatch)
+            const batchResult =
+                await this.batchDownloadAdapter.downloadChunksBatch(
+                    currentBatch,
+                )
 
             const batchHasFailures = batchResult.failedDownloads.length > 0
 
             if (batchHasFailures) {
                 throw new StorageError(
                     StorageErrorType.UPLOAD_ERROR,
-                    `Failed to download chunks in batch ${batchNumber}: ${batchResult.failedDownloads.join(', ')}`
+                    `Failed to download chunks in batch ${batchNumber}: ${batchResult.failedDownloads.join(", ")}`,
                 )
             }
 
@@ -133,17 +163,23 @@ export class EnhancedAssemblyCoordinatorService {
         const downloadDurationMs = Date.now() - downloadStartTime
 
         // Assemble chunks in correct order
-        const assemblyResult = this.assembleChunksInOrder(allChunkBuffers, totalChunks)
+        const assemblyResult = this.assembleChunksInOrder(
+            allChunkBuffers,
+            totalChunks,
+        )
 
         return {
             assembledBuffer: assemblyResult.assembledBuffer,
             totalChunks,
             assemblyDurationMs: assemblyResult.assemblyDurationMs,
-            downloadDurationMs
+            downloadDurationMs,
         }
     }
 
-    private createDownloadTasks(uploadId: string, totalChunks: number): ChunkDownloadTask[] {
+    private createDownloadTasks(
+        uploadId: string,
+        totalChunks: number,
+    ): ChunkDownloadTask[] {
         const downloadTasks: ChunkDownloadTask[] = []
 
         for (let chunkNumber = 1; chunkNumber <= totalChunks; chunkNumber++) {
@@ -152,7 +188,7 @@ export class EnhancedAssemblyCoordinatorService {
             downloadTasks.push({
                 chunkNumber,
                 chunkPath,
-                uploadId
+                uploadId,
             })
         }
 
@@ -161,7 +197,7 @@ export class EnhancedAssemblyCoordinatorService {
 
     private assembleChunksInOrder(
         chunkBuffers: Map<number, Buffer>,
-        totalChunks: number
+        totalChunks: number,
     ): { assembledBuffer: Buffer; assemblyDurationMs: number } {
         const assemblyStartTime = Date.now()
         const orderedBuffers: Buffer[] = []
@@ -173,7 +209,7 @@ export class EnhancedAssemblyCoordinatorService {
             if (chunkIsMissing) {
                 throw new StorageError(
                     StorageErrorType.UPLOAD_ERROR,
-                    `Missing chunk ${chunkNumber} during assembly`
+                    `Missing chunk ${chunkNumber} during assembly`,
                 )
             }
 
@@ -183,15 +219,15 @@ export class EnhancedAssemblyCoordinatorService {
         const assembledBuffer = Buffer.concat(orderedBuffers)
         const assemblyDurationMs = Date.now() - assemblyStartTime
 
-        this.logger.debug('Chunks assembled in correct order', {
+        this.logger.debug("Chunks assembled in correct order", {
             totalChunks,
             finalSize: assembledBuffer.length,
-            assemblyDurationMs
+            assemblyDurationMs,
         })
 
         return {
             assembledBuffer,
-            assemblyDurationMs
+            assemblyDurationMs,
         }
     }
 
@@ -202,11 +238,11 @@ export class EnhancedAssemblyCoordinatorService {
     private createAssembledFile(filename: string, buffer: Buffer): MulterFile {
         return {
             originalname: filename,
-            mimetype: 'application/zip',
+            mimetype: "application/zip",
             size: buffer.length,
             buffer,
-            encoding: '7bit',
-            fieldname: 'file'
+            encoding: "7bit",
+            fieldname: "file",
         } as MulterFile
     }
 }

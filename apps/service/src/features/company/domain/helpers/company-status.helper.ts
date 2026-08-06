@@ -19,7 +19,7 @@ export class CompanyStatusHelper {
 
         // Check for Processing status first (highest priority)
         const hasProcessing = automations.some(
-            (automation) => automation.status === AutomationStatus.PROCESSING
+            (automation) => automation.status === AutomationStatus.PROCESSING,
         )
         if (hasProcessing) {
             return AutomationStatus.PROCESSING
@@ -27,7 +27,7 @@ export class CompanyStatusHelper {
 
         // Check for Pending status second priority
         const hasPending = automations.some(
-            (automation) => automation.status === AutomationStatus.PENDING
+            (automation) => automation.status === AutomationStatus.PENDING,
         )
         if (hasPending) {
             return AutomationStatus.PENDING
@@ -35,9 +35,9 @@ export class CompanyStatusHelper {
 
         // For Failed and Completed, get the most recent one by updatedDate
         const failedAndCompletedAutomations = automations.filter(
-            (automation) => 
+            (automation) =>
                 automation.status === AutomationStatus.FAILED ||
-                automation.status === AutomationStatus.COMPLETED
+                automation.status === AutomationStatus.COMPLETED,
         )
 
         if (failedAndCompletedAutomations.length === 0) {
@@ -46,9 +46,9 @@ export class CompanyStatusHelper {
 
         // Sort by updatedDate descending (most recent first)
         const mostRecent = failedAndCompletedAutomations.sort(
-            (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+            (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
         )[0]
 
         return mostRecent.status as AutomationStatus
     }
-} 
+}

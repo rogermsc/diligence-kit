@@ -1,14 +1,27 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus, Logger } from '@nestjs/common'
-import { Response } from 'express'
-import { 
-    AutomationNotFoundError, 
-    InvalidAutomationStageError, 
-    DiligenceCreationFailedError 
-} from '../../domain/errors/report-agent.errors'
+import {
+    ArgumentsHost,
+    Catch,
+    ExceptionFilter,
+    HttpStatus,
+    Logger,
+} from "@nestjs/common"
+import { Response } from "express"
+import {
+    AutomationNotFoundError,
+    InvalidAutomationStageError,
+    DiligenceCreationFailedError,
+} from "../../domain/errors/report-agent.errors"
 
-type ReportAgentsError = AutomationNotFoundError | InvalidAutomationStageError | DiligenceCreationFailedError
+type ReportAgentsError =
+    | AutomationNotFoundError
+    | InvalidAutomationStageError
+    | DiligenceCreationFailedError
 
-@Catch(AutomationNotFoundError, InvalidAutomationStageError, DiligenceCreationFailedError)
+@Catch(
+    AutomationNotFoundError,
+    InvalidAutomationStageError,
+    DiligenceCreationFailedError,
+)
 export class ReportAgentsExceptionFilter implements ExceptionFilter {
     private readonly logger = new Logger(ReportAgentsExceptionFilter.name)
 
@@ -38,7 +51,9 @@ export class ReportAgentsExceptionFilter implements ExceptionFilter {
         // Mapear erros específicos para respostas HTTP apropriadas
         const errorResponse = this.mapErrorToResponse(exception)
 
-        return response.status(errorResponse.statusCode).json(errorResponse.body)
+        return response
+            .status(errorResponse.statusCode)
+            .json(errorResponse.body)
     }
 
     private mapErrorToResponse(exception: ReportAgentsError) {
@@ -48,9 +63,9 @@ export class ReportAgentsExceptionFilter implements ExceptionFilter {
                     statusCode: HttpStatus.NOT_FOUND,
                     body: {
                         statusCode: HttpStatus.NOT_FOUND,
-                        message: 'Automation not found.',
-                        type: exception.type
-                    }
+                        message: "Automation not found.",
+                        type: exception.type,
+                    },
                 }
 
             case InvalidAutomationStageError:
@@ -58,9 +73,9 @@ export class ReportAgentsExceptionFilter implements ExceptionFilter {
                     statusCode: HttpStatus.CONFLICT,
                     body: {
                         statusCode: HttpStatus.CONFLICT,
-                        message: 'Cannot trigger second stage yet.',
-                        type: exception.type
-                    }
+                        message: "Cannot trigger second stage yet.",
+                        type: exception.type,
+                    },
                 }
 
             case DiligenceCreationFailedError:
@@ -68,9 +83,9 @@ export class ReportAgentsExceptionFilter implements ExceptionFilter {
                     statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
                     body: {
                         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-                        message: 'Internal server error.',
-                        type: exception.type
-                    }
+                        message: "Internal server error.",
+                        type: exception.type,
+                    },
                 }
 
             default:
@@ -78,9 +93,9 @@ export class ReportAgentsExceptionFilter implements ExceptionFilter {
                     statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
                     body: {
                         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-                        message: 'Internal server error.',
-                        type: 'UNKNOWN_ERROR'
-                    }
+                        message: "Internal server error.",
+                        type: "UNKNOWN_ERROR",
+                    },
                 }
         }
     }

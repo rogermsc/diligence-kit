@@ -2,7 +2,7 @@ export enum AutomationStatus {
     PENDING = "PENDING",
     PROCESSING = "PROCESSING",
     COMPLETED = "COMPLETED",
-    FAILED = "FAILED"
+    FAILED = "FAILED",
 }
 
 export enum AutomationStageDomain {
@@ -23,7 +23,7 @@ export class Automation {
         public readonly createdAt: Date,
         public readonly updatedAt: Date,
         public readonly parentAutomationId?: string,
-    ) { }
+    ) {}
 
     static create(props: {
         id?: string

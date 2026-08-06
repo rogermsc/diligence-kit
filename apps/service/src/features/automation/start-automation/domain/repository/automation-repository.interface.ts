@@ -1,4 +1,8 @@
-import { Automation, AutomationStageDomain, AutomationStatus } from "@/shared/domain/entities/automation.entity"
+import {
+    Automation,
+    AutomationStageDomain,
+    AutomationStatus,
+} from "@/shared/domain/entities/automation.entity"
 
 export interface CreateAutomationData {
     id?: string
@@ -19,6 +23,10 @@ export interface AutomationRepository {
     updateStatus(id: string, status: AutomationStatus): Promise<void>
     getCompanyIdByAutomationId(automationId: string): Promise<string | null>
     createOrUpdateOnePager(data: CreateOnePagerData): Promise<void>
-    findOnePagerByAutomationId(automationId: string): Promise<{ id: string; url: string } | null>
-    findLatestOnePagerByCompanyId(companyId: string): Promise<{ id: string; url: string } | null>
+    findOnePagerByAutomationId(
+        automationId: string,
+    ): Promise<{ id: string; url: string } | null>
+    findLatestOnePagerByCompanyId(
+        companyId: string,
+    ): Promise<{ id: string; url: string } | null>
 }

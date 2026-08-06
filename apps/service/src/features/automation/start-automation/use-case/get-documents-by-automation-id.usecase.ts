@@ -12,19 +12,23 @@ export interface GetDocumentsByAutomationIdOutput {
 }
 
 @Injectable()
-export class GetDocumentsByAutomationIdUseCase
-    implements Usecase<GetDocumentsByAutomationIdInput, GetDocumentsByAutomationIdOutput>
-{
+export class GetDocumentsByAutomationIdUseCase implements Usecase<
+    GetDocumentsByAutomationIdInput,
+    GetDocumentsByAutomationIdOutput
+> {
     constructor(
         @Inject("DocumentRepository")
         private readonly documentRepository: DocumentRepository,
     ) {}
 
-    async execute(input: GetDocumentsByAutomationIdInput): Promise<GetDocumentsByAutomationIdOutput> {
+    async execute(
+        input: GetDocumentsByAutomationIdInput,
+    ): Promise<GetDocumentsByAutomationIdOutput> {
         const { automationId } = input
 
-        const documents = await this.documentRepository.findByAutomationId(automationId)
+        const documents =
+            await this.documentRepository.findByAutomationId(automationId)
 
         return { documents }
     }
-} 
+}

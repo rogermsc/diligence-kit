@@ -50,7 +50,10 @@ export class PrismaDocumentRepositoryAdapter implements DocumentRepository {
         }
     }
 
-    async createMany(data: CreateDocumentData[], tx?: any): Promise<Document[]> {
+    async createMany(
+        data: CreateDocumentData[],
+        tx?: any,
+    ): Promise<Document[]> {
         try {
             const client = tx || prisma
             const documents = await client.$transaction(
@@ -71,8 +74,8 @@ export class PrismaDocumentRepositoryAdapter implements DocumentRepository {
                             name: item.name,
                             bucketPath: item.bucketPath,
                         },
-                    })
-                )
+                    }),
+                ),
             )
 
             return documents.map(
@@ -94,13 +97,14 @@ export class PrismaDocumentRepositoryAdapter implements DocumentRepository {
 
     private handleDatabaseError(error: any, operation: string): never {
         if (error instanceof PrismaClientKnownRequestError) {
-
             // Outros erros conhecidos do Prisma
             this.logger.error(
                 `Prisma error during ${operation}: ${error.message}`,
                 error.stack,
             )
-            throw new DatabaseAccessError(`Database error during ${operation}: ${error.message}`)
+            throw new DatabaseAccessError(
+                `Database error during ${operation}: ${error.message}`,
+            )
         }
 
         // Erros gerais
@@ -185,7 +189,9 @@ export class PrismaDocumentRepositoryAdapter implements DocumentRepository {
         }
     }
 
-    async updateOpenaiFileIds(updates: UpdateOpenaiFileIdData[]): Promise<void> {
+    async updateOpenaiFileIds(
+        updates: UpdateOpenaiFileIdData[],
+    ): Promise<void> {
         if (updates.length === 0) return
 
         try {
@@ -194,8 +200,8 @@ export class PrismaDocumentRepositoryAdapter implements DocumentRepository {
                     prisma.documents.update({
                         where: { id: u.id },
                         data: { openaiFileId: u.openaiFileId },
-                    })
-                )
+                    }),
+                ),
             )
         } catch (error) {
             this.handleDatabaseError(error, "update openaiFileIds")

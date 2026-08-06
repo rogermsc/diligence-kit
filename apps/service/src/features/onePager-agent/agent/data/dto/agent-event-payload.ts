@@ -1,7 +1,7 @@
 export interface AgentEmitPayload {
-    companyId: string,
-    automationId: string,
-    documents: Map<String, String[]>
+    companyId: string
+    automationId: string
+    documents: Map<string, string[]>
 }
 
 export interface AgentDocument {

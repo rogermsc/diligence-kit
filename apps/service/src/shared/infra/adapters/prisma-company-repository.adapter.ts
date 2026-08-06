@@ -59,7 +59,10 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
     async findById(id: string, ownerId: string): Promise<Company | null> {
         try {
             const company = await prisma.company.findFirst({
-                where: { id: requireId(id, "id"), ownerId: requireId(ownerId, "ownerId") },
+                where: {
+                    id: requireId(id, "id"),
+                    ownerId: requireId(ownerId, "ownerId"),
+                },
             })
 
             if (!company) {
@@ -128,7 +131,10 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
     ): Promise<CompanyWithAutomations | null> {
         try {
             const companyWithAutomations = await prisma.company.findFirst({
-                where: { id: requireId(id, "id"), ownerId: requireId(ownerId, "ownerId") },
+                where: {
+                    id: requireId(id, "id"),
+                    ownerId: requireId(ownerId, "ownerId"),
+                },
                 include: {
                     automations: {
                         orderBy: { createdAt: "desc" },
@@ -360,7 +366,10 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
     async delete(id: string, ownerId: string): Promise<void> {
         try {
             const { count } = await prisma.company.deleteMany({
-                where: { id: requireId(id, "id"), ownerId: requireId(ownerId, "ownerId") },
+                where: {
+                    id: requireId(id, "id"),
+                    ownerId: requireId(ownerId, "ownerId"),
+                },
             })
 
             if (count === 0) {

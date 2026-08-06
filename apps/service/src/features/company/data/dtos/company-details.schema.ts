@@ -7,11 +7,7 @@ export const AutomationStatusSchema = z.enum([
     "FAILED",
 ])
 
-export const OutputDocumentStatusSchema = z.enum([
-    "OK",
-    "MISSING",
-    "OPTIONAL",
-])
+export const OutputDocumentStatusSchema = z.enum(["OK", "MISSING", "OPTIONAL"])
 
 export const OutputSectorSchema = z.enum([
     "COMPANY_SUMMARY",
@@ -23,23 +19,16 @@ export const OutputSectorSchema = z.enum([
     "FINANCIAL",
 ])
 
-export const ResultStatusSchema = z.enum([
-    "OK",
-    "MISSING_DOCS",
-])
+export const ResultStatusSchema = z.enum(["OK", "MISSING_DOCS"])
 
-export const ReportStatusSchema = z.enum([
-    "COMPLETED",
-    "FAILED",
-    "UNTRACKED"
-])
+export const ReportStatusSchema = z.enum(["COMPLETED", "FAILED", "UNTRACKED"])
 
 export const AutomationStageSchema = z.enum([
     "TRIAGE",
     "DILLIGENCE_OPERATIONAL",
     "DILLIGENCE_COMMERCIAL",
     "DILLIGENCE_FINANCIAL",
-    "DILLIGENCE_CAP_TABLE_AND_LEGAL_REVIEW"
+    "DILLIGENCE_CAP_TABLE_AND_LEGAL_REVIEW",
 ])
 
 export const DocumentSchema = z.object({
@@ -91,41 +80,55 @@ export const OnePagerSchema = z.object({
 
 // Schema para o resultado completo da automação (usado quando status = COMPLETED)
 export const CompletedAutomationResultSchema = z.object({
-    company_summary_documents: z.array(z.object({
-        id: z.string().uuid().nullable(),
-        name: z.string(),
-        status: OutputDocumentStatusSchema,
-    })),
-    team_documents: z.array(z.object({
-        id: z.string().uuid().nullable(),
-        name: z.string(),
-        status: OutputDocumentStatusSchema,
-    })),
-    corporate_documents: z.array(z.object({
-        id: z.string().uuid().nullable(),
-        name: z.string(),
-        status: OutputDocumentStatusSchema,
-    })),
-    clients_documents: z.array(z.object({
-        id: z.string().uuid().nullable(),
-        name: z.string(),
-        status: OutputDocumentStatusSchema,
-    })),
-    investment_documents: z.array(z.object({
-        id: z.string().uuid().nullable(),
-        name: z.string(),
-        status: OutputDocumentStatusSchema,
-    })),
-    legal_documents: z.array(z.object({
-        id: z.string().uuid().nullable(),
-        name: z.string(),
-        status: OutputDocumentStatusSchema,
-    })),
-    financial_documents: z.array(z.object({
-        id: z.string().uuid().nullable(),
-        name: z.string(),
-        status: OutputDocumentStatusSchema,
-    })),
+    company_summary_documents: z.array(
+        z.object({
+            id: z.string().uuid().nullable(),
+            name: z.string(),
+            status: OutputDocumentStatusSchema,
+        }),
+    ),
+    team_documents: z.array(
+        z.object({
+            id: z.string().uuid().nullable(),
+            name: z.string(),
+            status: OutputDocumentStatusSchema,
+        }),
+    ),
+    corporate_documents: z.array(
+        z.object({
+            id: z.string().uuid().nullable(),
+            name: z.string(),
+            status: OutputDocumentStatusSchema,
+        }),
+    ),
+    clients_documents: z.array(
+        z.object({
+            id: z.string().uuid().nullable(),
+            name: z.string(),
+            status: OutputDocumentStatusSchema,
+        }),
+    ),
+    investment_documents: z.array(
+        z.object({
+            id: z.string().uuid().nullable(),
+            name: z.string(),
+            status: OutputDocumentStatusSchema,
+        }),
+    ),
+    legal_documents: z.array(
+        z.object({
+            id: z.string().uuid().nullable(),
+            name: z.string(),
+            status: OutputDocumentStatusSchema,
+        }),
+    ),
+    financial_documents: z.array(
+        z.object({
+            id: z.string().uuid().nullable(),
+            name: z.string(),
+            status: OutputDocumentStatusSchema,
+        }),
+    ),
 })
 
 export const AutomationResponseSchema = z.object({
@@ -157,10 +160,14 @@ export const OnePagerResponseSchema = z.object({
 })
 
 export type AutomationResponseDTO = z.infer<typeof AutomationResponseSchema>
-export type CompanyDetailsResponseDTO = z.infer<typeof CompanyDetailsResponseSchema>
+export type CompanyDetailsResponseDTO = z.infer<
+    typeof CompanyDetailsResponseSchema
+>
 export type DocumentDTO = z.infer<typeof DocumentSchema>
 export type OutputDocumentDTO = z.infer<typeof OutputDocumentSchema>
 export type ResultDTO = z.infer<typeof ResultSchema>
-export type CompletedAutomationResultDTO = z.infer<typeof CompletedAutomationResultSchema>
+export type CompletedAutomationResultDTO = z.infer<
+    typeof CompletedAutomationResultSchema
+>
 export type OnePagerResponseDTO = z.infer<typeof OnePagerResponseSchema>
 export type OnePagerDTO = z.infer<typeof OnePagerSchema>

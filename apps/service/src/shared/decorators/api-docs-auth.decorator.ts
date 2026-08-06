@@ -1,63 +1,59 @@
-import { applyDecorators } from '@nestjs/common';
-import { 
-    ApiOperation, 
-    ApiBody, 
-    ApiResponse 
-} from '@nestjs/swagger';
+import { applyDecorators } from "@nestjs/common"
+import { ApiOperation, ApiBody, ApiResponse } from "@nestjs/swagger"
 
 export const ApiLogin = () => {
     return applyDecorators(
-        ApiOperation({ summary: 'User login' }),
+        ApiOperation({ summary: "User login" }),
         ApiBody({
-            description: 'User credentials',
+            description: "User credentials",
             schema: {
-                type: 'object',
+                type: "object",
                 properties: {
-                    email: { type: 'string', example: 'user@example.com' },
-                    password: { type: 'string', example: 'strongpassword123' }
+                    email: { type: "string", example: "user@example.com" },
+                    password: { type: "string", example: "strongpassword123" },
                 },
-                required: ['email', 'password']
-            }
+                required: ["email", "password"],
+            },
         }),
-        ApiResponse({ 
-            status: 200, 
-            description: 'Login successful',
+        ApiResponse({
+            status: 200,
+            description: "Login successful",
             schema: {
-                type: 'object',
+                type: "object",
                 properties: {
-                    access_token: { type: 'string' },
-                    refresh_token: { type: 'string' }
-                }
-            }
+                    access_token: { type: "string" },
+                    refresh_token: { type: "string" },
+                },
+            },
         }),
-        ApiResponse({ status: 401, description: 'Invalid credentials' })
-    );
-};
+        ApiResponse({ status: 401, description: "Invalid credentials" }),
+    )
+}
 
 export const ApiRefreshToken = () => {
     return applyDecorators(
-        ApiOperation({ summary: 'Refresh token' }),
+        ApiOperation({ summary: "Refresh token" }),
         ApiBody({
-            description: 'Refresh token to renew',
+            description: "Refresh token to renew",
             schema: {
-                type: 'object',
+                type: "object",
                 properties: {
-                    refreshToken: { type: 'string' }
+                    refreshToken: { type: "string" },
                 },
-                required: ['refreshToken']
-            }
+                required: ["refreshToken"],
+            },
         }),
-        ApiResponse({ 
-            status: 200, 
-            description: 'Token renewed successfully',
+        ApiResponse({
+            status: 200,
+            description: "Token renewed successfully",
             schema: {
-                type: 'object',
+                type: "object",
                 properties: {
-                    access_token: { type: 'string' },
-                    refresh_token: { type: 'string' }
-                }
-            }
+                    access_token: { type: "string" },
+                    refresh_token: { type: "string" },
+                },
+            },
         }),
-        ApiResponse({ status: 401, description: 'Invalid refresh token' })
-    );
-};
+        ApiResponse({ status: 401, description: "Invalid refresh token" }),
+    )
+}

@@ -14,12 +14,13 @@ export class YauzlZipParserService implements ZipParserService {
         const entries = await this.extractZipEntries(zipBuffer)
 
         // Validar e filtrar conteúdo do ZIP - mantém apenas arquivos válidos
-        const validEntries = ZipContentValidator.validateAndFilterZipContent(entries)
+        const validEntries =
+            ZipContentValidator.validateAndFilterZipContent(entries)
 
         return this.buildFolderStructure(validEntries, rootFolderName)
     }
 
-    private static readonly MAX_UNCOMPRESSED_BYTES = 500 * 1024 * 1024; // 500 MB
+    private static readonly MAX_UNCOMPRESSED_BYTES = 500 * 1024 * 1024 // 500 MB
 
     private async extractZipEntries(
         zipBuffer: Buffer,
@@ -46,8 +47,15 @@ export class YauzlZipParserService implements ZipParserService {
 
                     zipfile.on("entry", async (entry) => {
                         totalUncompressedSize += entry.uncompressedSize
-                        if (totalUncompressedSize > YauzlZipParserService.MAX_UNCOMPRESSED_BYTES) {
-                            reject(new Error("ZIP file exceeds maximum uncompressed size of 500 MB"))
+                        if (
+                            totalUncompressedSize >
+                            YauzlZipParserService.MAX_UNCOMPRESSED_BYTES
+                        ) {
+                            reject(
+                                new Error(
+                                    "ZIP file exceeds maximum uncompressed size of 500 MB",
+                                ),
+                            )
                             return
                         }
 
@@ -279,7 +287,10 @@ export class YauzlZipParserService implements ZipParserService {
 
         // === WINDOWS METADATA ===
         // Skip Windows thumbnail cache
-        if (lowerFileName === "thumbs.db" || lowerFileName === "thumbs.db:encryptable") {
+        if (
+            lowerFileName === "thumbs.db" ||
+            lowerFileName === "thumbs.db:encryptable"
+        ) {
             return true
         }
 
@@ -358,7 +369,11 @@ export class YauzlZipParserService implements ZipParserService {
 
         // === GENERAL HIDDEN FILES ===
         // Skip other hidden files (start with .) but allow legitimate files like .env, .gitignore if explicitly named
-        if (fileName.startsWith(".") && fileName !== "." && !this.isLegitimateHiddenFile(fileName)) {
+        if (
+            fileName.startsWith(".") &&
+            fileName !== "." &&
+            !this.isLegitimateHiddenFile(fileName)
+        ) {
             return true
         }
 
@@ -371,11 +386,11 @@ export class YauzlZipParserService implements ZipParserService {
      */
     private isLegitimateHiddenFile(fileName: string): boolean {
         const legitimateHiddenFiles = [
-            '.env',
-            '.gitignore',
-            '.dockerignore',
-            '.editorconfig',
-            '.htaccess'
+            ".env",
+            ".gitignore",
+            ".dockerignore",
+            ".editorconfig",
+            ".htaccess",
         ]
 
         return legitimateHiddenFiles.includes(fileName.toLowerCase())

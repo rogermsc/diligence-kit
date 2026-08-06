@@ -1,4 +1,8 @@
-import { AutomationStage, Automation as PrismaAutomation, Result } from "@prisma/client"
+import {
+    AutomationStage,
+    Automation as PrismaAutomation,
+    Result,
+} from "@prisma/client"
 import {
     Automation as DomainAutomation,
     AutomationStatus,

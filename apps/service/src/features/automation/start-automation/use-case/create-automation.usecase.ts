@@ -14,24 +14,32 @@ export interface CreateAutomationOutput {
 }
 
 @Injectable()
-export class CreateAutomationUseCase
-    implements Usecase<CreateAutomationInput, CreateAutomationOutput> {
+export class CreateAutomationUseCase implements Usecase<
+    CreateAutomationInput,
+    CreateAutomationOutput
+> {
     private readonly logger = new Logger(CreateAutomationUseCase.name)
 
     constructor(
         private readonly getCompanyByIdUseCase: GetCompanyByIdUseCase,
         private readonly checkCompanyHasProcessingAutomationUseCase: CheckCompanyHasProcessingAutomationUseCase,
-    ) { }
+    ) {}
 
-    async execute(input: CreateAutomationInput): Promise<CreateAutomationOutput> {
+    async execute(
+        input: CreateAutomationInput,
+    ): Promise<CreateAutomationOutput> {
         const { companyId } = input
 
         await this.getCompanyByIdUseCase.execute({ companyId })
-        await this.checkCompanyHasProcessingAutomationUseCase.execute({ companyId })
+        await this.checkCompanyHasProcessingAutomationUseCase.execute({
+            companyId,
+        })
 
         const automationId = randomUUID()
 
-        this.logger.log(`Generated automationId ${automationId} for company ${companyId} (not persisted yet)`)
+        this.logger.log(
+            `Generated automationId ${automationId} for company ${companyId} (not persisted yet)`,
+        )
 
         return { automationId, companyId }
     }

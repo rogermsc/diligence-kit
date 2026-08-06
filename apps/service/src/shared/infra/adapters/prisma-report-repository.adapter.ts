@@ -1,12 +1,15 @@
 import { Injectable, Logger } from "@nestjs/common"
 import { Report } from "@/shared/domain/entities/report.entity"
-import { CreateReportData, ReportRepository } from "@/shared/repository/report-repository.interface"
+import {
+    CreateReportData,
+    ReportRepository,
+} from "@/shared/repository/report-repository.interface"
 import { DatabaseAccessError } from "@/shared/errors/db/data-base-error"
 import {
     ReportCreationFailedError,
     ReportUpdateFailedError,
     ReportNotFoundError,
-    ExpiredReportsCleanupFailedError
+    ExpiredReportsCleanupFailedError,
 } from "@/shared/errors/report-errors"
 import { prisma } from "@/shared/infra/prisma"
 import { ReportMapper } from "@/shared/domain/mappers/report.mapper"
@@ -22,7 +25,7 @@ export class PrismaReportRepositoryAdapter implements ReportRepository {
             // Buscar a automation para obter o companyId
             const automation = await prisma.automation.findUnique({
                 where: { id: data.automationId },
-                select: { companyId: true }
+                select: { companyId: true },
             })
 
             if (!automation) {
@@ -38,7 +41,7 @@ export class PrismaReportRepositoryAdapter implements ReportRepository {
                 },
                 update: {
                     reportUrl: data.reportUrl,
-                    status: 'COMPLETED',
+                    status: "COMPLETED",
                     updatedAt: new Date(),
                 },
                 create: {
@@ -46,13 +49,18 @@ export class PrismaReportRepositoryAdapter implements ReportRepository {
                     companyId: automation.companyId,
                     domain: data.domain,
                     reportUrl: data.reportUrl,
-                    status: 'COMPLETED',
+                    status: "COMPLETED",
                 },
             })
 
             return ReportMapper.toDomain(report)
         } catch (error) {
-            this.handleReportOperationError(error, data.automationId, data.domain, "create/update")
+            this.handleReportOperationError(
+                error,
+                data.automationId,
+                data.domain,
+                "create/update",
+            )
         }
     }
 
@@ -60,7 +68,7 @@ export class PrismaReportRepositoryAdapter implements ReportRepository {
         try {
             const reports = await prisma.report.findMany({
                 where: { automationId },
-                orderBy: { createdAt: 'asc' },
+                orderBy: { createdAt: "asc" },
             })
 
             return ReportMapper.toDomainArray(reports)
@@ -69,7 +77,10 @@ export class PrismaReportRepositoryAdapter implements ReportRepository {
         }
     }
 
-    async findByAutomationIdAndDomain(automationId: string, domain: AgentType): Promise<Report | null> {
+    async findByAutomationIdAndDomain(
+        automationId: string,
+        domain: AgentType,
+    ): Promise<Report | null> {
         try {
             const report = await prisma.report.findUnique({
                 where: {
@@ -118,14 +129,21 @@ export class PrismaReportRepositoryAdapter implements ReportRepository {
                 },
             })
 
-            this.logger.log(`Deleted ${result.count} expired reports older than ${daysOld} days`)
+            this.logger.log(
+                `Deleted ${result.count} expired reports older than ${daysOld} days`,
+            )
             return result.count
         } catch (error) {
             this.handleExpiredReportsCleanupError(error, daysOld)
         }
     }
 
-    private handleReportOperationError(error: any, automationId: string, domain: AgentType, operation: string): never {
+    private handleReportOperationError(
+        error: any,
+        automationId: string,
+        domain: AgentType,
+        operation: string,
+    ): never {
         if (error instanceof PrismaClientKnownRequestError) {
             this.logger.error(
                 `Prisma error during report ${operation} for automation ${automationId} and domain ${domain}: ${error.message} `,
@@ -135,7 +153,11 @@ export class PrismaReportRepositoryAdapter implements ReportRepository {
             if (operation === "create/update") {
                 throw new ReportCreationFailedError()
             } else {
-                throw new ReportUpdateFailedError(automationId, domain, error.message)
+                throw new ReportUpdateFailedError(
+                    automationId,
+                    domain,
+                    error.message,
+                )
             }
         }
 
@@ -147,28 +169,41 @@ export class PrismaReportRepositoryAdapter implements ReportRepository {
         if (operation === "create/update") {
             throw new ReportCreationFailedError()
         } else {
-            throw new ReportUpdateFailedError(automationId, domain, error.message)
+            throw new ReportUpdateFailedError(
+                automationId,
+                domain,
+                error.message,
+            )
         }
     }
 
-    private handleReportFindError(error: any, automationId: string, domain?: AgentType): never {
+    private handleReportFindError(
+        error: any,
+        automationId: string,
+        domain?: AgentType,
+    ): never {
         if (error instanceof PrismaClientKnownRequestError) {
             this.logger.error(
-                `Prisma error finding reports for automation ${automationId}${domain ? ` and domain ${domain}` : ''}: ${error.message} `,
+                `Prisma error finding reports for automation ${automationId}${domain ? ` and domain ${domain}` : ""}: ${error.message} `,
                 error.stack,
             )
         } else {
             this.logger.error(
-                `Failed to find reports for automation ${automationId}${domain ? ` and domain ${domain}` : ''}: ${error.message} `,
+                `Failed to find reports for automation ${automationId}${domain ? ` and domain ${domain}` : ""}: ${error.message} `,
                 error.stack,
             )
         }
 
         // For find operations, we throw a generic database error since not finding reports is not always an error
-        throw new DatabaseAccessError(`Failed to retrieve reports for automation ${automationId}`)
+        throw new DatabaseAccessError(
+            `Failed to retrieve reports for automation ${automationId}`,
+        )
     }
 
-    private handleExpiredReportsCleanupError(error: any, daysOld: number): never {
+    private handleExpiredReportsCleanupError(
+        error: any,
+        daysOld: number,
+    ): never {
         if (error instanceof PrismaClientKnownRequestError) {
             this.logger.error(
                 `Prisma error during expired reports cleanup(${daysOld} days old): ${error.message} `,

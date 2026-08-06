@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { AutomationStatus } from '@/shared/domain/entities/automation.entity';
+import { z } from "zod"
+import { AutomationStatus } from "@/shared/domain/entities/automation.entity"
 
 const SerializedFileSchema = z.object({
     originalname: z.string().max(500),
@@ -8,12 +8,12 @@ const SerializedFileSchema = z.object({
     buffer: z.string(),
     encoding: z.string().max(50),
     fieldname: z.string().max(100),
-});
+})
 
 const ChunkMetadataSchema = z.object({
     filename: z.string().max(500),
     totalSize: z.number().int().nonnegative(),
-});
+})
 
 export const ChunkRegisteredEventSchema = z.object({
     uploadId: z.string().uuid(),
@@ -26,7 +26,7 @@ export const ChunkRegisteredEventSchema = z.object({
     automationId: z.string(),
     timestamp: z.coerce.date(),
     registeredAt: z.coerce.date(),
-});
+})
 
 export const ChunkQueuedForRetryEventSchema = z.object({
     uploadId: z.string().uuid(),
@@ -42,7 +42,7 @@ export const ChunkQueuedForRetryEventSchema = z.object({
     reason: z.string().max(500),
     missingChunks: z.array(z.number().int().nonnegative()),
     timestamp: z.coerce.date(),
-});
+})
 
 export const ChunkRetryAttemptEventSchema = z.object({
     uploadId: z.string().uuid(),
@@ -58,7 +58,7 @@ export const ChunkRetryAttemptEventSchema = z.object({
     delayMs: z.number().int().nonnegative(),
     previousError: z.string().max(1000).optional(),
     timestamp: z.coerce.date(),
-});
+})
 
 export const UploadReadyForAssemblyEventSchema = z.object({
     uploadId: z.string().uuid(),
@@ -72,13 +72,13 @@ export const UploadReadyForAssemblyEventSchema = z.object({
 
     readyAt: z.coerce.date(),
     timestamp: z.coerce.date(),
-});
+})
 
 const StorageUploadedFileSchema = z.object({
     url: z.string(),
     path: z.string(),
     name: z.string().max(500),
-});
+})
 
 const DocumentEntitySchema = z.object({
     id: z.string().uuid(),
@@ -88,7 +88,7 @@ const DocumentEntitySchema = z.object({
     createdAt: z.coerce.date(),
     updatedAt: z.coerce.date(),
     openaiFileId: z.string().optional(),
-});
+})
 
 export const ZipAssembledEventSchema = z.object({
     automationId: z.string().uuid(),
@@ -106,7 +106,7 @@ export const ZipAssembledEventSchema = z.object({
     }),
 
     timestamp: z.coerce.date(),
-});
+})
 
 export const DocumentsUploadedEventSchema = z.object({
     automationId: z.string().uuid(),
@@ -118,7 +118,7 @@ export const DocumentsUploadedEventSchema = z.object({
     }),
 
     timestamp: z.coerce.date(),
-});
+})
 
 export const AgentNotificationEventSchema = z.object({
     automationId: z.string().uuid(),
@@ -127,9 +127,9 @@ export const AgentNotificationEventSchema = z.object({
     documents: z.array(DocumentEntitySchema),
 
     timestamp: z.coerce.date(),
-});
+})
 
 export const AutomationUpdatedEventSchema = z.object({
     automationId: z.string().uuid(),
     status: z.nativeEnum(AutomationStatus),
-});
+})

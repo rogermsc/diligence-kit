@@ -1,5 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common'
-import { File as MulterFile } from 'multer'
+import { Injectable, Logger } from "@nestjs/common"
+import { File as MulterFile } from "multer"
 
 export interface OptimizedChunkData {
     readonly chunkNumber: number
@@ -32,35 +32,37 @@ export class ChunkProcessingOptimizerService {
             chunkNumber: number
             serializedFile: any
             uploadId: string
-        }>
+        }>,
     ): Promise<BatchProcessingResult> {
         const processingStartTime = Date.now()
 
-        this.logger.debug('Starting optimized batch chunk processing', {
+        this.logger.debug("Starting optimized batch chunk processing", {
             batchSize: serializedChunks.length,
-            chunkNumbers: serializedChunks.map(chunk => chunk.chunkNumber)
+            chunkNumbers: serializedChunks.map((chunk) => chunk.chunkNumber),
         })
 
         const processedChunks = await Promise.all(
-            serializedChunks.map(chunk => this.optimizeChunkDeserialization(chunk))
+            serializedChunks.map((chunk) =>
+                this.optimizeChunkDeserialization(chunk),
+            ),
         )
 
         const totalProcessingDurationMs = Date.now() - processingStartTime
         const averageChunkSize = this.calculateAverageChunkSize(processedChunks)
         const compressionRatio = this.calculateCompressionRatio(processedChunks)
 
-        this.logger.debug('Batch chunk processing completed', {
+        this.logger.debug("Batch chunk processing completed", {
             processedChunks: processedChunks.length,
             totalDurationMs: totalProcessingDurationMs,
             averageChunkSize,
-            compressionRatio
+            compressionRatio,
         })
 
         return {
             processedChunks,
             totalProcessingDurationMs,
             averageChunkSize,
-            compressionRatio
+            compressionRatio,
         }
     }
 
@@ -81,12 +83,12 @@ export class ChunkProcessingOptimizerService {
             // Use optimized base64 decoding with buffer pooling
             const decodedBuffer = this.optimizedBase64Decode(
                 serializedFile.buffer,
-                serializedFile.size
+                serializedFile.size,
             )
 
             const processedFile: MulterFile = {
                 ...serializedFile,
-                buffer: decodedBuffer
+                buffer: decodedBuffer,
             }
 
             const processingDurationMs = Date.now() - processingStartTime
@@ -96,13 +98,12 @@ export class ChunkProcessingOptimizerService {
                 processedFile,
                 processingDurationMs,
                 originalSize: originalBase64Size,
-                processedSize: decodedBuffer.length
+                processedSize: decodedBuffer.length,
             }
-
         } catch (error) {
             this.logger.error(`Failed to optimize chunk ${chunkNumber}`, {
                 error: error.message,
-                uploadId: chunkData.uploadId
+                uploadId: chunkData.uploadId,
             })
             throw error
         }
@@ -111,17 +112,22 @@ export class ChunkProcessingOptimizerService {
     /**
      * Optimized base64 decoding with buffer pooling
      */
-    private optimizedBase64Decode(base64String: string, expectedSize: number): Buffer {
+    private optimizedBase64Decode(
+        base64String: string,
+        expectedSize: number,
+    ): Buffer {
         const pooledBuffer = this.getPooledBuffer(expectedSize)
 
         if (pooledBuffer) {
             // Reuse existing buffer for better memory performance
-            const decodedLength = Buffer.from(base64String, 'base64').copy(pooledBuffer)
+            const decodedLength = Buffer.from(base64String, "base64").copy(
+                pooledBuffer,
+            )
             return pooledBuffer.subarray(0, decodedLength)
         }
 
         // Create new buffer and add to pool for future reuse
-        const newBuffer = Buffer.from(base64String, 'base64')
+        const newBuffer = Buffer.from(base64String, "base64")
         this.addBufferToPool(expectedSize, Buffer.alloc(expectedSize))
 
         return newBuffer
@@ -146,7 +152,8 @@ export class ChunkProcessingOptimizerService {
      */
     private addBufferToPool(size: number, buffer: Buffer): void {
         const buffersForSize = this.bufferPool.get(size) || []
-        const poolHasSpace = buffersForSize.length < this.MAX_POOLED_BUFFERS_PER_SIZE
+        const poolHasSpace =
+            buffersForSize.length < this.MAX_POOLED_BUFFERS_PER_SIZE
 
         if (poolHasSpace) {
             buffersForSize.push(buffer)
@@ -157,17 +164,30 @@ export class ChunkProcessingOptimizerService {
     /**
      * Calculate average chunk size for optimization metrics
      */
-    private calculateAverageChunkSize(processedChunks: OptimizedChunkData[]): number {
-        const totalSize = processedChunks.reduce((sum, chunk) => sum + chunk.processedSize, 0)
+    private calculateAverageChunkSize(
+        processedChunks: OptimizedChunkData[],
+    ): number {
+        const totalSize = processedChunks.reduce(
+            (sum, chunk) => sum + chunk.processedSize,
+            0,
+        )
         return Math.round(totalSize / processedChunks.length)
     }
 
     /**
      * Calculate compression ratio (base64 vs binary)
      */
-    private calculateCompressionRatio(processedChunks: OptimizedChunkData[]): number {
-        const totalOriginalSize = processedChunks.reduce((sum, chunk) => sum + chunk.originalSize, 0)
-        const totalProcessedSize = processedChunks.reduce((sum, chunk) => sum + chunk.processedSize, 0)
+    private calculateCompressionRatio(
+        processedChunks: OptimizedChunkData[],
+    ): number {
+        const totalOriginalSize = processedChunks.reduce(
+            (sum, chunk) => sum + chunk.originalSize,
+            0,
+        )
+        const totalProcessedSize = processedChunks.reduce(
+            (sum, chunk) => sum + chunk.processedSize,
+            0,
+        )
 
         const compressionRatio = totalOriginalSize / totalProcessedSize
         return Math.round(compressionRatio * 100) / 100
@@ -178,6 +198,6 @@ export class ChunkProcessingOptimizerService {
      */
     clearBufferPool(): void {
         this.bufferPool.clear()
-        this.logger.debug('Buffer pool cleared')
+        this.logger.debug("Buffer pool cleared")
     }
 }

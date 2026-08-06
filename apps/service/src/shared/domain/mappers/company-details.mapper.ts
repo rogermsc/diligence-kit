@@ -1,5 +1,8 @@
 import { CompanyWithAutomations } from "@/shared/repository/company-repository.interface"
-import { CompanyDetailsResponseDTO, CompletedAutomationResultDTO } from "@/features/company/data/dtos/company-details.schema"
+import {
+    CompanyDetailsResponseDTO,
+    CompletedAutomationResultDTO,
+} from "@/features/company/data/dtos/company-details.schema"
 import { CompanyMapper } from "./company.mapper"
 import { AutomationStatus } from "@/shared/domain/entities/automation.entity"
 import { CompanyStatusHelper } from "@/features/company/domain/helpers/company-status.helper"
@@ -23,8 +26,14 @@ export class CompanyDetailsMapper {
             }
 
             // Adicionar campo result apenas se status = COMPLETED e há output_documents
-            if (automation.status === 'COMPLETED' && automation.output_documents.length > 0) {
-                const result = this.buildCompletedAutomationResult(automation.output_documents[0], automation.onePagerSummary)
+            if (
+                automation.status === "COMPLETED" &&
+                automation.output_documents.length > 0
+            ) {
+                const result = this.buildCompletedAutomationResult(
+                    automation.output_documents[0],
+                    automation.onePagerSummary,
+                )
                 return {
                     ...baseAutomation,
                     result,
@@ -42,7 +51,10 @@ export class CompanyDetailsMapper {
         }
     }
 
-    private static buildCompletedAutomationResult(result: any, onePagerSummary?: string | null): CompletedAutomationResultDTO {
+    private static buildCompletedAutomationResult(
+        result: any,
+        onePagerSummary?: string | null,
+    ): CompletedAutomationResultDTO {
         // Inicializar estrutura básica
         const automationResult: CompletedAutomationResultDTO = {
             company_summary_documents: [],
@@ -64,7 +76,9 @@ export class CompanyDetailsMapper {
 
             switch (doc.sector) {
                 case OutputSector.COMPANY_SUMMARY:
-                    automationResult.company_summary_documents.push(documentData)
+                    automationResult.company_summary_documents.push(
+                        documentData,
+                    )
                     break
                 case OutputSector.TEAM:
                     automationResult.team_documents.push(documentData)

@@ -1,5 +1,5 @@
-import { AgentType } from '@prisma/client'
-import { AutomationStageDomain } from '@/shared/domain/entities/automation.entity'
+import { AgentType } from "@prisma/client"
+import { AutomationStageDomain } from "@/shared/domain/entities/automation.entity"
 
 export class SectorDomainMapperHelper {
     /**
@@ -19,18 +19,18 @@ export class SectorDomainMapperHelper {
         return sectorDomainMapping[sector] || AgentType.OPERATIONAL
     }
 
-
     static mapDomainToStage(domain: AgentType): AutomationStageDomain {
         const domainStageMapping: Record<AgentType, AutomationStageDomain> = {
-                    [AgentType.FINANCIAL]: AutomationStageDomain.DILLIGENCE_FINANCIAL,
-        [AgentType.CAP_TABLE_AND_LEGAL_REVIEW]: AutomationStageDomain.DILLIGENCE_CAP_TABLE_AND_LEGAL_REVIEW,
-        [AgentType.COMMERCIAL]: AutomationStageDomain.DILLIGENCE_COMMERCIAL,
-        [AgentType.OPERATIONAL]: AutomationStageDomain.DILLIGENCE_OPERATIONAL,
+            [AgentType.FINANCIAL]: AutomationStageDomain.DILLIGENCE_FINANCIAL,
+            [AgentType.CAP_TABLE_AND_LEGAL_REVIEW]:
+                AutomationStageDomain.DILLIGENCE_CAP_TABLE_AND_LEGAL_REVIEW,
+            [AgentType.COMMERCIAL]: AutomationStageDomain.DILLIGENCE_COMMERCIAL,
+            [AgentType.OPERATIONAL]:
+                AutomationStageDomain.DILLIGENCE_OPERATIONAL,
         }
 
         return domainStageMapping[domain]
     }
-
 
     static getAllDiligenceDomains(): AgentType[] {
         return [

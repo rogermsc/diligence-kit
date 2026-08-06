@@ -23,7 +23,8 @@ export interface ValidationErrorDescription {
     message: string
 }
 
-export interface ValidationErrorType<T extends string = string>
-    extends BaseErrorType<T> {
+export interface ValidationErrorType<
+    T extends string = string,
+> extends BaseErrorType<T> {
     errors: ValidationErrorDescription[]
 }

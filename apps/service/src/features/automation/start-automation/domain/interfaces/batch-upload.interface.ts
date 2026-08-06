@@ -1,4 +1,4 @@
-import { ChunkBatch, ChunkItem } from '../entities/chunk-batch.entity'
+import { ChunkBatch, ChunkItem } from "../entities/chunk-batch.entity"
 
 export interface BatchUploadResult {
     readonly successfulChunks: number[]
@@ -9,7 +9,10 @@ export interface BatchUploadResult {
 
 export interface BatchUploadPort {
     uploadChunkBatch(batch: ChunkBatch): Promise<BatchUploadResult>
-    calculateOptimalBatchSize(totalChunks: number, averageChunkSize: number): number
+    calculateOptimalBatchSize(
+        totalChunks: number,
+        averageChunkSize: number,
+    ): number
 }
 
 export interface ChunkBatchAccumulator {

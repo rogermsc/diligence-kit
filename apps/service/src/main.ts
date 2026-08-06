@@ -16,7 +16,9 @@ async function bootstrap() {
         EnvValidator.validateEnvironmentVariables()
         EnvValidator.getEnvSummary()
     } catch (error) {
-        console.error('💥 Failed to start application due to environment validation errors:')
+        console.error(
+            "💥 Failed to start application due to environment validation errors:",
+        )
         console.error(error.message)
         process.exit(1)
     }
@@ -25,18 +27,25 @@ async function bootstrap() {
         bodyParser: false,
     })
 
-    app.use(json({
-        limit: '5mb',
-        verify: (req: any, _res, buf) => { req.rawBody = buf },
-    }))
-    app.use(urlencoded({ extended: true, limit: '5mb' }))
+    app.use(
+        json({
+            limit: "5mb",
+            verify: (req: any, _res, buf) => {
+                req.rawBody = buf
+            },
+        }),
+    )
+    app.use(urlencoded({ extended: true, limit: "5mb" }))
 
     app.use((_req: any, res: any, next: any) => {
-        res.removeHeader('X-Powered-By')
-        res.setHeader('X-Content-Type-Options', 'nosniff')
-        res.setHeader('X-Frame-Options', 'DENY')
-        res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload')
-        res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+        res.removeHeader("X-Powered-By")
+        res.setHeader("X-Content-Type-Options", "nosniff")
+        res.setHeader("X-Frame-Options", "DENY")
+        res.setHeader(
+            "Strict-Transport-Security",
+            "max-age=63072000; includeSubDomains; preload",
+        )
+        res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin")
         next()
     })
 
@@ -44,11 +53,11 @@ async function bootstrap() {
     app.useGlobalFilters(new ApplicationExceptionFilter(errorDispatcher))
     app.enableCors({
         origin: process.env.CORS_ORIGIN || false,
-        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
         credentials: true,
     })
 
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV !== "production") {
         const configSwagger = new DocumentBuilder()
             .setTitle("API")
             .setDescription("API Diligence Kit backend")
@@ -70,8 +79,10 @@ async function bootstrap() {
     const port = process.env.PORT ?? 3000
     await app.listen(port)
     console.log(`\n🚀 Server is running on: http://localhost:${port}`)
-    if (process.env.NODE_ENV !== 'production') {
-        console.log(`📚 API Documentation available at: http://localhost:${port}/docs\n`)
+    if (process.env.NODE_ENV !== "production") {
+        console.log(
+            `📚 API Documentation available at: http://localhost:${port}/docs\n`,
+        )
     }
 }
 bootstrap()

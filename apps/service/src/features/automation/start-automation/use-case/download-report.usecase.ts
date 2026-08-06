@@ -20,8 +20,10 @@ export interface DownloadReportOutput {
 }
 
 @Injectable()
-export class DownloadReportUseCase
-    implements Usecase<DownloadReportInput, DownloadReportOutput> {
+export class DownloadReportUseCase implements Usecase<
+    DownloadReportInput,
+    DownloadReportOutput
+> {
     private readonly logger = new Logger(DownloadReportUseCase.name)
 
     constructor(
@@ -31,25 +33,27 @@ export class DownloadReportUseCase
         private readonly reportRepository: ReportRepository,
         @Inject("StorageService")
         private readonly storageService: StorageService,
-    ) { }
+    ) {}
 
     async execute(input: DownloadReportInput): Promise<DownloadReportOutput> {
         const { automationId } = input
 
         this.logger.log(`Downloading report for automation ${automationId}`, {
-            automationId
+            automationId,
         })
 
         // Buscar a automação para validar
-        const automation = await this.automationRepository.findById(automationId)
+        const automation =
+            await this.automationRepository.findById(automationId)
 
         if (!automation) {
             throw new AutomationNotFoundError()
         }
 
-        const reports = await this.reportRepository.findByAutomationId(automationId)
+        const reports =
+            await this.reportRepository.findByAutomationId(automationId)
 
-        const isReportNotFound = !reports || reports.length === 0;
+        const isReportNotFound = !reports || reports.length === 0
 
         if (isReportNotFound) {
             throw new ReportNotFoundError(automationId)
@@ -60,18 +64,24 @@ export class DownloadReportUseCase
         const reportUrl = latestReport.getReportUrl()
 
         // Log para auditoria
-        this.logger.log(`Downloading report file for automation ${automationId}`, {
-            automationId,
-            reportId: latestReport.getId(),
-            domain: latestReport.getDomain(),
-            reportUrl,
-            timestamp: new Date().toISOString()
-        })
+        this.logger.log(
+            `Downloading report file for automation ${automationId}`,
+            {
+                automationId,
+                reportId: latestReport.getId(),
+                domain: latestReport.getDomain(),
+                reportUrl,
+                timestamp: new Date().toISOString(),
+            },
+        )
 
         // Fazer download do arquivo do storage
         const fileBuffer = await this.storageService.downloadFile(reportUrl)
 
-        const fileName = this.extractFileNameFromUrl(reportUrl, latestReport.getDomain())
+        const fileName = this.extractFileNameFromUrl(
+            reportUrl,
+            latestReport.getDomain(),
+        )
 
         const mimeType = this.getMimeTypeFromFileName(fileName)
 
@@ -80,23 +90,24 @@ export class DownloadReportUseCase
             fileBuffer,
             mimeType,
             domain: latestReport.getDomain(),
-            reportId: latestReport.getId()
+            reportId: latestReport.getId(),
         }
     }
 
     private extractFileNameFromUrl(url: string, domain: AgentType): string {
-        const parts = url.split('/')
-        let fileName = parts[parts.length - 1] || `${domain.toLowerCase()}_report.pdf`
+        const parts = url.split("/")
+        let fileName =
+            parts[parts.length - 1] || `${domain.toLowerCase()}_report.pdf`
 
-        if (!fileName.includes('.')) {
-            fileName += '.pdf'
+        if (!fileName.includes(".")) {
+            fileName += ".pdf"
         }
 
         return fileName
     }
 
     private getMimeTypeFromFileName(fileName: string): string {
-        const extension = fileName.split('.').pop()?.toLowerCase()
+        const extension = fileName.split(".").pop()?.toLowerCase()
 
         const mimeTypes: Record<string, string> = {
             pdf: "application/pdf",
@@ -106,7 +117,7 @@ export class DownloadReportUseCase
             xls: "application/vnd.ms-excel",
             txt: "text/plain",
             html: "text/html",
-            json: "application/json"
+            json: "application/json",
         }
 
         return mimeTypes[extension || ""] || "application/octet-stream"

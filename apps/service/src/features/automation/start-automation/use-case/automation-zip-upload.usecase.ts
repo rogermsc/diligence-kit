@@ -23,12 +23,14 @@ export interface AutomationZipUploadOutput {
 }
 
 @Injectable()
-export class AutomationZipUploadUseCase
-    implements Usecase<AutomationZipUploadInput, AutomationZipUploadOutput> {
+export class AutomationZipUploadUseCase implements Usecase<
+    AutomationZipUploadInput,
+    AutomationZipUploadOutput
+> {
     private readonly zipFolderFactory: DataroomZipFolderFactory
 
     constructor(
-        @Inject('StorageService')
+        @Inject("StorageService")
         private readonly storage: StorageService,
         @Inject("ZipParserService")
         private readonly zipParserService: ZipParserService,
@@ -41,10 +43,9 @@ export class AutomationZipUploadUseCase
     ): Promise<AutomationZipUploadOutput> {
         const { enterpriseName, automationId, zipFile } = input
 
-        Logger.debug('Uploading ZIP file to storage', {
-
+        Logger.debug("Uploading ZIP file to storage", {
             zipFile,
-        });
+        })
 
         const folderName = `${enterpriseName}/${automationId}`
 
@@ -53,17 +54,14 @@ export class AutomationZipUploadUseCase
             zipFile.buffer,
         )
 
-        Logger.debug('ZIP file uploaded to storage', {
+        Logger.debug("ZIP file uploaded to storage", {
             folderName,
             folder,
-        });
+        })
 
         // Upload para storage with automation-specific folder
         const uploadedFiles: UploadedFile[] =
-            await this.storage.uploadFolderOnEnterpriseRoot(
-                folderName,
-                folder,
-            )
+            await this.storage.uploadFolderOnEnterpriseRoot(folderName, folder)
 
         // Mapear para documentos
         const documents = mapUploadedFilesToDocuments(uploadedFiles)

@@ -5,9 +5,22 @@ import { File as DomainFile } from "@/shared/domain/entities/file.entity"
 import { GetCompanyByIdUseCase } from "./get-company-by-id.usecase"
 
 const ALLOWED_EXTENSIONS = [
-    '.pdf', '.csv', '.xls', '.xlsx', '.doc', '.docx', '.txt',
-    '.ppt', '.pptx',
-    '.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.webp',
+    ".pdf",
+    ".csv",
+    ".xls",
+    ".xlsx",
+    ".doc",
+    ".docx",
+    ".txt",
+    ".ppt",
+    ".pptx",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".tiff",
+    ".tif",
+    ".bmp",
+    ".webp",
 ]
 
 export interface UploadDocumentInput {
@@ -27,30 +40,36 @@ export interface UploadDocumentOutput {
 }
 
 @Injectable()
-export class UploadDocumentUseCase
-    implements Usecase<UploadDocumentInput, UploadDocumentOutput> {
+export class UploadDocumentUseCase implements Usecase<
+    UploadDocumentInput,
+    UploadDocumentOutput
+> {
     private readonly logger = new Logger(UploadDocumentUseCase.name)
 
     constructor(
         private readonly getCompanyByIdUseCase: GetCompanyByIdUseCase,
-        @Inject('StorageService')
+        @Inject("StorageService")
         private readonly storageService: StorageService,
-    ) { }
+    ) {}
 
     async execute(input: UploadDocumentInput): Promise<UploadDocumentOutput> {
         const { automationId, companyId, file } = input
 
-        const { company } = await this.getCompanyByIdUseCase.execute({ companyId })
+        const { company } = await this.getCompanyByIdUseCase.execute({
+            companyId,
+        })
 
-        const basename = file.originalname.split('/').pop() || file.originalname
-        if (basename.startsWith('._')) {
-            throw new Error(`macOS resource fork files are not allowed: "${basename}"`)
+        const basename = file.originalname.split("/").pop() || file.originalname
+        if (basename.startsWith("._")) {
+            throw new Error(
+                `macOS resource fork files are not allowed: "${basename}"`,
+            )
         }
 
         const ext = this.getExtension(file.originalname)
         if (!ALLOWED_EXTENSIONS.includes(ext)) {
             throw new Error(
-                `File extension "${ext}" is not allowed. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`,
+                `File extension "${ext}" is not allowed. Allowed: ${ALLOWED_EXTENSIONS.join(", ")}`,
             )
         }
 
@@ -61,13 +80,16 @@ export class UploadDocumentUseCase
             file.buffer,
         )
 
-        const uploaded: UploadedFile = await this.storageService.uploadSingleFile(
-            company.name,
-            domainFile,
-            automationId,
-        )
+        const uploaded: UploadedFile =
+            await this.storageService.uploadSingleFile(
+                company.name,
+                domainFile,
+                automationId,
+            )
 
-        this.logger.log(`Uploaded "${file.originalname}" to ${uploaded.url} for automation ${automationId}`)
+        this.logger.log(
+            `Uploaded "${file.originalname}" to ${uploaded.url} for automation ${automationId}`,
+        )
 
         return {
             fileName: file.originalname,
@@ -76,8 +98,8 @@ export class UploadDocumentUseCase
     }
 
     private getExtension(filename: string): string {
-        const dotIndex = filename.lastIndexOf('.')
-        if (dotIndex === -1) return ''
+        const dotIndex = filename.lastIndexOf(".")
+        if (dotIndex === -1) return ""
         return filename.substring(dotIndex).toLowerCase()
     }
 }

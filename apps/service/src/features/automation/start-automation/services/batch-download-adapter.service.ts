@@ -1,7 +1,11 @@
-import { Injectable, Logger, Inject } from '@nestjs/common'
-import { StorageService } from '@/shared/services/storage.service'
-import { ChunkDownloadTask, BatchDownloadResult, BatchDownloadPort } from '../domain/interfaces/batch-download.interface'
-import { StorageError, StorageErrorType } from '@/shared/errors/storage-error'
+import { Injectable, Logger, Inject } from "@nestjs/common"
+import { StorageService } from "@/shared/services/storage.service"
+import {
+    ChunkDownloadTask,
+    BatchDownloadResult,
+    BatchDownloadPort,
+} from "../domain/interfaces/batch-download.interface"
+import { StorageError, StorageErrorType } from "@/shared/errors/storage-error"
 
 @Injectable()
 export class BatchDownloadAdapterService implements BatchDownloadPort {
@@ -15,20 +19,24 @@ export class BatchDownloadAdapterService implements BatchDownloadPort {
     private readonly CHUNK_COUNT_THRESHOLD_LARGE = 100
 
     constructor(
-        @Inject('StorageService')
-        private readonly storageService: StorageService
-    ) { }
+        @Inject("StorageService")
+        private readonly storageService: StorageService,
+    ) {}
 
-    async downloadChunksBatch(tasks: ChunkDownloadTask[]): Promise<BatchDownloadResult> {
+    async downloadChunksBatch(
+        tasks: ChunkDownloadTask[],
+    ): Promise<BatchDownloadResult> {
         const startTime = Date.now()
-        const chunkNumbers = tasks.map(task => task.chunkNumber)
+        const chunkNumbers = tasks.map((task) => task.chunkNumber)
 
-        this.logger.debug('Starting batch download', {
+        this.logger.debug("Starting batch download", {
             batchSize: tasks.length,
-            chunkNumbers
+            chunkNumbers,
         })
 
-        const downloadPromises = tasks.map(task => this.downloadSingleChunkSafely(task))
+        const downloadPromises = tasks.map((task) =>
+            this.downloadSingleChunkSafely(task),
+        )
         const downloadResults = await Promise.allSettled(downloadPromises)
 
         const successfulDownloads = new Map<number, Buffer>()
@@ -36,7 +44,7 @@ export class BatchDownloadAdapterService implements BatchDownloadPort {
 
         downloadResults.forEach((result, index) => {
             const task = tasks[index]
-            const downloadWasSuccessful = result.status === 'fulfilled'
+            const downloadWasSuccessful = result.status === "fulfilled"
 
             if (downloadWasSuccessful) {
                 successfulDownloads.set(task.chunkNumber, result.value)
@@ -44,7 +52,7 @@ export class BatchDownloadAdapterService implements BatchDownloadPort {
                 failedDownloads.push(task.chunkNumber)
                 this.logger.error(`Chunk ${task.chunkNumber} download failed`, {
                     chunkPath: task.chunkPath,
-                    reason: result.reason?.message || 'Unknown error'
+                    reason: result.reason?.message || "Unknown error",
                 })
             }
         })
@@ -55,10 +63,10 @@ export class BatchDownloadAdapterService implements BatchDownloadPort {
         const allDownloadsSuccessful = failedDownloads.length === 0
 
         if (!allDownloadsSuccessful) {
-            this.logger.warn('Batch download completed with failures', {
+            this.logger.warn("Batch download completed with failures", {
                 successfulDownloads: successfulDownloads.size,
                 failedDownloads: failedDownloads.length,
-                durationMs: downloadDurationMs
+                durationMs: downloadDurationMs,
             })
         }
 
@@ -66,13 +74,15 @@ export class BatchDownloadAdapterService implements BatchDownloadPort {
             successfulDownloads,
             failedDownloads,
             totalProcessed,
-            downloadDurationMs
+            downloadDurationMs,
         }
     }
 
     calculateOptimalDownloadBatchSize(totalChunks: number): number {
-        const chunkCountIsSmall = totalChunks <= this.CHUNK_COUNT_THRESHOLD_SMALL
-        const chunkCountIsLarge = totalChunks >= this.CHUNK_COUNT_THRESHOLD_LARGE
+        const chunkCountIsSmall =
+            totalChunks <= this.CHUNK_COUNT_THRESHOLD_SMALL
+        const chunkCountIsLarge =
+            totalChunks >= this.CHUNK_COUNT_THRESHOLD_LARGE
 
         if (chunkCountIsSmall) {
             return Math.min(this.SMALL_DOWNLOAD_BATCH_SIZE, totalChunks)
@@ -85,30 +95,36 @@ export class BatchDownloadAdapterService implements BatchDownloadPort {
         return Math.min(this.MEDIUM_DOWNLOAD_BATCH_SIZE, totalChunks)
     }
 
-    private async downloadSingleChunkSafely(task: ChunkDownloadTask): Promise<Buffer> {
+    private async downloadSingleChunkSafely(
+        task: ChunkDownloadTask,
+    ): Promise<Buffer> {
         try {
-            const chunkBuffer = await this.storageService.downloadFile(task.chunkPath)
+            const chunkBuffer = await this.storageService.downloadFile(
+                task.chunkPath,
+            )
 
             const chunkIsEmpty = !chunkBuffer || chunkBuffer.length === 0
 
             if (chunkIsEmpty) {
                 throw new StorageError(
                     StorageErrorType.UPLOAD_ERROR,
-                    `Chunk ${task.chunkNumber} is empty or corrupted`
+                    `Chunk ${task.chunkNumber} is empty or corrupted`,
                 )
             }
 
-            this.logger.debug(`Chunk ${task.chunkNumber} downloaded successfully`, {
-                size: chunkBuffer.length,
-                uploadId: task.uploadId
-            })
+            this.logger.debug(
+                `Chunk ${task.chunkNumber} downloaded successfully`,
+                {
+                    size: chunkBuffer.length,
+                    uploadId: task.uploadId,
+                },
+            )
 
             return chunkBuffer
-
         } catch (error) {
             throw new StorageError(
                 StorageErrorType.UPLOAD_ERROR,
-                `Failed to download chunk ${task.chunkNumber}: ${error.message}`
+                `Failed to download chunk ${task.chunkNumber}: ${error.message}`,
             )
         }
     }

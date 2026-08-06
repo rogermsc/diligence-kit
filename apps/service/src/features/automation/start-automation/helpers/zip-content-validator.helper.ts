@@ -24,24 +24,39 @@ export class ZipContentValidator {
     ]
 
     private static readonly ALLOWED_EXTENSIONS = [
-        'pdf', 'csv', 'xls', 'xlsx', 'doc', 'docx', 'txt',
-        'ppt', 'pptx',
-        'png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp',
+        "pdf",
+        "csv",
+        "xls",
+        "xlsx",
+        "doc",
+        "docx",
+        "txt",
+        "ppt",
+        "pptx",
+        "png",
+        "jpg",
+        "jpeg",
+        "tiff",
+        "tif",
+        "bmp",
+        "webp",
     ]
 
-
-
-    static validateAndFilterZipContent(entries: ParsedZipEntry[]): ParsedZipEntry[] {
-        const allFiles = entries.filter(entry => !entry.isDirectory)
-        const validFiles = allFiles.filter(file => this.isValidFileType(file))
+    static validateAndFilterZipContent(
+        entries: ParsedZipEntry[],
+    ): ParsedZipEntry[] {
+        const allFiles = entries.filter((entry) => !entry.isDirectory)
+        const validFiles = allFiles.filter((file) => this.isValidFileType(file))
 
         if (validFiles.length === 0) {
-            throw new AutomationZipValidationError("ZIP file is empty or contains no valid files")
+            throw new AutomationZipValidationError(
+                "ZIP file is empty or contains no valid files",
+            )
         }
 
         // Retorna entradas filtradas (diretórios + arquivos válidos)
-        return entries.filter(entry =>
-            entry.isDirectory || this.isValidFileType(entry)
+        return entries.filter(
+            (entry) => entry.isDirectory || this.isValidFileType(entry),
         )
     }
 
@@ -54,7 +69,7 @@ export class ZipContentValidator {
     }
 
     private static getFileExtension(fileName: string): string {
-        return fileName.split('.').pop()?.toLowerCase() || ''
+        return fileName.split(".").pop()?.toLowerCase() || ""
     }
 
     private static getMimeTypeFromExtension(extension: string): string {

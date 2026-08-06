@@ -34,7 +34,10 @@ export class CompanyMapper {
         }
     }
 
-    static toResponse(company: Company, status: AutomationStatus = AutomationStatus.PENDING): CompanyResponseDTO {
+    static toResponse(
+        company: Company,
+        status: AutomationStatus = AutomationStatus.PENDING,
+    ): CompanyResponseDTO {
         return {
             id: company.id,
             name: company.name,
@@ -44,16 +47,24 @@ export class CompanyMapper {
         }
     }
 
-    static toResponseWithAutomations(companyWithAutomations: CompanyWithAutomations): CompanyResponseDTO {
-        const status = CompanyStatusHelper.calculateStatus(companyWithAutomations.automations)
+    static toResponseWithAutomations(
+        companyWithAutomations: CompanyWithAutomations,
+    ): CompanyResponseDTO {
+        const status = CompanyStatusHelper.calculateStatus(
+            companyWithAutomations.automations,
+        )
         return CompanyMapper.toResponse(companyWithAutomations.company, status)
     }
 
     static toResponseList(companies: Company[]): CompanyListResponseDTO {
-        return companies.map(company => CompanyMapper.toResponse(company))
+        return companies.map((company) => CompanyMapper.toResponse(company))
     }
 
-    static toResponseListWithAutomations(companiesWithAutomations: CompanyWithAutomations[]): CompanyListResponseDTO {
-        return companiesWithAutomations.map(CompanyMapper.toResponseWithAutomations)
+    static toResponseListWithAutomations(
+        companiesWithAutomations: CompanyWithAutomations[],
+    ): CompanyListResponseDTO {
+        return companiesWithAutomations.map(
+            CompanyMapper.toResponseWithAutomations,
+        )
     }
 }

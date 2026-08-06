@@ -12,7 +12,9 @@ export interface BatchDownloadResult {
 }
 
 export interface BatchDownloadPort {
-    downloadChunksBatch(tasks: ChunkDownloadTask[]): Promise<BatchDownloadResult>
+    downloadChunksBatch(
+        tasks: ChunkDownloadTask[],
+    ): Promise<BatchDownloadResult>
     calculateOptimalDownloadBatchSize(totalChunks: number): number
 }
 

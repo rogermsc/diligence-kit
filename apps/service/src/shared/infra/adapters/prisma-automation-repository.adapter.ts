@@ -1,5 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common"
-import { randomUUID } from 'crypto'
+import { randomUUID } from "crypto"
 
 import { Automation } from "@/shared/domain/entities/automation.entity"
 import { AutomationStatus, AgentType } from "@prisma/client"
@@ -7,7 +7,12 @@ import { prisma } from "@/shared/infra/prisma"
 import { AutomationMapper } from "@/shared/domain/mappers/automation.mapper"
 import { DatabaseAccessError } from "@/shared/errors/db/data-base-error"
 import { AutomationStageDomain } from "@/shared/domain/entities/automation.entity"
-import { IAutomationRepository, CreateAutomationData, CreateDiligenceAutomationData, UpdateAutomationWithReportData } from "@/shared/repository/automation-repository.interface"
+import {
+    IAutomationRepository,
+    CreateAutomationData,
+    CreateDiligenceAutomationData,
+    UpdateAutomationWithReportData,
+} from "@/shared/repository/automation-repository.interface"
 import { Report } from "@/shared/domain/entities/report.entity"
 import { ReportMapper } from "@/shared/domain/mappers/report.mapper"
 
@@ -17,13 +22,13 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
 
     async create(data: CreateAutomationData): Promise<Automation> {
         try {
-            const automationId = data.id || randomUUID();
+            const automationId = data.id || randomUUID()
 
-            this.logger.debug('Creating automation', {
+            this.logger.debug("Creating automation", {
                 providedId: data.id,
                 generatedId: automationId,
-                companyId: data.companyId
-            });
+                companyId: data.companyId,
+            })
 
             const automation = await prisma.automation.create({
                 data: {
@@ -31,7 +36,7 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
                     companyId: data.companyId,
                     status: data.status,
                 },
-                include: { results: true }
+                include: { results: true },
             })
             return AutomationMapper.toDomain(automation)
         } catch (error) {
@@ -47,7 +52,7 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
         try {
             const automation = await prisma.automation.findUnique({
                 where: { id },
-                include: { results: true }
+                include: { results: true },
             })
             if (!automation) return null
             return AutomationMapper.toDomain(automation)
@@ -75,7 +80,7 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
                     },
                 },
                 orderBy: { createdAt: "desc" },
-                include: { results: true }
+                include: { results: true },
             })
             if (!automation) return null
             return AutomationMapper.toDomain(automation)
@@ -105,55 +110,62 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
         }
     }
 
-    async updateAutomationWithReport(data: UpdateAutomationWithReportData): Promise<Report | null> {
+    async updateAutomationWithReport(
+        data: UpdateAutomationWithReportData,
+    ): Promise<Report | null> {
         try {
             return await prisma.$transaction(async (tx) => {
                 await tx.automation.update({
                     where: { id: data.automationId },
                     data: {
                         status: data.automationStatus,
-                        updatedAt: new Date()
-                    }
-                });
+                        updatedAt: new Date(),
+                    },
+                })
 
                 if (data.reportData) {
                     const reportData = await tx.report.upsert({
                         where: {
                             unique_automation_domain: {
                                 automationId: data.automationId,
-                                domain: data.reportData.domain
-                            }
+                                domain: data.reportData.domain,
+                            },
                         },
                         update: {
                             reportUrl: data.reportData.reportUrl,
-                            status: 'COMPLETED',
-                            updatedAt: new Date()
+                            status: "COMPLETED",
+                            updatedAt: new Date(),
                         },
                         create: {
                             automationId: data.automationId,
                             companyId: data.reportData.companyId,
                             domain: data.reportData.domain,
                             reportUrl: data.reportData.reportUrl,
-                            status: 'COMPLETED'
-                        }
-                    });
+                            status: "COMPLETED",
+                        },
+                    })
 
-                    return ReportMapper.toDomain(reportData);
+                    return ReportMapper.toDomain(reportData)
                 }
 
-                return null;
-            });
+                return null
+            })
         } catch (error) {
             this.logger.error(
                 `Failed to update automation with report for ${data.automationId}: ${error.message}`,
                 error.stack,
             )
-            throw new DatabaseAccessError("Failed to update automation with report")
+            throw new DatabaseAccessError(
+                "Failed to update automation with report",
+            )
         }
     }
 
     // Extended method for report-agents: create multiple diligence automations inside optional tx
-    async createMany(data: CreateDiligenceAutomationData[], tx?: any): Promise<Automation[]> {
+    async createMany(
+        data: CreateDiligenceAutomationData[],
+        tx?: any,
+    ): Promise<Automation[]> {
         try {
             const client = (tx || prisma) as typeof prisma
             const created = await Promise.all(
@@ -169,7 +181,7 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
                         include: { results: true },
                     })
                     return AutomationMapper.toDomain(automation)
-                })
+                }),
             )
             return created
         } catch (error) {
@@ -177,7 +189,7 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
                 `Failed to create many automations: ${error.message}`,
                 error.stack,
             )
-            throw new DatabaseAccessError('Failed to create many automations')
+            throw new DatabaseAccessError("Failed to create many automations")
         }
     }
 
@@ -188,9 +200,9 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
                 where: {
                     id,
                     stage: AutomationStageDomain.TRIAGE,
-                    status: AutomationStatus.COMPLETED
+                    status: AutomationStatus.COMPLETED,
                 },
-                include: { results: true }
+                include: { results: true },
             })
             if (!automation) return null
             return AutomationMapper.toDomain(automation)
@@ -199,41 +211,56 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
                 `Failed to find TRIAGE completed automation by ID ${id}: ${error.message}`,
                 error.stack,
             )
-            throw new DatabaseAccessError("Failed to find TRIAGE completed automation by ID")
+            throw new DatabaseAccessError(
+                "Failed to find TRIAGE completed automation by ID",
+            )
         }
     }
 
     // Method to find child automations by parent automation ID
-    async findByParentAutomationId(parentAutomationId: string): Promise<Automation[]> {
+    async findByParentAutomationId(
+        parentAutomationId: string,
+    ): Promise<Automation[]> {
         try {
             const automations = await prisma.automation.findMany({
                 where: {
-                    parentAutomationId
+                    parentAutomationId,
                 },
-                include: { results: true }
+                include: { results: true },
             })
-            return automations.map(automation => AutomationMapper.toDomain(automation))
+            return automations.map((automation) =>
+                AutomationMapper.toDomain(automation),
+            )
         } catch (error) {
             this.logger.error(
                 `Failed to find automations by parent ID ${parentAutomationId}: ${error.message}`,
                 error.stack,
             )
-            throw new DatabaseAccessError("Failed to find automations by parent ID")
+            throw new DatabaseAccessError(
+                "Failed to find automations by parent ID",
+            )
         }
     }
 
-    async updateState(id: string, data: {
-        status?: AutomationStatus
-        parentAutomationId?: string | null
-        domain?: AgentType | null
-    }): Promise<void> {
+    async updateState(
+        id: string,
+        data: {
+            status?: AutomationStatus
+            parentAutomationId?: string | null
+            domain?: AgentType | null
+        },
+    ): Promise<void> {
         try {
             await prisma.automation.update({
                 where: { id },
                 data: {
                     ...(data.status ? { status: data.status } : {}),
-                    ...(data.parentAutomationId !== undefined ? { parentAutomationId: data.parentAutomationId } : {}),
-                    ...(data.domain !== undefined ? { domain: data.domain } : {}),
+                    ...(data.parentAutomationId !== undefined
+                        ? { parentAutomationId: data.parentAutomationId }
+                        : {}),
+                    ...(data.domain !== undefined
+                        ? { domain: data.domain }
+                        : {}),
                 },
             })
         } catch (error) {
@@ -245,11 +272,13 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
         }
     }
 
-    async getCompanyIdByAutomationId(automationId: string): Promise<string | null> {
+    async getCompanyIdByAutomationId(
+        automationId: string,
+    ): Promise<string | null> {
         try {
             const automation = await prisma.automation.findUnique({
                 where: { id: automationId },
-                select: { companyId: true }
+                select: { companyId: true },
             })
 
             return automation?.companyId || null
@@ -258,15 +287,21 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
                 `Failed to get company ID for automation ${automationId}: ${error.message}`,
                 error.stack,
             )
-            throw new DatabaseAccessError("Failed to get company ID by automation ID")
+            throw new DatabaseAccessError(
+                "Failed to get company ID by automation ID",
+            )
         }
     }
 
-    async createOrUpdateOnePager(data: { automationId: string; companyId: string; url: string }): Promise<void> {
+    async createOrUpdateOnePager(data: {
+        automationId: string
+        companyId: string
+        url: string
+    }): Promise<void> {
         try {
             const existingOnePager = await prisma.onePager.findFirst({
-                where: { automationId: data.automationId }
-            });
+                where: { automationId: data.automationId },
+            })
 
             if (existingOnePager) {
                 await prisma.onePager.update({
@@ -276,7 +311,7 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
                         companyId: data.companyId,
                         updatedAt: new Date(),
                     },
-                });
+                })
             } else {
                 await prisma.onePager.create({
                     data: {
@@ -284,7 +319,7 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
                         companyId: data.companyId,
                         url: data.url,
                     },
-                });
+                })
             }
         } catch (error) {
             this.logger.error(
@@ -295,38 +330,46 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
         }
     }
 
-    async findOnePagerByAutomationId(automationId: string): Promise<{ id: string; url: string } | null> {
+    async findOnePagerByAutomationId(
+        automationId: string,
+    ): Promise<{ id: string; url: string } | null> {
         try {
             const onePager = await prisma.onePager.findFirst({
                 where: { automationId },
-                select: { id: true, url: true }
-            });
+                select: { id: true, url: true },
+            })
 
-            return onePager;
+            return onePager
         } catch (error) {
             this.logger.error(
                 `Failed to find OnePager for automation ${automationId}: ${error.message}`,
                 error.stack,
             )
-            throw new DatabaseAccessError("Failed to find OnePager by automation ID")
+            throw new DatabaseAccessError(
+                "Failed to find OnePager by automation ID",
+            )
         }
     }
 
-    async findLatestOnePagerByCompanyId(companyId: string): Promise<{ id: string; url: string } | null> {
+    async findLatestOnePagerByCompanyId(
+        companyId: string,
+    ): Promise<{ id: string; url: string } | null> {
         try {
             const onePager = await prisma.onePager.findFirst({
                 where: { companyId },
                 orderBy: { createdAt: "desc" },
-                select: { id: true, url: true }
-            });
+                select: { id: true, url: true },
+            })
 
-            return onePager;
+            return onePager
         } catch (error) {
             this.logger.error(
                 `Failed to find latest OnePager for company ${companyId}: ${error.message}`,
                 error.stack,
             )
-            throw new DatabaseAccessError("Failed to find latest OnePager by company ID")
+            throw new DatabaseAccessError(
+                "Failed to find latest OnePager by company ID",
+            )
         }
     }
 }

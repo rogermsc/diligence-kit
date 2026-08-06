@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common"
+import {
+    Injectable,
+    NotFoundException,
+    BadRequestException,
+} from "@nestjs/common"
 import { prisma } from "@/shared/infra/prisma"
 
 /**
@@ -81,7 +85,9 @@ export class OwnershipService {
         const document = await prisma.documents.findFirst({
             where: {
                 id: requireUuid(documentId, "documentId"),
-                automation: { company: { ownerId: requireId(userId, "userId") } },
+                automation: {
+                    company: { ownerId: requireId(userId, "userId") },
+                },
             },
             select: { id: true },
         })

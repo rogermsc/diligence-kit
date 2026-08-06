@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger } from "@nestjs/common"
 
 export interface PerformanceMetrics {
     readonly operationName: string
@@ -29,14 +29,14 @@ export class PerformanceMetricsService {
             operationName,
             startTime,
             endTime: 0,
-            durationMs: 0
+            durationMs: 0,
         })
     }
 
     endOperation(
         operationName: string,
         itemsProcessed?: number,
-        dataSizeBytes?: number
+        dataSizeBytes?: number,
     ): PerformanceMetrics {
         const existingMetric = this.metrics.get(operationName)
         const operationWasNotStarted = !existingMetric
@@ -47,8 +47,14 @@ export class PerformanceMetricsService {
 
         const endTime = Date.now()
         const durationMs = endTime - existingMetric.startTime
-        const throughputMBps = this.calculateThroughput(dataSizeBytes, durationMs)
-        const averageItemProcessingTime = this.calculateAverageProcessingTime(itemsProcessed, durationMs)
+        const throughputMBps = this.calculateThroughput(
+            dataSizeBytes,
+            durationMs,
+        )
+        const averageItemProcessingTime = this.calculateAverageProcessingTime(
+            itemsProcessed,
+            durationMs,
+        )
 
         const completedMetric: PerformanceMetrics = {
             operationName,
@@ -57,7 +63,7 @@ export class PerformanceMetricsService {
             durationMs,
             throughputMBps,
             itemsProcessed,
-            averageItemProcessingTime
+            averageItemProcessingTime,
         }
 
         this.metrics.set(operationName, completedMetric)
@@ -66,7 +72,7 @@ export class PerformanceMetricsService {
             durationMs,
             throughputMBps,
             itemsProcessed,
-            averageItemProcessingTime
+            averageItemProcessingTime,
         })
 
         return completedMetric
@@ -74,7 +80,7 @@ export class PerformanceMetricsService {
 
     comparePerformance(
         oldOperationName: string,
-        newOperationName: string
+        newOperationName: string,
     ): BatchPerformanceComparison | null {
         const oldMetrics = this.metrics.get(oldOperationName)
         const newMetrics = this.metrics.get(newOperationName)
@@ -87,27 +93,30 @@ export class PerformanceMetricsService {
 
         const performanceImprovement = this.calculatePerformanceImprovement(
             oldMetrics.durationMs,
-            newMetrics.durationMs
+            newMetrics.durationMs,
         )
 
         const throughputImprovement = this.calculateThroughputImprovement(
             oldMetrics.throughputMBps || 0,
-            newMetrics.throughputMBps || 0
+            newMetrics.throughputMBps || 0,
         )
 
         const comparison: BatchPerformanceComparison = {
             oldSystemMetrics: oldMetrics,
             newSystemMetrics: newMetrics,
             performanceImprovement,
-            throughputImprovement
+            throughputImprovement,
         }
 
-        this.logger.log(`Performance comparison: ${oldOperationName} vs ${newOperationName}`, {
-            performanceImprovement: `${performanceImprovement.toFixed(1)}x faster`,
-            throughputImprovement: `${throughputImprovement.toFixed(1)}x higher throughput`,
-            oldDuration: `${oldMetrics.durationMs}ms`,
-            newDuration: `${newMetrics.durationMs}ms`
-        })
+        this.logger.log(
+            `Performance comparison: ${oldOperationName} vs ${newOperationName}`,
+            {
+                performanceImprovement: `${performanceImprovement.toFixed(1)}x faster`,
+                throughputImprovement: `${throughputImprovement.toFixed(1)}x higher throughput`,
+                oldDuration: `${oldMetrics.durationMs}ms`,
+                newDuration: `${newMetrics.durationMs}ms`,
+            },
+        )
 
         return comparison
     }
@@ -120,7 +129,10 @@ export class PerformanceMetricsService {
         this.metrics.clear()
     }
 
-    private calculateThroughput(dataSizeBytes?: number, durationMs?: number): number | undefined {
+    private calculateThroughput(
+        dataSizeBytes?: number,
+        durationMs?: number,
+    ): number | undefined {
         const dataIsAvailable = dataSizeBytes && durationMs && durationMs > 0
 
         if (!dataIsAvailable) {
@@ -133,8 +145,12 @@ export class PerformanceMetricsService {
         return dataSizeMB / durationSeconds
     }
 
-    private calculateAverageProcessingTime(itemsProcessed?: number, durationMs?: number): number | undefined {
-        const dataIsAvailable = itemsProcessed && durationMs && itemsProcessed > 0
+    private calculateAverageProcessingTime(
+        itemsProcessed?: number,
+        durationMs?: number,
+    ): number | undefined {
+        const dataIsAvailable =
+            itemsProcessed && durationMs && itemsProcessed > 0
 
         if (!dataIsAvailable) {
             return undefined
@@ -143,12 +159,18 @@ export class PerformanceMetricsService {
         return durationMs / itemsProcessed
     }
 
-    private calculatePerformanceImprovement(oldDurationMs: number, newDurationMs: number): number {
+    private calculatePerformanceImprovement(
+        oldDurationMs: number,
+        newDurationMs: number,
+    ): number {
         const improvementRatio = oldDurationMs / newDurationMs
         return Math.round(improvementRatio * 10) / 10
     }
 
-    private calculateThroughputImprovement(oldThroughput: number, newThroughput: number): number {
+    private calculateThroughputImprovement(
+        oldThroughput: number,
+        newThroughput: number,
+    ): number {
         const throughputIsZero = oldThroughput === 0
 
         if (throughputIsZero) {

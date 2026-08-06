@@ -1,20 +1,20 @@
-import { AgentType } from "@/features/onePager-agent/agent/domain/agent-type";
+import { AgentType } from "@/features/onePager-agent/agent/domain/agent-type"
 
 export enum ReportStatus {
-    COMPLETED = 'COMPLETED',
-    FAILED = 'FAILED',
-    UNTRACKED = 'UNTRACKED'
+    COMPLETED = "COMPLETED",
+    FAILED = "FAILED",
+    UNTRACKED = "UNTRACKED",
 }
 
 export class Report {
-    private readonly id: string;
-    private readonly automationId: string;
-    private readonly companyId: string;
-    private readonly domain: AgentType;
-    private readonly status: ReportStatus;
-    private readonly reportUrl: string;
-    private readonly createdAt: Date;
-    private readonly updatedAt: Date;
+    private readonly id: string
+    private readonly automationId: string
+    private readonly companyId: string
+    private readonly domain: AgentType
+    private readonly status: ReportStatus
+    private readonly reportUrl: string
+    private readonly createdAt: Date
+    private readonly updatedAt: Date
 
     constructor(
         id: string,
@@ -24,49 +24,49 @@ export class Report {
         status: ReportStatus,
         reportUrl: string,
         createdAt: Date = new Date(),
-        updatedAt: Date = new Date()
+        updatedAt: Date = new Date(),
     ) {
-        this.id = id;
-        this.automationId = automationId;
-        this.companyId = companyId;
-        this.domain = domain;
-        this.status = status;
-        this.reportUrl = reportUrl;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
+        this.id = id
+        this.automationId = automationId
+        this.companyId = companyId
+        this.domain = domain
+        this.status = status
+        this.reportUrl = reportUrl
+        this.createdAt = createdAt
+        this.updatedAt = updatedAt
     }
 
     // Getters
     getId(): string {
-        return this.id;
+        return this.id
     }
 
     getAutomationId(): string {
-        return this.automationId;
+        return this.automationId
     }
 
     getCompanyId(): string {
-        return this.companyId;
+        return this.companyId
     }
 
     getDomain(): AgentType {
-        return this.domain;
+        return this.domain
     }
 
     getStatus(): ReportStatus {
-        return this.status;
+        return this.status
     }
 
     getReportUrl(): string {
-        return this.reportUrl;
+        return this.reportUrl
     }
 
     getCreatedAt(): Date {
-        return this.createdAt;
+        return this.createdAt
     }
 
     getUpdatedAt(): Date {
-        return this.updatedAt;
+        return this.updatedAt
     }
 
     static create(
@@ -74,17 +74,17 @@ export class Report {
         companyId: string,
         domain: AgentType,
         reportUrl: string,
-        status: ReportStatus = ReportStatus.COMPLETED
+        status: ReportStatus = ReportStatus.COMPLETED,
     ): Report {
-        const id = crypto.randomUUID();
+        const id = crypto.randomUUID()
         return new Report(
             id,
             automationId,
             companyId,
             domain,
             status,
-            reportUrl
-        );
+            reportUrl,
+        )
     }
 
     // Business methods
@@ -97,8 +97,8 @@ export class Report {
             ReportStatus.COMPLETED,
             this.reportUrl,
             this.createdAt,
-            new Date()
-        );
+            new Date(),
+        )
     }
 
     markAsFailed(): Report {
@@ -110,8 +110,8 @@ export class Report {
             ReportStatus.FAILED,
             this.reportUrl,
             this.createdAt,
-            new Date()
-        );
+            new Date(),
+        )
     }
 
     updateUrl(newUrl: string): Report {
@@ -123,7 +123,7 @@ export class Report {
             this.status,
             newUrl,
             this.createdAt,
-            new Date()
-        );
+            new Date(),
+        )
     }
 }

@@ -11,7 +11,7 @@ export class File implements FileSystemComponent {
         public readonly size: number,
         public readonly mimeType: string,
         public readonly buffer: Buffer,
-    ) { }
+    ) {}
 
     getName(): string {
         return this.name
@@ -30,7 +30,7 @@ export class File implements FileSystemComponent {
 export class Folder implements FileSystemComponent {
     private readonly children: FileSystemComponent[] = []
 
-    constructor(private readonly name: string) { }
+    constructor(private readonly name: string) {}
 
     add(child: FileSystemComponent) {
         this.children.push(child)

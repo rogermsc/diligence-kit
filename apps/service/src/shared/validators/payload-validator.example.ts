@@ -1,39 +1,38 @@
-import { z } from 'zod';
-import { PayloadValidator } from './payload-validator';
+import { z } from "zod"
+import { PayloadValidator } from "./payload-validator"
 
 // Example: User registration schema
 const userRegistrationSchema = z.object({
-    email: z.string().email('Invalid email format'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
-    name: z.string().min(2, 'Name must be at least 2 characters'),
-    age: z.number().min(18, 'Must be at least 18 years old')
-});
+    email: z.string().email("Invalid email format"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    age: z.number().min(18, "Must be at least 18 years old"),
+})
 
 // Example: API endpoint validation
 const updateCompanySchema = z.object({
-    id: z.string().uuid('Company ID must be a valid UUID'),
-    name: z.string().min(1, 'Company name is required'),
-    status: z.enum(['ACTIVE', 'INACTIVE'])
-});
+    id: z.string().uuid("Company ID must be a valid UUID"),
+    name: z.string().min(1, "Company name is required"),
+    status: z.enum(["ACTIVE", "INACTIVE"]),
+})
 
 // Example usage in a service or controller:
 export class ExampleUsage {
-
     // Method 1: Basic validation with context
     validateUserRegistration(data: unknown) {
         try {
             const validatedUser = PayloadValidator.validate(
                 data,
                 userRegistrationSchema,
-                'UserRegistration'
-            );
+                "UserRegistration",
+            )
 
-            console.log('User registration data is valid:', validatedUser);
-            return validatedUser;
+            console.log("User registration data is valid:", validatedUser)
+            return validatedUser
         } catch (error) {
             // ValidationError will be thrown with detailed error info
-            console.error('User registration validation failed:', error);
-            throw error;
+            console.error("User registration validation failed:", error)
+            throw error
         }
     }
 
@@ -42,16 +41,16 @@ export class ExampleUsage {
         const result = PayloadValidator.validateSafe(
             data,
             updateCompanySchema,
-            'CompanyUpdate'
-        );
+            "CompanyUpdate",
+        )
 
         if (result.success) {
-            console.log('Company update data is valid:', result.data);
-            return result.data;
+            console.log("Company update data is valid:", result.data)
+            return result.data
         } else {
-            console.error('Company update validation failed:', result.error);
+            console.error("Company update validation failed:", result.error)
             // Handle error without throwing
-            return null;
+            return null
         }
     }
 
@@ -61,11 +60,11 @@ export class ExampleUsage {
             return PayloadValidator.validateOrThrow(
                 data,
                 userRegistrationSchema,
-                'User data validation failed'
-            );
+                "User data validation failed",
+            )
         } catch (error) {
-            console.error('Quick validation failed:', error);
-            throw error;
+            console.error("Quick validation failed:", error)
+            throw error
         }
     }
 }

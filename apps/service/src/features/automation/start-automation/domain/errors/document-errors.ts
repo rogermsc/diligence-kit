@@ -18,4 +18,4 @@ export class DocumentDownloadError extends ApplicationError<"DOCUMENT_DOWNLOAD_E
             type: "DOCUMENT_DOWNLOAD_ERROR",
         })
     }
-} 
+}

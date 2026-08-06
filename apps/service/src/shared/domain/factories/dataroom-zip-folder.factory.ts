@@ -3,13 +3,13 @@ import { ZipParserService } from "@/shared/services/zip-parser.service"
 import { Logger } from "@nestjs/common"
 
 export class DataroomZipFolderFactory {
-    constructor(private readonly zipParserService: ZipParserService) { }
+    constructor(private readonly zipParserService: ZipParserService) {}
 
     async createFromZipBuffer(
         enterpriseName: string,
         zipBuffer: Buffer,
     ): Promise<Folder> {
-        Logger.debug('Creating folder from zip buffer', {
+        Logger.debug("Creating folder from zip buffer", {
             enterpriseName,
             zipBuffer,
         })

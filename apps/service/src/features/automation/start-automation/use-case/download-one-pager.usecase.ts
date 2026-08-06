@@ -3,7 +3,11 @@ import { Usecase } from "@/shared/interfaces/usecase"
 import { StorageService } from "@/shared/services/storage.service"
 import { IAutomationRepository } from "@/shared/repository/automation-repository.interface"
 import { CompanyRepository } from "@/shared/repository/company-repository.interface"
-import { AutomationNotFoundError, OnePagerNotFoundError, AutomationNotCompletedError } from "../domain/errors/automation-errors"
+import {
+    AutomationNotFoundError,
+    OnePagerNotFoundError,
+    AutomationNotCompletedError,
+} from "../domain/errors/automation-errors"
 
 export interface DownloadOnePagerInput {
     automationId: string
@@ -16,8 +20,10 @@ export interface DownloadOnePagerOutput {
 }
 
 @Injectable()
-export class DownloadOnePagerUseCase
-    implements Usecase<DownloadOnePagerInput, DownloadOnePagerOutput> {
+export class DownloadOnePagerUseCase implements Usecase<
+    DownloadOnePagerInput,
+    DownloadOnePagerOutput
+> {
     private readonly logger = new Logger(DownloadOnePagerUseCase.name)
 
     constructor(
@@ -27,24 +33,30 @@ export class DownloadOnePagerUseCase
         private readonly companyRepository: CompanyRepository,
         @Inject("StorageService")
         private readonly storageService: StorageService,
-    ) { }
+    ) {}
 
-    async execute(input: DownloadOnePagerInput): Promise<DownloadOnePagerOutput> {
+    async execute(
+        input: DownloadOnePagerInput,
+    ): Promise<DownloadOnePagerOutput> {
         const { automationId } = input
 
         // Buscar a automação
-        const automation = await this.automationRepository.findById(automationId)
+        const automation =
+            await this.automationRepository.findById(automationId)
         if (!automation) {
             throw new AutomationNotFoundError()
         }
 
         // Verificar se a automação está completa
-        if (automation.status !== 'COMPLETED') {
+        if (automation.status !== "COMPLETED") {
             throw new AutomationNotCompletedError(automationId)
         }
 
         // Buscar o onePager da automação
-        const onePager = await this.automationRepository.findOnePagerByAutomationId(automationId)
+        const onePager =
+            await this.automationRepository.findOnePagerByAutomationId(
+                automationId,
+            )
 
         if (!onePager) {
             throw new OnePagerNotFoundError(automationId)
@@ -53,11 +65,14 @@ export class DownloadOnePagerUseCase
         const onePagerUrl = onePager.url
 
         // Log para auditoria
-        this.logger.log(`Downloading one-pager for automation ${automationId}`, {
-            automationId,
-            filePath: onePagerUrl,
-            timestamp: new Date().toISOString()
-        })
+        this.logger.log(
+            `Downloading one-pager for automation ${automationId}`,
+            {
+                automationId,
+                filePath: onePagerUrl,
+                timestamp: new Date().toISOString(),
+            },
+        )
 
         // Fazer download do arquivo do Google Cloud Storage
         const fileBuffer = await this.storageService.downloadFile(onePagerUrl)
@@ -75,17 +90,15 @@ export class DownloadOnePagerUseCase
         }
     }
 
-
-
     private extractFileNameFromUrl(url: string): string {
         // Extrair nome do arquivo da URL do Google Cloud Storage
         // Exemplo: gs://bucket/path/file.docx -> file.docx
-        const parts = url.split('/')
-        return parts[parts.length - 1] || 'one_pager.docx'
+        const parts = url.split("/")
+        return parts[parts.length - 1] || "one_pager.docx"
     }
 
     private getMimeTypeFromFileName(fileName: string): string {
-        const extension = fileName.split('.').pop()?.toLowerCase()
+        const extension = fileName.split(".").pop()?.toLowerCase()
 
         const mimeTypes: Record<string, string> = {
             docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -96,4 +109,4 @@ export class DownloadOnePagerUseCase
 
         return mimeTypes[extension || ""] || "application/octet-stream"
     }
-} 
+}

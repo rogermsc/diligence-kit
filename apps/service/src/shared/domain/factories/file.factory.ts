@@ -1,5 +1,5 @@
-import { File } from '@/shared/domain/entities/file.entity';
-import { File as MulterFile } from 'multer';
+import { File } from "@/shared/domain/entities/file.entity"
+import { File as MulterFile } from "multer"
 
 export class FileFactory {
     static createFromMulterFile(multerFile: MulterFile): File {
@@ -7,21 +7,16 @@ export class FileFactory {
             multerFile.originalname,
             multerFile.size,
             multerFile.mimetype,
-            multerFile.buffer
-        );
+            multerFile.buffer,
+        )
     }
 
     static create(props: {
-        name: string;
-        size: number;
-        mimeType: string;
-        buffer: Buffer;
+        name: string
+        size: number
+        mimeType: string
+        buffer: Buffer
     }): File {
-        return new File(
-            props.name,
-            props.size,
-            props.mimeType,
-            props.buffer
-        );
+        return new File(props.name, props.size, props.mimeType, props.buffer)
     }
-} 
+}

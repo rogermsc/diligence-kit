@@ -7,4 +7,4 @@ export interface NotificationMessage {
 
 export interface Notifier {
     send(message: NotificationMessage): Promise<void>
-} 
+}
