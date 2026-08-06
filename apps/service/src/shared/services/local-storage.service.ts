@@ -36,8 +36,26 @@ export class LocalStorageService implements StorageService {
         const normalized = key
             .replace(`gs://${this.bucketName}/`, "")
             .replace(/^\/+/, "")
+
+        // A GCS object name is a flat string, so callers upstream reason about
+        // these keys as opaque and deliberately do not reject "..": ConfirmUpload
+        // pins a path by prefix on exactly that basis, and rejecting the
+        // substring would fail legitimate names like "FY2023..2024.pdf".
+        // path.resolve does not share that model — it collapses "..", which
+        // turned a prefix-checked path into another tenant's directory. Refuse a
+        // "." or ".." *segment* so both models agree; a name merely containing
+        // dots is untouched.
+        const segments = normalized.split("/")
+        if (segments.some((part) => part === ".." || part === ".")) {
+            throw new StorageError(
+                StorageErrorType.UPLOAD_ERROR,
+                `Path segment is not a valid object name: ${key}`,
+            )
+        }
+
         const full = path.resolve(this.root, normalized)
 
+        // Defence in depth: nothing should reach here after the check above.
         if (full !== this.root && !full.startsWith(this.root + path.sep)) {
             throw new StorageError(
                 StorageErrorType.UPLOAD_ERROR,

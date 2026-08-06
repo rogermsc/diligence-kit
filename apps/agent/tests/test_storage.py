@@ -39,12 +39,35 @@ def test_download_refuses_a_foreign_bucket(storage, tmp_path):
         storage.download("gs://someone-elses-bucket/docs/x.pdf", str(tmp_path))
 
 
-@pytest.mark.parametrize("key", ["../escaped.json", "a/../../escaped.json"])
-def test_traversal_cannot_escape_the_root(storage, key):
-    """Keys derive from filenames inside uploaded archives, so `../` is reachable
-    by an attacker and must not read or write outside the data directory."""
-    with pytest.raises(ValueError, match="escapes storage root"):
+@pytest.mark.parametrize(
+    "key", ["../escaped.json", "a/../../escaped.json", "a/./b.json", ".."]
+)
+def test_a_traversal_segment_is_refused(storage, key):
+    """The backend pins upload paths by string prefix, on the stated grounds that
+    a GCS object name is flat and ".." carries no traversal meaning. Path.resolve
+    does not share that model — it collapses "..", which turned a prefix-checked
+    key into another tenant's directory. Both models have to agree."""
+    with pytest.raises(ValueError, match="not a valid object name"):
         storage.upload_json(key, "{}")
+
+
+def test_a_name_merely_containing_dots_is_allowed(storage):
+    """Rejecting the substring would fail legitimate names, which is exactly why
+    the backend refused to reject it."""
+    url = storage.upload_json("2023/FY2023..2024 financials.json", "{}")
+
+    assert url.endswith("2023/FY2023..2024 financials.json")
+    assert storage.blob_exists("2023/FY2023..2024 financials.json")
+
+
+def test_a_prefix_checked_path_cannot_reach_another_tenant(storage):
+    """The concrete escape: ConfirmUpload accepts this because it startsWith the
+    automation's own prefix, and it used to resolve into another company's
+    directory."""
+    storage.upload_json("Beta/b2/deck.json", '{"secret": true}')
+
+    with pytest.raises(ValueError, match="not a valid object name"):
+        storage.download_json("Acme/a1/../../Beta/b2/deck.json")
 
 
 def test_absolute_looking_keys_are_contained_not_honoured(storage, tmp_path):

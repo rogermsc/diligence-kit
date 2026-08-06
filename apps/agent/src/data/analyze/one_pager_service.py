@@ -21,6 +21,13 @@ from src.domain.analyze.entities import (
 
 logger = get_logger(__name__)
 
+# A response is allowed to lose a category or two — renormalising over what is
+# present beats weighting the rest to zero. Below this, renormalising stops being
+# a correction and starts inventing a headline: one recognised category scored
+# 5/5 would otherwise print "5.0/5.0" on an investment memorandum computed from
+# an eighth of the rubric.
+MIN_SCORECARD_COVERAGE = 0.75
+
 CATEGORY_WEIGHTS = {
     "Financial Readiness": 0.20,
     "Product Maturity": 0.15,
@@ -71,9 +78,8 @@ class OnePagerService:
             else "No unresolved conflicts."
         )
 
-        system_prompt = ONE_PAGER_SYSTEM_PROMPT.format(
-            current_date=date.today().isoformat(),
-        )
+        today = date.today().isoformat()
+        system_prompt = ONE_PAGER_SYSTEM_PROMPT.format(current_date=today)
 
         user_prompt = ONE_PAGER_USER_PROMPT.format(
             company_name=company_name,
@@ -85,7 +91,9 @@ class OnePagerService:
 
         logger.info(f"One-pager GPT call started ({len(facts_json)} chars of facts)")
 
-        raw_text = await complete_json("one_pager", user_prompt, system_prompt)
+        raw_text = await complete_json(
+            "one_pager", user_prompt, system_prompt, volatile=(today,)
+        )
 
         return self._parse_response(raw_text)
 
@@ -127,13 +135,21 @@ class OnePagerService:
                 key_issues=s.get("key_issues", []),
             ))
 
+        if total_weight < MIN_SCORECARD_COVERAGE:
+            raise ValueError(
+                f"Scorecard covers only {total_weight:.2f} of the 1.0 weight, "
+                f"below the {MIN_SCORECARD_COVERAGE} floor. Categories returned: "
+                f"{[c.category for c in scorecard]}. Refusing to publish an "
+                f"overall score derived from a fraction of the rubric."
+            )
+
         if total_weight < 1.0:
             logger.warning(
                 f"Scorecard covers {total_weight:.2f} of the 1.0 weight — "
                 f"normalising the overall score over the categories present."
             )
 
-        overall = total_weighted / total_weight if total_weight else 0.0
+        overall = total_weighted / total_weight
         overall_score = f"{overall:.1f}/5.0"
 
         fh = data["financial_highlights"]
@@ -152,6 +168,7 @@ class OnePagerService:
             business_metrics=BusinessMetrics(**data["business_metrics"]),
             scorecard=scorecard,
             overall_score=overall_score,
+            scorecard_coverage=f"{total_weight:.2f}",
             transaction_structure=TransactionStructure(**data["transaction_structure"]),
             deal_rationale=DealRationale(**data["deal_rationale"]),
             key_terms=KeyTerms(**data["key_terms"]),

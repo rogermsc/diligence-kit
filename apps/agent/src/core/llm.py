@@ -56,18 +56,44 @@ def model_for(purpose: str) -> str:
         ) from None
 
 
-def _fixture_key(purpose: str, model: str, parts: list[str]) -> str:
+VOLATILE = "<volatile>"
+
+
+def _fixture_key(
+    purpose: str,
+    model: str,
+    parts: list[str],
+    *,
+    volatile: tuple[str, ...] = (),
+    extra: str = "",
+) -> str:
     """Stable identity for a request.
 
     Only text is hashed. Uploaded-file ids are deliberately excluded: OpenAI
     returns a fresh id for every upload, so including them would make each
-    recording match exactly one run and never replay. The prompt text carries the
-    file name, which is the part that actually identifies the document.
+    recording match exactly one run and never replay.
+
+    `volatile` names substrings that change on their own — today's date is
+    interpolated into two system prompts, so hashing it made every committed
+    fixture expire at local midnight and the offline tests go red daily on a
+    branch nobody had touched. They are masked before hashing.
+
+    `extra` distinguishes requests whose prompts are genuinely identical. Two
+    documents in different folders of a dataroom share a basename, and the
+    basename is the only per-document text in the fact-extraction prompt (the
+    PDF itself arrives as an excluded file id), so without this both hashed to
+    one key and each was served the other's facts.
     """
     digest = hashlib.sha256()
     digest.update(purpose.encode())
     digest.update(model.encode())
+    if extra:
+        digest.update(b"\x01")
+        digest.update(extra.encode())
     for part in parts:
+        for value in volatile:
+            if value:
+                part = part.replace(value, VOLATILE)
         digest.update(b"\x00")
         digest.update(part.encode())
     return digest.hexdigest()[:32]
@@ -108,10 +134,16 @@ def _log_usage(purpose: str, model: str, usage) -> None:
     )
 
 
-async def complete_json(purpose: str, user: str, system: str = "") -> str:
+async def complete_json(
+    purpose: str,
+    user: str,
+    system: str = "",
+    *,
+    volatile: tuple[str, ...] = (),
+) -> str:
     """Chat-completions call constrained to a JSON object. Returns raw JSON text."""
     model = model_for(purpose)
-    key = _fixture_key(purpose, model, [system, user])
+    key = _fixture_key(purpose, model, [system, user], volatile=volatile)
 
     if settings.llm_driver == "replay":
         return _read_fixture(key, purpose)
@@ -137,15 +169,24 @@ async def complete_json(purpose: str, user: str, system: str = "") -> str:
     return output
 
 
-async def respond_json(purpose: str, instructions: str, content: list) -> str:
+async def respond_json(
+    purpose: str,
+    instructions: str,
+    content: list,
+    *,
+    document_key: str = "",
+) -> str:
     """Responses-API call constrained to a JSON object.
 
     `content` is a list of input parts, which is how a pre-uploaded PDF gets
-    attached alongside the prompt text.
+    attached alongside the prompt text. `document_key` identifies which document
+    is attached, since the file id itself cannot be part of the fixture key.
     """
     model = model_for(purpose)
     text_parts = [p.get("text", "") for p in content if p.get("type") == "input_text"]
-    key = _fixture_key(purpose, model, [instructions, *text_parts])
+    key = _fixture_key(
+        purpose, model, [instructions, *text_parts], extra=document_key
+    )
 
     if settings.llm_driver == "replay":
         return _read_fixture(key, purpose)

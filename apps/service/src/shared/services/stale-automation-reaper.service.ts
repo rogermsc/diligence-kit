@@ -9,6 +9,30 @@ import { prisma } from "@/shared/infra/prisma"
 const MINUTE = 60 * 1000
 
 /**
+ * Reads a duration in minutes, refusing anything that is not a positive number.
+ *
+ * `Number("5m")` is NaN, and `setInterval(fn, NaN)` coerces to about 1ms — a
+ * plausible typo for a variable documented in minutes turned the sweep into a
+ * busy loop hammering the database. NaN also made the cutoff an Invalid Date, so
+ * every query threw and the reaper was silently disabled while looking healthy.
+ * `0 || 60` quietly became 60 as well, so an explicit 0 never took effect.
+ */
+function minutes(name: string, fallback: number): number {
+    const raw = process.env[name]
+    if (raw === undefined || raw === "") return fallback * MINUTE
+
+    const parsed = Number(raw)
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        new Logger("StaleAutomationReaper").error(
+            `${name}="${raw}" is not a positive number of minutes; ` +
+                `using ${fallback}.`,
+        )
+        return fallback * MINUTE
+    }
+    return parsed * MINUTE
+}
+
+/**
  * Fails automations that have been PROCESSING for longer than any real run takes.
  *
  * The agent runs analysis as a background task and calls back when it finishes.
@@ -21,6 +45,18 @@ const MINUTE = 60 * 1000
  * This is a timeout, not a recovery — the work is gone either way. Marking the
  * row FAILED is what makes it visible and lets the user retry.
  *
+ * It measures wall-clock since the row was last written, which is not the same
+ * as liveness: nothing touches updatedAt while the agent works, so a slow but
+ * healthy run looks identical to an abandoned one. Two consequences follow, and
+ * both argue for setting the timeout well above the longest run you expect
+ * rather than tightly. First, a run failed while still executing can be retried
+ * from the dashboard — retryAutomation's only precondition is FAILED — so the
+ * same automation is dispatched to the agent twice and the two races on the same
+ * callbacks and storage paths. Second, the original run's completion callback
+ * then writes COMPLETED over the FAILED row. The default is deliberately
+ * generous for that reason; a heartbeat written by the agent is the real fix and
+ * is not implemented.
+ *
  * Deliberately not a distributed lock: the update is idempotent and scoped by
  * status and age, so several replicas running it concurrently is harmless. The
  * first one wins and the rest match no rows.
@@ -30,10 +66,11 @@ export class StaleAutomationReaper implements OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(StaleAutomationReaper.name)
     private timer?: NodeJS.Timeout
 
-    private readonly timeoutMs =
-        Number(process.env.AUTOMATION_TIMEOUT_MINUTES || 60) * MINUTE
-    private readonly intervalMs =
-        Number(process.env.AUTOMATION_REAPER_INTERVAL_MINUTES || 5) * MINUTE
+    private readonly timeoutMs = minutes("AUTOMATION_TIMEOUT_MINUTES", 240)
+    private readonly intervalMs = minutes(
+        "AUTOMATION_REAPER_INTERVAL_MINUTES",
+        5,
+    )
 
     onModuleInit(): void {
         if (process.env.AUTOMATION_REAPER_ENABLED === "false") {

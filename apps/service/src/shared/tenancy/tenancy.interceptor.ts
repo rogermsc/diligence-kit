@@ -44,6 +44,13 @@ import {
  *
  * Checks resolve to NotFound rather than Forbidden: a 403 would confirm that an
  * id exists, which is what an id-guessing attacker is trying to learn.
+ *
+ * One constraint follows from the ordering. Interceptors run before any
+ * method-scoped interceptor, and multipart bodies are parsed by one of those
+ * (multer, via FileInterceptor). A `body:` source on a multipart route therefore
+ * reads undefined and rejects every upload, so those routes take the id from the
+ * path or the query string instead — both are available from the moment the
+ * request is routed.
  */
 @Injectable()
 export class TenancyInterceptor implements NestInterceptor {
@@ -134,14 +141,31 @@ function normalize(lookup: IdSource | IdSource[] | TenancyLookup): {
     }
 }
 
+const CONTAINERS: Record<string, string> = {
+    param: "params",
+    query: "query",
+    body: "body",
+}
+
 /** First source yielding a truthy value wins. Falsy-aware on purpose. */
 function resolve(sources: string[], request: unknown): string | undefined {
     for (const source of sources) {
         const [where, ...rest] = source.split(":")
         const path = rest.join(":")
-        const root = (request as Record<string, unknown>)[
-            where === "param" ? "params" : "body"
-        ]
+        const container = CONTAINERS[where]
+
+        // Anything unrecognised used to fall through to the body, so a typo
+        // ("params:id") or an unsupported prefix silently read undefined — and
+        // combined with `optional` that skipped the ownership check entirely
+        // while the route still served the record. Refuse instead.
+        if (!container) {
+            throw new Error(
+                `Unknown tenancy source "${source}". Expected one of ` +
+                    `${Object.keys(CONTAINERS).join(", ")}.`,
+            )
+        }
+
+        const root = (request as Record<string, unknown>)[container]
         const value = path
             .split(".")
             .reduce<unknown>(

@@ -156,10 +156,18 @@ export class AssemblyJobProcessor {
                 zipName: zipFile.originalname,
             })
 
-            // 1. Parse ZIP para estrutura de árvore
+            // 1. Parse ZIP para estrutura de árvore.
+            //
+            // The root folder name becomes the storage prefix, and it has to
+            // carry the automation id. Without it two runs for the same company
+            // write to the same keys — the second overwrites the first, and
+            // earlier automations' bucketPath rows start resolving to newer
+            // bytes. It also breaks documentNameFrom, which recovers a
+            // document's path within the dataroom by looking for the id, so
+            // 2023/financials.pdf and 2024/financials.pdf collapsed to one row.
             const rootFolder = await this.zipParserService.parseZipToFolder(
                 zipFile.buffer,
-                companyName, // Nome da pasta raiz será o nome da empresa
+                `${companyName}/${automationId}`,
             )
 
             this.logger.log("ZIP parsed successfully", {
@@ -171,7 +179,7 @@ export class AssemblyJobProcessor {
             // 2. Upload otimizado em batch para o bucket
             const uploadedFiles =
                 await this.storageService.uploadFolderOnEnterpriseRoot(
-                    companyName,
+                    `${companyName}/${automationId}`,
                     rootFolder,
                 )
 

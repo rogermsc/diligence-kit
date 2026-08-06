@@ -10,6 +10,10 @@ no API call is made.
 
 Rerun it after changing a prompt — the keys change with it, and replay will start
 missing. Outputs land in fixtures/llm/ and are committed.
+
+The keys deliberately do not depend on today's date: it is interpolated into two
+system prompts, and hashing it made every committed fixture expire at local
+midnight.
 """
 
 import asyncio
@@ -293,19 +297,26 @@ def stub_response(purpose: str, prompt_text: str) -> str:
 def install_stub() -> None:
     """Answer from the canned set, then record under the real fixture key."""
 
-    async def complete_json(purpose, user, system=""):
+    async def complete_json(purpose, user, system="", *, volatile=()):
         output = stub_response(purpose, user)
         llm._write_fixture(
-            llm._fixture_key(purpose, llm.model_for(purpose), [system, user]),
+            llm._fixture_key(
+                purpose, llm.model_for(purpose), [system, user], volatile=volatile
+            ),
             purpose, llm.model_for(purpose), output,
         )
         return output
 
-    async def respond_json(purpose, instructions, content):
+    async def respond_json(purpose, instructions, content, *, document_key=""):
         text_parts = [p.get("text", "") for p in content if p.get("type") == "input_text"]
         output = stub_response(purpose, " ".join(text_parts))
         llm._write_fixture(
-            llm._fixture_key(purpose, llm.model_for(purpose), [instructions, *text_parts]),
+            llm._fixture_key(
+                purpose,
+                llm.model_for(purpose),
+                [instructions, *text_parts],
+                extra=document_key,
+            ),
             purpose, llm.model_for(purpose), output,
         )
         return output

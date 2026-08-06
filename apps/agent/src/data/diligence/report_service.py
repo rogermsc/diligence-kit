@@ -54,7 +54,8 @@ class DiligenceReportService:
             else "No unresolved conflicts."
         )
 
-        system_prompt = system_template.format(current_date=date.today().isoformat())
+        today = date.today().isoformat()
+        system_prompt = system_template.format(current_date=today)
         user_prompt = user_template.format(
             company_name=company_name,
             facts_json=facts_json,
@@ -67,7 +68,9 @@ class DiligenceReportService:
             f"[{domain}] Diligence synthesis GPT call started ({len(facts_json)} chars of facts)"
         )
 
-        raw_text = await complete_json("diligence_report", user_prompt, system_prompt)
+        raw_text = await complete_json(
+            "diligence_report", user_prompt, system_prompt, volatile=(today,)
+        )
 
         if not raw_text:
             raise RuntimeError(f"Empty response from {domain} synthesis GPT call")

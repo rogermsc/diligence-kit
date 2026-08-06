@@ -70,6 +70,23 @@ class FactExtractionService:
         logger.info(
             f"Fact extraction complete: {len(extracted)}/{len(documents)} docs, {total_facts} total facts"
         )
+
+        # Nothing downstream compares what was uploaded against what was read, so
+        # a run where every extraction failed used to continue through synthesis,
+        # render and upload, and report success. The deliverable was a clean,
+        # empty due-diligence memo — the worst possible failure for this product.
+        if documents and not extracted:
+            raise RuntimeError(
+                f"Fact extraction produced nothing from {len(documents)} "
+                f"document(s). Refusing to synthesise a report from no facts."
+            )
+
+        if len(extracted) < len(documents):
+            logger.error(
+                f"Analysing {len(extracted)} of {len(documents)} documents — "
+                f"{len(documents) - len(extracted)} could not be read."
+            )
+
         return extracted
 
     async def _extract_facts_one(self, doc: PreparedDocument, company_name: str) -> DocumentFacts:
@@ -91,7 +108,14 @@ class FactExtractionService:
 
         user_content = await self._build_user_content(doc)
 
-        raw_text = await respond_json("fact_extraction", system_prompt, user_content)
+        raw_text = await respond_json(
+            "fact_extraction",
+            system_prompt,
+            user_content,
+            # Two documents in different folders share a basename, and the
+            # basename is the only per-document text in this prompt.
+            document_key=doc.document_id,
+        )
 
         parsed = self._parse_response(raw_text, doc)
 

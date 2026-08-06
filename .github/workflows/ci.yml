@@ -33,6 +33,11 @@ jobs:
 
       - run: pnpm build
 
+      # `pnpm build` compiles src only — tsconfig.build.json excludes test/ and
+      # spec files. A 517-line e2e spec sat broken and invisible for exactly that
+      # reason, so typecheck the whole project too.
+      - run: pnpm typecheck
+
       - run: pnpm lint
 
       - run: pnpm test

@@ -5,6 +5,7 @@ import {
     UploadedFile,
     Param,
     ParseUUIDPipe,
+    Query,
     UseInterceptors,
     StreamableFile,
     UseGuards,
@@ -134,9 +135,13 @@ export class AutomationController {
                     automationId,
                 })
 
+            // companyId is the one the tenancy check already proved the caller
+            // owns; the registry refuses if the upload id was claimed by anyone
+            // else.
             await this.chunkRegistry.updateAutomationId(
                 validatedChunkData.identifier,
                 automation.id,
+                companyId,
             )
 
             logger.log(`Automation created for last chunk`, {
@@ -210,13 +215,16 @@ export class AutomationController {
     }
 
     @Post(":automationId/upload-document")
-    @Tenancy({ company: "body:companyId" })
+    // From the query string, not the body: this route is multipart, and multer
+    // runs as a method-scoped interceptor — after the global tenancy check — so
+    // a `body:` source here reads undefined and rejects every upload.
+    @Tenancy({ company: "query:companyId" })
     @UseInterceptors(
         FileInterceptor("file", { limits: { fileSize: 100 * 1024 * 1024 } }),
     )
     async uploadDocument(
         @Param("automationId", new ParseUUIDPipe()) automationId: string,
-        @Body("companyId") companyId: string,
+        @Query("companyId", new ParseUUIDPipe()) companyId: string,
         @UploadedFile() file: MulterFile,
     ) {
         // The automation row is only persisted at the confirm step, so it does

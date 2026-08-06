@@ -54,15 +54,18 @@ export async function POST(
     const backendFormData = new FormData()
     backendFormData.append('file', file)
 
+    // On the query string, not in the form body. The backend authorizes this
+    // upload against the company before the handler runs, and a multipart body
+    // is not parsed by then — sending it as a form field made every upload 400.
     const companyId = formData.get('companyId')
-    if (typeof companyId === 'string' && companyId.length > 0) {
-      if (!/^[a-zA-Z0-9_-]{1,200}$/.test(companyId)) {
-        return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
-      }
-      backendFormData.append('companyId', companyId)
+    if (typeof companyId !== 'string' || !/^[a-zA-Z0-9_-]{1,200}$/.test(companyId)) {
+      return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
     }
 
-    const response = await fetch(`${baseUrl}/automation/${automationId}/upload-document`, {
+    const target = `${baseUrl}/automation/${automationId}/upload-document`
+      + `?companyId=${encodeURIComponent(companyId)}`
+
+    const response = await fetch(target, {
       method: 'POST',
       headers: { ...authHeaders },
       body: backendFormData,

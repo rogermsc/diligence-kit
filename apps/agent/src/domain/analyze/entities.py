@@ -131,6 +131,10 @@ class OnePager(BaseModel):
     business_metrics: BusinessMetrics
     scorecard: List[ScorecardCategory]
     overall_score: str  # e.g. "2.6/5.0"
+    # Fraction of the 1.0 rubric the scorecard actually covered. The overall is
+    # normalised over it, so without this a headline from a partial scorecard is
+    # indistinguishable from one computed over the whole thing.
+    scorecard_coverage: str = "1.00"
     transaction_structure: TransactionStructure
     deal_rationale: DealRationale
     key_terms: KeyTerms

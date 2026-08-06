@@ -32,7 +32,11 @@ export interface ChunkRegistry {
     getTotalChunks(uploadId: string): Promise<number> // Novo método para obter total
     isUploadComplete(uploadId: string): Promise<boolean>
     getUploadState(uploadId: string): Promise<UploadState | null>
-    updateAutomationId(uploadId: string, automationId: string): Promise<void>
+    updateAutomationId(
+        uploadId: string,
+        automationId: string,
+        companyId: string,
+    ): Promise<void>
     cleanupUpload(uploadId: string): Promise<void>
     // Manter métodos antigos para compatibilidade com AssemblyCoordinator
     getAllConfirmedChunks(uploadId: string): Promise<number[]>
@@ -56,6 +60,39 @@ export class RedisChunkRegistry implements ChunkRegistry {
         })
     }
 
+    /**
+     * Refuses unless `companyId` is the company that claimed this upload id.
+     *
+     * Absent or unreadable metadata is a refusal, not a pass: the previous
+     * version only compared when a company was present, so a record written
+     * without one, or an id whose metadata had expired, went through unchecked.
+     */
+    private async assertOwns(
+        uploadId: string,
+        companyId: string,
+    ): Promise<void> {
+        const raw = await this.redis.get(`${this.METADATA_PREFIX}${uploadId}`)
+        let owner: string | undefined
+
+        if (raw) {
+            try {
+                owner = (JSON.parse(raw) as ChunkMetadata).companyId
+            } catch {
+                owner = undefined
+            }
+        }
+
+        if (!owner || !companyId || owner !== companyId) {
+            this.logger.warn(
+                `Refusing access to upload ${uploadId}: claimed by ` +
+                    `${owner ?? "nobody"}, requested by ${companyId || "nobody"}.`,
+            )
+            throw new ForbiddenException(
+                "Upload identifier belongs to another upload",
+            )
+        }
+    }
+
     async registerChunk(
         uploadId: string,
         chunkNumber: number,
@@ -66,32 +103,28 @@ export class RedisChunkRegistry implements ChunkRegistry {
 
         try {
             // The upload id is chosen by the client and these keys carry no
-            // tenant component, so a caller who guesses an in-flight id would
-            // otherwise be able to add chunks to someone else's upload and
-            // rebind it to their own automation. The first chunk fixes the
-            // owning company; every later chunk has to agree with it.
-            const existing = await this.redis.get(metadataKey)
-            if (existing) {
-                const owner = (JSON.parse(existing) as ChunkMetadata).companyId
-                if (owner && owner !== metadata.companyId) {
-                    this.logger.warn(
-                        `Refusing chunk ${chunkNumber} for upload ${uploadId}: ` +
-                            `registered to a different company.`,
-                    )
-                    throw new ForbiddenException(
-                        "Upload identifier belongs to another upload",
-                    )
-                }
-            } else {
-                await this.redis.setex(
-                    metadataKey,
-                    this.UPLOAD_TIMEOUT / 1000,
-                    JSON.stringify({
-                        ...metadata,
-                        createdAt: new Date().toISOString(),
-                        lastActivity: new Date().toISOString(),
-                    }),
-                )
+            // tenant component, so a caller who guesses an in-flight id could
+            // otherwise add chunks to someone else's upload and rebind it to
+            // their own automation. The first chunk claims the id for a company;
+            // every later chunk has to agree.
+            //
+            // NX rather than GET-then-SETEX: two concurrent first chunks both
+            // saw an empty key under the read-then-write version, both wrote,
+            // and the later writer silently took ownership.
+            const claimed = await this.redis.set(
+                metadataKey,
+                JSON.stringify({
+                    ...metadata,
+                    createdAt: new Date().toISOString(),
+                    lastActivity: new Date().toISOString(),
+                }),
+                "EX",
+                this.UPLOAD_TIMEOUT / 1000,
+                "NX",
+            )
+
+            if (!claimed) {
+                await this.assertOwns(uploadId, metadata.companyId)
             }
 
             // Adiciona chunk à lista de chunks registrados
@@ -329,7 +362,14 @@ export class RedisChunkRegistry implements ChunkRegistry {
     async updateAutomationId(
         uploadId: string,
         automationId: string,
+        companyId: string,
     ): Promise<void> {
+        // This is the call that actually performs the rebind, and it was
+        // reachable directly from the controller with a caller-chosen upload id.
+        // Guarding registerChunk alone left the hole open: the attacker never
+        // has to register a chunk, only to claim the last one.
+        await this.assertOwns(uploadId, companyId)
+
         try {
             const metadataKey = `${this.METADATA_PREFIX}${uploadId}`
             const metadataStr = await this.redis.get(metadataKey)

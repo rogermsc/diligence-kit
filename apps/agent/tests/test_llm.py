@@ -155,3 +155,40 @@ async def test_fixture_records_the_model_it_came_from(fixtures, monkeypatch):
     recorded = json.loads(next(fixtures.glob("*.json")).read_text())
     assert recorded["purpose"] == "one_pager"
     assert recorded["model"] == settings.llm_model_one_pager
+
+
+def test_the_key_does_not_move_with_the_calendar():
+    """Today's date is interpolated into two system prompts. Hashing it made
+    every committed fixture expire at local midnight, so the offline tests went
+    red daily on a branch nobody had touched — which reads as a flake."""
+    keys = {
+        llm._fixture_key(
+            "one_pager",
+            "gpt-5.2",
+            [f"Today is {day}. Be rigorous.", "facts"],
+            volatile=(day,),
+        )
+        for day in ("2026-08-04", "2026-08-05", "2026-08-06", "2027-01-01")
+    }
+
+    assert len(keys) == 1
+
+
+def test_masking_does_not_flatten_genuinely_different_prompts():
+    a = llm._fixture_key("one_pager", "m", ["sys", "facts A"], volatile=("2026-08-06",))
+    b = llm._fixture_key("one_pager", "m", ["sys", "facts B"], volatile=("2026-08-06",))
+
+    assert a != b
+
+
+def test_two_documents_sharing_a_basename_get_different_keys():
+    """A dataroom with 2023/financials.pdf and 2024/financials.pdf yields the same
+    basename for both, and the basename is the only per-document text in the
+    fact-extraction prompt — the PDF arrives as an excluded file id. Without a
+    discriminator both hashed to one key and each was served the other's facts."""
+    prompt = ["sys", "Extract facts from financials.pdf"]
+
+    a = llm._fixture_key("fact_extraction", "m", prompt, extra="doc-2023")
+    b = llm._fixture_key("fact_extraction", "m", prompt, extra="doc-2024")
+
+    assert a != b

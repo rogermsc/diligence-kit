@@ -109,10 +109,15 @@ import { AutomationIdInterceptor } from "./interceptors/automation-id.intercepto
         // Storage and infrastructure
         {
             provide: "StorageService",
-            useClass:
+            // useFactory, not useClass: the decorator's argument is evaluated
+            // when this module is first imported, which happens before main.ts
+            // calls dotenv's config(). Reading the variable there meant a .env
+            // STORAGE_DRIVER=local was always ignored and the GCS client was
+            // bound instead — in what is advertised as a no-cloud-account run.
+            useFactory: () =>
                 process.env.STORAGE_DRIVER === "local"
-                    ? LocalStorageService
-                    : GoogleStorageService,
+                    ? new LocalStorageService()
+                    : new GoogleStorageService(),
         },
         {
             provide: "ChunkUploadProgressTracker",

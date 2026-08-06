@@ -53,7 +53,7 @@ These variables have default values and are optional:
 ### Stale-run reaper
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `AUTOMATION_TIMEOUT_MINUTES` | `60` | How long an automation may sit in `PROCESSING` before it is marked `FAILED`. Set it above the longest real run: the agent's callback is what normally ends the run, so anything still processing past this never received one. |
+| `AUTOMATION_TIMEOUT_MINUTES` | `240` | How long an automation may sit in `PROCESSING` before it is marked `FAILED`. Set it **well above** the longest real run. It measures time since the row was last written, and nothing writes to the row while the agent works, so a slow healthy run is indistinguishable from an abandoned one — and a run failed while still executing can be retried, dispatching the same automation to the agent twice. Non-numeric or non-positive values fall back to the default with an error logged. |
 | `AUTOMATION_REAPER_INTERVAL_MINUTES` | `5` | How often to sweep. |
 | `AUTOMATION_REAPER_ENABLED` | `true` | Set to `false` to disable. Interrupted runs then stay `PROCESSING` until someone updates them by hand. |
 

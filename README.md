@@ -153,8 +153,10 @@ Nothing ties the code to GKE: the apps are four containers with Postgres and Red
 Working software extracted from a production deployment, published as a starting point rather than a
 finished product. Read `CLAUDE.md` for the architectural detail.
 
-Every pull request builds, lints and tests all four apps. Test coverage is deliberately narrow rather
-than broad — it covers the places that fail quietly:
+Every pull request builds, typechecks, lints and tests both JavaScript apps, and lints both Python
+ones. `apps/agent` has a test suite; `apps/liaison-agent` does not yet, and CI says so rather than
+reporting a pass. Coverage is deliberately narrow rather than broad — it covers the places that fail
+quietly:
 
 ```bash
 make test     # jest + pytest
@@ -200,6 +202,12 @@ before running this on anything that matters:
   globally unique rather than per-owner, which leaks the existence of other tenants' company names at
   creation time. Namespacing by company id would remove both problems; it touches the chunked-upload
   subsystem, so it is not done here.
+- **The stale-run reaper measures wall-clock, not liveness.** Nothing writes to an automation row
+  while the agent works, so a slow healthy run is indistinguishable from an abandoned one. If one is
+  failed while still executing, retrying it dispatches the same automation to the agent twice.
+  `AUTOMATION_TIMEOUT_MINUTES` defaults to 240 for that reason; a heartbeat written by the agent is
+  the real fix and is not implemented.
+- **`apps/liaison-agent` has no tests.** CI lints it and emits a warning that it has none.
 
 Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 

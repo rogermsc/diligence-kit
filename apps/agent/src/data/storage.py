@@ -48,12 +48,21 @@ class LocalStorage:
         self._root.mkdir(parents=True, exist_ok=True)
 
     def _resolve(self, blob_path: str) -> Path:
-        """Map a key to a path, refusing anything that escapes the root.
+        """Map a key to a path, refusing anything that is not a flat object name.
 
-        Keys are built from filenames that originate inside uploaded archives, so
-        a `../` entry must not be able to read or write outside the data dir.
+        A GCS object name is an opaque string, so callers upstream treat ".." as
+        an ordinary character sequence — the backend pins upload paths by prefix
+        on that basis. Path.resolve does not: it collapses "..", which would turn
+        a prefix-checked key into a different directory. Refuse a "." or ".."
+        *segment* so both models agree; a name that merely contains dots, like
+        "FY2023..2024.pdf", is untouched.
         """
+        parts = blob_path.lstrip("/").split("/")
+        if any(part in (".", "..") for part in parts):
+            raise ValueError(f"Path segment is not a valid object name: {blob_path}")
+
         full = (self._root / blob_path.lstrip("/")).resolve()
+        # Defence in depth: nothing should reach here after the check above.
         if full != self._root and self._root not in full.parents:
             raise ValueError(f"Path escapes storage root: {blob_path}")
         return full

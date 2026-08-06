@@ -23,6 +23,7 @@ demo:
 		sleep 2; \
 	done
 	$(COMPOSE) exec -T service npx prisma migrate deploy
+	$(COMPOSE) exec -T liaison-agent alembic upgrade head
 	$(COMPOSE) exec -T service pnpm exec ts-node -r tsconfig-paths/register scripts/seed-demo.ts
 	@echo ""
 	@echo "  Dashboard  http://localhost:3000"

@@ -60,27 +60,45 @@ def test_an_unrecognised_category_does_not_silently_score_zero():
     assert build(scorecard).overall_score == "4.0/5.0"
 
 
-def test_a_partial_scorecard_renormalises_rather_than_understating():
-    """Six categories of 4/5 is a 4.0, not a 4.0 scaled by the missing weight."""
-    scorecard = all_categories(4)[:6]
+def test_a_nearly_complete_scorecard_renormalises_rather_than_understating():
+    """Seven categories of 4/5 is a 4.0, not a 4.0 scaled by the missing weight."""
+    scorecard = all_categories(4)[:7]
 
-    assert build(scorecard).overall_score == "4.0/5.0"
+    result = build(scorecard)
+
+    assert result.overall_score == "4.0/5.0"
+    # And the reader can tell it was not the whole rubric.
+    assert float(result.scorecard_coverage) < 1.0
 
 
-def test_an_empty_scorecard_does_not_divide_by_zero():
-    assert build([]).overall_score == "0.0/5.0"
+def test_a_complete_scorecard_reports_full_coverage():
+    assert build(all_categories(4)).scorecard_coverage == "1.00"
+
+
+def test_a_scorecard_missing_most_of_the_rubric_is_refused():
+    """Renormalising over a fraction does not correct a truncated response, it
+    invents a headline: one category at 5/5 would print a perfect 5.0/5.0 on an
+    investment memorandum computed from an eighth of the rubric."""
+    with pytest.raises(ValueError, match="below the .* floor"):
+        build([{"category": "Financial Readiness", "score": "5/5", "key_issues": []}])
+
+
+def test_an_empty_scorecard_is_refused_rather_than_scored_zero():
+    with pytest.raises(ValueError, match="below the .* floor"):
+        build([])
 
 
 def test_relative_weighting_still_applies():
     """Renormalisation must not flatten the weights into a plain average.
     Financial Readiness is 0.20 and ESG is 0.05 — a 5 on the first with a 1 on
     the second must beat the reverse."""
-    heavy = [{"category": "Financial Readiness", "score": "5/5", "key_issues": []},
-             {"category": "ESG & Risk Factors", "score": "1/5", "key_issues": []}]
-    light = [{"category": "Financial Readiness", "score": "1/5", "key_issues": []},
-             {"category": "ESG & Risk Factors", "score": "5/5", "key_issues": []}]
+    def swap(first: int, second: int):
+        board = all_categories(3)
+        board[0] = {**board[0], "score": f"{first}/5"}   # Financial Readiness, 0.20
+        board[-1] = {**board[-1], "score": f"{second}/5"}  # ESG & Risk, 0.05
+        return build(board).overall_score
 
-    assert build(heavy).overall_score > build(light).overall_score
+    assert swap(5, 1) > swap(1, 5)
 
 
 @pytest.mark.parametrize(

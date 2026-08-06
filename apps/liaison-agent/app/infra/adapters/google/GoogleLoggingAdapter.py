@@ -42,8 +42,26 @@ def _safe_severity(value: str) -> str:
 
 
 class GoogleCloudLogRetriever(LogRetriever):
+    """Reads the platform's own Cloud Logging entries for the ombudsman.
+
+    The client is built on first use, not in __init__. Constructing it resolves
+    Application Default Credentials, and this class is instantiated at module
+    scope by ombudsman_node — so with no GCP credentials the import failed and
+    the whole agent refused to start, including the chat and session routes that
+    never touch logging. Anyone running the stack without a GCP project, which
+    is the documented local path, got a container that exited on boot.
+    """
+
     def __init__(self):
-        self.client = glogging.Client(project=settings.GOOGLE_CLOUD_PROJECT_ID)
+        self._client = None
+
+    @property
+    def client(self):
+        if self._client is None:
+            self._client = glogging.Client(
+                project=settings.GOOGLE_CLOUD_PROJECT_ID
+            )
+        return self._client
 
     async def get_logs_by_automation_id(
         self, 

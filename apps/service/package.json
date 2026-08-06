@@ -12,6 +12,7 @@
         "start:dev": "nest start --watch",
         "start:debug": "nest start --debug --watch",
         "start:prod": "node dist/main",
+        "typecheck": "tsc --noEmit -p tsconfig.json",
         "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --pass-on-unpruned-suppressions",
         "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
         "test": "jest",
