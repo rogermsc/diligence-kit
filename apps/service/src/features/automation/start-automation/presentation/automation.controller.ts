@@ -300,14 +300,13 @@ export class AutomationController {
         @Param("documentId", new ParseUUIDPipe()) documentId: string,
         @Req() req: AutomationRequest,
     ): Promise<StreamableFile> {
+        // This already 404s with the same message when the row is absent or is
+        // not the caller's, and DownloadDocumentUseCase reads the row itself —
+        // so an extra fetch here would be a dead round trip per download.
         await this.ownershipService.assertDocumentOwned(
             documentId,
             req.user!.id,
         )
-
-        const document = await this.documentRepository.findById(documentId)
-        if (!document)
-            throw new NotFoundException(`Document ${documentId} not found`)
 
         const result = await this.downloadDocumentUseCase.execute({
             documentId,

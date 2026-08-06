@@ -20,21 +20,22 @@ ALTER TABLE "companies" ADD COLUMN "ownerId" TEXT;
 
 -- 2a. Prefer the existing users.companyId association, which is the only real
 --     record of who worked on what before tenancy existed. Where several users
---     share a company, the oldest account wins so the result is deterministic.
+--     share a company, the oldest account wins; id breaks created_at ties so
+--     the result is reproducible across replays and restored dumps.
 UPDATE "companies" c
 SET "ownerId" = u."id"
 FROM (
   SELECT DISTINCT ON ("companyId") "companyId", "id"
   FROM "users"
   WHERE "companyId" IS NOT NULL
-  ORDER BY "companyId", "created_at" ASC
+  ORDER BY "companyId", "created_at" ASC, "id" ASC
 ) u
 WHERE c."id" = u."companyId" AND c."ownerId" IS NULL;
 
 -- 2b. Anything still unclaimed had no association at all; fall back to the
 --     oldest account so no dataroom is stranded.
 UPDATE "companies"
-SET "ownerId" = (SELECT "id" FROM "users" ORDER BY "created_at" ASC LIMIT 1)
+SET "ownerId" = (SELECT "id" FROM "users" ORDER BY "created_at" ASC, "id" ASC LIMIT 1)
 WHERE "ownerId" IS NULL;
 
 -- 2c. Last resort: companies exist but no user does. Rather than fail the
@@ -51,10 +52,14 @@ SELECT
   'x',
   now()
 WHERE EXISTS (SELECT 1 FROM "companies" WHERE "ownerId" IS NULL)
-  AND NOT EXISTS (SELECT 1 FROM "users" WHERE "id" = 'unassigned-owner-placeholder');
+  AND NOT EXISTS (SELECT 1 FROM "users" WHERE "id" = 'unassigned-owner-placeholder')
+ON CONFLICT ("email") DO NOTHING;
 
+-- Resolve by email rather than assuming the id: a restored dump may already
+-- carry this account under a different id, and the INSERT above would then have
+-- been a no-op.
 UPDATE "companies"
-SET "ownerId" = 'unassigned-owner-placeholder'
+SET "ownerId" = (SELECT "id" FROM "users" WHERE "email" = 'unassigned@invalid.local' LIMIT 1)
 WHERE "ownerId" IS NULL;
 
 ALTER TABLE "companies" ALTER COLUMN "ownerId" SET NOT NULL;

@@ -4,6 +4,7 @@ export enum InfraErrorType {
     DATABASE_ACCESS_ERROR = "DATABASE_ACCESS_ERROR",
     INVALID_UUID_ERROR = "INVALID_UUID_ERROR",
     RECORD_NOT_FOUND_ERROR = "RECORD_NOT_FOUND_ERROR",
+    UNIQUE_CONSTRAINT_ERROR = "UNIQUE_CONSTRAINT_ERROR",
 }
 
 export class DatabaseAccessError extends ApplicationError<InfraErrorType> {
@@ -27,6 +28,23 @@ export class RecordNotFoundError extends ApplicationError<InfraErrorType> {
             message: `Record ${id} not found`,
             code: 404,
             type: InfraErrorType.RECORD_NOT_FOUND_ERROR,
+        })
+    }
+}
+
+/**
+ * A company name collided with the global unique index. Names are globally
+ * unique because storage paths are namespaced by them, so this is reachable by
+ * a legitimate user picking a name another tenant already holds — which does
+ * disclose that the name is taken. Namespacing storage by company id would
+ * remove the constraint and the disclosure together.
+ */
+export class CompanyNameTakenError extends ApplicationError<InfraErrorType> {
+    constructor() {
+        super({
+            message: "A company with this name already exists",
+            code: 409,
+            type: InfraErrorType.UNIQUE_CONSTRAINT_ERROR,
         })
     }
 }

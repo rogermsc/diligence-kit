@@ -13,10 +13,6 @@ export interface CreateCompanyData {
     ownerId: string
 }
 
-export interface UpdateCompanyData {
-    name?: string
-}
-
 export interface DocumentData {
     id: string
     name: string
@@ -102,15 +98,6 @@ export interface CompanyRepository {
         id: string,
         ownerId: string,
     ): Promise<CompanyWithAutomations | null>
-    findByName(name: string, ownerId: string): Promise<Company | null>
-    findAll(ownerId: string): Promise<Company[]>
     findAllWithAutomations(ownerId: string): Promise<CompanyWithAutomations[]>
-    update(
-        id: string,
-        data: UpdateCompanyData,
-        ownerId: string,
-    ): Promise<Company>
     delete(id: string, ownerId: string): Promise<void>
-    exists(id: string, ownerId: string): Promise<boolean>
-    existsByName(name: string, ownerId: string): Promise<boolean>
 }

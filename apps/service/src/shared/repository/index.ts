@@ -1,7 +1,6 @@
 export {
     CompanyRepository,
     CreateCompanyData,
-    UpdateCompanyData,
 } from "./company-repository.interface"
 export {
     DocumentRepository,

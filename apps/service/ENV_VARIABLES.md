@@ -35,7 +35,8 @@ These variables have default values and are optional:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `JWT_SECRET` | **required** | JWT signing secret. Startup fails if unset or shorter than 32 characters — there is no default. |
-| `JWT_EXPIRES_IN` | `24h` | JWT token expiration |
+| `JWT_EXPIRES_IN` | `24h` | Access token lifetime |
+| `JWT_REFRESH_EXPIRES_IN` | `7d` | Refresh token lifetime. Must match the 7-day `expiresAt` written to `refresh_tokens` — a longer value yields a JWT that verifies after the row has expired, a shorter one leaves rows that can never be redeemed. |
 
 ### Email Configuration
 | Variable | Default | Description |

@@ -22,6 +22,7 @@ export interface EnvConfig {
     // JWT
     JWT_SECRET: string
     JWT_EXPIRES_IN?: string
+    JWT_REFRESH_EXPIRES_IN?: string
 
     // Email SMTP
     SMTP_HOST?: string
@@ -74,6 +75,7 @@ export class EnvValidator {
         LIAISON_API_KEY: '',
         JWT_SECRET: '',
         JWT_EXPIRES_IN: '24h',
+        JWT_REFRESH_EXPIRES_IN: '7d',
         SMTP_HOST: '',
         SMTP_PORT: '587',
         SMTP_USER: '',

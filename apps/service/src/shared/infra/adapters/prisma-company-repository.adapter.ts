@@ -3,13 +3,13 @@ import { Company } from "@/shared/domain/entities/company.entity"
 import {
     CompanyRepository,
     CreateCompanyData,
-    UpdateCompanyData,
     CompanyWithAutomations,
 } from "@/shared/repository/company-repository.interface"
 import {
     DatabaseAccessError,
     InvalidUUIDError,
     RecordNotFoundError,
+    CompanyNameTakenError,
 } from "@/shared/errors/db/data-base-error"
 import { prisma } from "@/shared/infra/prisma"
 import { CompanyMapper } from "@/shared/domain/mappers/company.mapper"
@@ -41,6 +41,13 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
 
             return CompanyMapper.toDomain(company)
         } catch (error) {
+            // CreateCompanyUseCase checks the name first, but that read-then-create
+            // loses a concurrent race — the unique index is what actually holds the
+            // invariant, so its violation is a client error, not a server fault.
+            if (error?.code === "P2002") {
+                throw new CompanyNameTakenError()
+            }
+
             this.logger.error(
                 `Failed to create company: ${error.message}`,
                 error.stack,
@@ -61,6 +68,9 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
 
             return CompanyMapper.toDomain(company)
         } catch (error) {
+            // requireId's deliberate 404 must not be rewritten into a 500.
+            if (error instanceof RecordNotFoundError) throw error
+
             if (error.message && error.message.includes("invalid character")) {
                 this.logger.error(
                     `Invalid UUID format provided: ${id}`,
@@ -83,6 +93,9 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
 
             return company ? CompanyMapper.toDomain(company) : null
         } catch (error) {
+            // requireId's deliberate 404 must not be rewritten into a 500.
+            if (error instanceof RecordNotFoundError) throw error
+
             if (error.message && error.message.includes("invalid character")) {
                 throw new InvalidUUIDError(id)
             }
@@ -212,6 +225,9 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
                 automations,
             }
         } catch (error) {
+            // requireId's deliberate 404 must not be rewritten into a 500.
+            if (error instanceof RecordNotFoundError) throw error
+
             if (error.message && error.message.includes("invalid character")) {
                 this.logger.error(
                     `Invalid UUID format provided: ${id}`,
@@ -227,43 +243,6 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
             throw new DatabaseAccessError(
                 `Failed to find company with automations by ID`,
             )
-        }
-    }
-
-    async findByName(name: string, ownerId: string): Promise<Company | null> {
-        try {
-            const company = await prisma.company.findFirst({
-                where: { name, ownerId: requireId(ownerId, "ownerId") },
-            })
-
-            if (!company) {
-                return null
-            }
-
-            return CompanyMapper.toDomain(company)
-        } catch (error) {
-            this.logger.error(
-                `Failed to find company by name "${name}": ${error.message}`,
-                error.stack,
-            )
-            throw new DatabaseAccessError(`Failed to find company by name`)
-        }
-    }
-
-    async findAll(ownerId: string): Promise<Company[]> {
-        try {
-            const companies = await prisma.company.findMany({
-                where: { ownerId: requireId(ownerId, "ownerId") },
-                orderBy: { createdAt: "desc" },
-            })
-
-            return companies.map(CompanyMapper.toDomain)
-        } catch (error) {
-            this.logger.error(
-                `Failed to find all companies: ${error.message}`,
-                error.stack,
-            )
-            throw new DatabaseAccessError(`Failed to find all companies`)
         }
     }
 
@@ -378,51 +357,6 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
         }
     }
 
-    async update(
-        id: string,
-        data: UpdateCompanyData,
-        ownerId: string,
-    ): Promise<Company> {
-        try {
-            // updateMany, not update: `where` on update accepts only unique
-            // fields, which would drop the ownerId filter.
-            const { count } = await prisma.company.updateMany({
-                where: { id: requireId(id, "id"), ownerId: requireId(ownerId, "ownerId") },
-                data: {
-                    ...(data.name && { name: data.name }),
-                },
-            })
-
-            if (count === 0) {
-                throw new RecordNotFoundError(id)
-            }
-
-            const company = await prisma.company.findFirstOrThrow({
-                where: { id: requireId(id, "id"), ownerId: requireId(ownerId, "ownerId") },
-            })
-
-            return CompanyMapper.toDomain(company)
-        } catch (error) {
-            // A 404 from the owner-scoped write above is a real answer, not a
-            // database failure — do not rewrite it into a 500.
-            if (error instanceof RecordNotFoundError) throw error
-
-            if (error.message && error.message.includes("invalid character")) {
-                this.logger.error(
-                    `Invalid UUID format provided: ${id}`,
-                    error.stack,
-                )
-                throw new InvalidUUIDError(id)
-            }
-
-            this.logger.error(
-                `Failed to update company ${id}: ${error.message}`,
-                error.stack,
-            )
-            throw new DatabaseAccessError(`Failed to update company`)
-        }
-    }
-
     async delete(id: string, ownerId: string): Promise<void> {
         try {
             const { count } = await prisma.company.deleteMany({
@@ -450,48 +384,6 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
                 error.stack,
             )
             throw new DatabaseAccessError(`Failed to delete company`)
-        }
-    }
-
-    async exists(id: string, ownerId: string): Promise<boolean> {
-        try {
-            const count = await prisma.company.count({
-                where: { id: requireId(id, "id"), ownerId: requireId(ownerId, "ownerId") },
-            })
-
-            return count > 0
-        } catch (error) {
-            if (error.message && error.message.includes("invalid character")) {
-                this.logger.error(
-                    `Invalid UUID format provided: ${id}`,
-                    error.stack,
-                )
-                throw new InvalidUUIDError(id)
-            }
-
-            this.logger.error(
-                `Failed to check if company exists ${id}: ${error.message}`,
-                error.stack,
-            )
-            throw new DatabaseAccessError(`Failed to check if company exists`)
-        }
-    }
-
-    async existsByName(name: string, ownerId: string): Promise<boolean> {
-        try {
-            const count = await prisma.company.count({
-                where: { name, ownerId: requireId(ownerId, "ownerId") },
-            })
-
-            return count > 0
-        } catch (error) {
-            this.logger.error(
-                `Failed to check if company exists by name "${name}": ${error.message}`,
-                error.stack,
-            )
-            throw new DatabaseAccessError(
-                `Failed to check if company exists by name`,
-            )
         }
     }
 }

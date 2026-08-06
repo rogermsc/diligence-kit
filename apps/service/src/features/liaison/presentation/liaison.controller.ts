@@ -34,7 +34,11 @@ export class LiaisonController {
     const companyContext = validatedData.company_context as
       | Record<string, string>
       | undefined;
-    const contextCompanyId = companyContext?.id ?? companyContext?.company_id;
+    // Must match how the agent resolves this field. ContextExtractor.py uses
+    // Python `or`, which is falsy-aware, so `{id: "", company_id: "<victim>"}`
+    // resolves to company_id there. `??` only falls through on null/undefined,
+    // so it would have yielded "" here and skipped the check entirely.
+    const contextCompanyId = companyContext?.id || companyContext?.company_id;
     if (contextCompanyId) {
       await this.ownershipService.assertCompanyOwned(contextCompanyId, userId);
     }

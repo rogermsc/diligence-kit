@@ -14,6 +14,13 @@ class InvalidGcsPathError extends BadRequestException {
     }
 }
 
+/** Deliberately says nothing about who owns the conflicting automation. */
+class AutomationAlreadyConfirmedError extends BadRequestException {
+    constructor() {
+        super("This upload has already been confirmed")
+    }
+}
+
 export interface ConfirmUploadFile {
     fileName: string
     gcsPath: string
@@ -72,6 +79,15 @@ export class ConfirmUploadUseCase implements Usecase<
                 )
                 throw new InvalidGcsPathError(file.fileName)
             }
+        }
+
+        // automationId comes from the URL, so a caller can name an id that already
+        // exists — including another tenant's. Left to the DB, the primary-key
+        // collision surfaced as a 500 while an unused id returned 200, which is a
+        // cross-tenant existence oracle. Answer identically either way.
+        const existing = await this.automationRepository.findById(automationId)
+        if (existing) {
+            throw new AutomationAlreadyConfirmedError()
         }
 
         const automation = await this.automationRepository.create({

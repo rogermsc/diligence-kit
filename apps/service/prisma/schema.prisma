@@ -9,7 +9,11 @@ generator client {
 
 model Company {
   id              String       @id @default(uuid()) @db.Uuid
-  name            String
+  // Unique across ALL owners, not per-owner: object-storage paths are namespaced
+  // by company name, so two tenants sharing a name would share a storage prefix.
+  // A read-then-create check cannot hold this under concurrent requests across
+  // replicas — the constraint has to live in the database.
+  name            String       @unique
   // Tenancy root. Every other record reaches its owner through this column
   // (Automation -> Company, Documents -> Automation -> Company, and so on), so
   // scoping a query by company ownership scopes the whole object graph.
