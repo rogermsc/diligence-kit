@@ -57,6 +57,7 @@ class ChatUseCase:
         inputs = {
             "messages": current_history + [human_msg],
             "session_id": session_id,
+            "user_id": user_id,
             "context_data": context_data,
             "current_intent": None, 
             "analysis_context": None,

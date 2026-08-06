@@ -13,3 +13,7 @@ class CompanyModel(Base):
 
     id = Column(String, primary_key=True)
     name = Column(String, nullable=False)
+    # The tenancy root. Every company lookup here must be scoped by it: this
+    # agent resolves companies from names it reads out of chat messages, and an
+    # unscoped match would hand one tenant another tenant's company id.
+    owner_id = Column("ownerId", String, nullable=False)

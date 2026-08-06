@@ -14,6 +14,8 @@ class AgentState(TypedDict):
     """
     messages: Annotated[List[BaseMessage], operator.add]
     session_id: str
+    # The authenticated caller. Company lookups are scoped to it.
+    user_id: str
     context_data: Dict[str, Any]
     current_intent: Optional[Intent]
     analysis_context: Optional[AnalysisResult]

@@ -44,8 +44,13 @@ async def _resolve_company_by_name(name: str, state: AgentState, context: dict) 
         logger.error("CompanyRepository not found in AgentState! Context enrichment failed.")
         return {}
 
+    owner_id = state.get('user_id')
+    if not owner_id:
+        logger.error("No user_id in AgentState; refusing an unscoped company lookup.")
+        return {}
+
     logger.info(f"Enrichment Node: Querying DB for company: '{name}'")
-    company = await company_repo.get_company_by_name(name)
+    company = await company_repo.get_company_by_name(name, owner_id)
 
     if company:
         updated_context = context.copy()

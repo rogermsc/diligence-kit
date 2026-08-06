@@ -28,7 +28,12 @@ def upgrade() -> None:
     sa.Column('user_message', sa.Text(), nullable=False),
     sa.Column('agent_response', sa.Text(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    # No foreign key to users.id: that table lives in the backend's database,
+    # and Postgres cannot reference across databases. Alembic generated it from
+    # a model that reflects the other schema, and it made the documented
+    # `alembic upgrade head` fail on a clean install. user_id is still indexed
+    # and still required — the constraint is simply not one this database can
+    # enforce.
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_chat_messages_session_id'), 'chat_messages', ['session_id'], unique=False)

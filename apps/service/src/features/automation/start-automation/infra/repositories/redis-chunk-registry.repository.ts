@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common"
+import { ForbiddenException, Injectable, Logger } from "@nestjs/common"
 import { Redis } from "ioredis"
 
 export interface ChunkMetadata {
@@ -65,8 +65,24 @@ export class RedisChunkRegistry implements ChunkRegistry {
         const metadataKey = `${this.METADATA_PREFIX}${uploadId}`
 
         try {
-            const exists = await this.redis.exists(metadataKey)
-            if (!exists) {
+            // The upload id is chosen by the client and these keys carry no
+            // tenant component, so a caller who guesses an in-flight id would
+            // otherwise be able to add chunks to someone else's upload and
+            // rebind it to their own automation. The first chunk fixes the
+            // owning company; every later chunk has to agree with it.
+            const existing = await this.redis.get(metadataKey)
+            if (existing) {
+                const owner = (JSON.parse(existing) as ChunkMetadata).companyId
+                if (owner && owner !== metadata.companyId) {
+                    this.logger.warn(
+                        `Refusing chunk ${chunkNumber} for upload ${uploadId}: ` +
+                            `registered to a different company.`,
+                    )
+                    throw new ForbiddenException(
+                        "Upload identifier belongs to another upload",
+                    )
+                }
+            } else {
                 await this.redis.setex(
                     metadataKey,
                     this.UPLOAD_TIMEOUT / 1000,
@@ -88,6 +104,7 @@ export class RedisChunkRegistry implements ChunkRegistry {
                 `Chunk ${chunkNumber} registered for upload ${uploadId}`,
             )
         } catch (error) {
+            if (error instanceof ForbiddenException) throw error
             this.logger.error(
                 `Failed to register chunk ${chunkNumber} for upload ${uploadId}:`,
                 error,

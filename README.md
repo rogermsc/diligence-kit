@@ -200,14 +200,6 @@ before running this on anything that matters:
   globally unique rather than per-owner, which leaks the existence of other tenants' company names at
   creation time. Namespacing by company id would remove both problems; it touches the chunked-upload
   subsystem, so it is not done here.
-- **Chunked upload trusts a caller-chosen `identifier`.** The Redis registry keys (`upload:<id>`) have
-  no tenant component, so a caller who guesses an in-flight identifier can rebind that upload to their
-  own automation. Reachable only via `POST /automation/start/:companyId`, which the UI does not call.
-- **The liaison agent resolves companies by unscoped `ILIKE`.** A chat message naming a substring of
-  another tenant's company can resolve to that company. The backend now validates any company id or
-  automation id the client passes, so this is limited to name-based resolution inside the agent.
-- **The liaison-agent's Alembic migration FKs `users.id`**, which lives in the *other* database. The
-  documented `alembic upgrade head` fails until that FK is dropped or the schemas are merged.
 
 Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
