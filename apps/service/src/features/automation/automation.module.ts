@@ -8,6 +8,8 @@ import { AutomationModule as StartAutomationModule } from "./start-automation/au
 import {
     EmailNotificationProvider,
     NodemailerEmailProvider,
+    UnconfiguredEmailProvider,
+    isSmtpConfigured,
 } from "@/shared/services/email"
 import { GetCompanyByIdUseCase } from "./start-automation/use-case/get-company-by-id.usecase"
 import { PrismaCompanyRepositoryAdapter } from "@/shared/infra/adapters/prisma-company-repository.adapter"
@@ -24,7 +26,11 @@ import { AuthModule } from "@/features/auth/auth.module"
         {
             provide: EmailNotificationProvider,
             useFactory: () => {
-                const emailProvider = new NodemailerEmailProvider()
+                // SMTP is optional. Building the real provider without it threw
+                // from this factory and took startup down with it.
+                const emailProvider = isSmtpConfigured()
+                    ? new NodemailerEmailProvider()
+                    : new UnconfiguredEmailProvider()
                 return new EmailNotificationProvider(emailProvider)
             },
         },

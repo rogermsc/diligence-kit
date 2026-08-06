@@ -53,6 +53,23 @@ DILLIGENCE_CAP_TABLE_AND_LEGAL_REVIEW` — the double-L is a typo baked into the
 because renaming it means migrating live data. The two JavaScript apps are a pnpm + Turborepo
 workspace; the two Python apps sit in `apps/` for layout symmetry but are pip / Poetry projects.
 
+## Try it
+
+```bash
+make demo
+```
+
+Docker only. No cloud account, no API key. It brings up the four services, seeds
+a user, and lands you on a **completed analysis** of a four-document dataroom for a
+fictional company — where the pitch deck, the financial model and the audited accounts
+state FY2024 revenue as £4.1M, £3.8M and £3.2M respectively. Reconciling that is the
+product; a dataroom where every document agrees would demonstrate none of it.
+
+Sign in at [localhost:3000](http://localhost:3000) with `you@example.com` / `demo-password`.
+
+Storage is a local volume (`STORAGE_DRIVER=local`) and the agent replays recorded model
+responses (`LLM_DRIVER=replay`), so the whole thing runs offline. `make demo-down` removes it.
+
 ## Quick start
 
 Requires Node 20+, pnpm 9, Python 3.10+, Docker, and an OpenAI API key.
@@ -98,9 +115,18 @@ Three shared secrets connect the services, each at least 32 characters:
 | `AGENT_API_KEY` | Inbound `X-API-Key` on agent endpoints |
 | `WEBHOOK_SECRET` | HMAC-SHA256 signature on agent → backend callbacks |
 
-`JWT_SECRET` is required and startup fails below 32 characters. Document storage uses Google Cloud
-Storage; credentials go in `apps/<name>/.gcp/credentials.json` (gitignored). Per-app variables are
-documented in each app's `env.example` and in `apps/service/ENV_VARIABLES.md`.
+`JWT_SECRET` is required and startup fails below 32 characters. Per-app variables are documented in
+each app's `env.example` and in `apps/service/ENV_VARIABLES.md`.
+
+Two drivers decide what the platform depends on:
+
+| Variable | Options | Notes |
+| --- | --- | --- |
+| `STORAGE_DRIVER` | `gcs` (default), `local` | Both produce `gs://<bucket>/<key>` URLs, so stored paths stay portable between them. GCS credentials go in `apps/<name>/.gcp/credentials.json` (gitignored). |
+| `LLM_DRIVER` | `openai` (default), `replay` | `replay` serves recorded responses from `apps/agent/fixtures/llm`. Set `LLM_RECORD=1` alongside `openai` to capture a live run for later replay. |
+
+Models are configured per purpose (`LLM_MODEL_FACT_EXTRACTION`, `LLM_MODEL_ONE_PAGER`, and so on)
+rather than hardcoded, and `OPENAI_BASE_URL` points the agent at any OpenAI-compatible endpoint.
 
 ## Branding the output
 
@@ -125,8 +151,23 @@ Nothing ties the code to GKE: the apps are four containers with Postgres and Red
 ## Status
 
 Working software extracted from a production deployment, published as a starting point rather than a
-finished product. There is **no test suite** — the `pnpm test` task exists but runs nothing. Treat the
-pipeline as sound and the edges as unproven, and read `CLAUDE.md` for the architectural detail.
+finished product. Read `CLAUDE.md` for the architectural detail.
+
+Every pull request builds, lints and tests all four apps. Test coverage is deliberately narrow rather
+than broad — it covers the places that fail quietly:
+
+```bash
+make test     # jest + pytest
+make lint     # eslint + ruff across all four apps
+```
+
+The agent's suite includes an end-to-end run of the whole pipeline against the committed dataroom,
+offline, in about a second. Because each recorded response is keyed by a hash of the exact prompt,
+editing a prompt makes replay miss and that test fail — which is the intended alarm, not a flake.
+Re-record with `python scripts/record_demo_fixtures.py`.
+
+The ~575 inherited type-safety lint violations are captured in `apps/service/eslint-suppressions.json`
+so they don't block work; any newly introduced error fails the build.
 
 ### Upgrading
 
@@ -169,8 +210,6 @@ before running this on anything that matters:
 - **Agent analysis is fire-and-forget.** `asyncio.create_task` with no reference and an
   `except Exception` handler that `CancelledError` bypasses; a restart mid-run strands the automation
   in `PROCESSING` with no reaper.
-- **Scorecard categories are matched on exact strings**, and an unrecognized or missing one is silently
-  weighted `0.0` without re-normalizing — understating the headline score with no warning.
 - **`.csv` and `.txt` pass the upstream gates but are not in the agent's supported extensions**, so
   they upload successfully and are then discarded.
 - **Lint is noisy.** `pnpm lint` reports ~590 pre-existing errors in `apps/service`. Inherited, not

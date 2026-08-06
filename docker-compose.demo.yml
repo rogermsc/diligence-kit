@@ -1,0 +1,109 @@
+# A complete, self-contained demo. No cloud account, no API key.
+#
+#   make demo
+#
+# Storage is a shared volume rather than a bucket (STORAGE_DRIVER=local) and the
+# agent answers from recorded fixtures rather than a model (LLM_DRIVER=replay),
+# so the whole thing runs offline.
+#
+# The secrets below are fixed, public and fine here precisely because nothing
+# they protect is real. Do not carry them into anything that is.
+
+x-demo-secrets: &demo-secrets
+  JWT_SECRET: demo-jwt-secret-not-for-real-use-32ch
+  AGENT_SECRET: demo-agent-secret-not-for-real-use-32
+  AGENT_API_KEY: demo-agent-api-key-not-for-real-use-32
+  WEBHOOK_SECRET: demo-webhook-secret-not-for-real-use32
+  LIAISON_API_KEY: demo-liaison-api-key-not-for-real-us32
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: diligence_kit
+      POSTGRES_PASSWORD: diligence_kit
+      POSTGRES_DB: diligence_kit
+    volumes:
+      - demo-postgres:/var/lib/postgresql/data
+      - ./infra/dev/postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U diligence_kit"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  service:
+    build:
+      context: .
+      dockerfile: apps/service/Dockerfile
+      target: dev
+    environment:
+      <<: *demo-secrets
+      NODE_ENV: development
+      PORT: "3001"
+      DATABASE_URL: postgresql://diligence_kit:diligence_kit@postgres:5432/diligence_kit
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      AGENT_API_URL: http://agent:8000
+      LIAISON_AGENT_URL: http://liaison-agent:8000
+      STORAGE_DRIVER: local
+      STORAGE_LOCAL_ROOT: /data/storage
+      GCLOUD_STORAGE_BUCKET: local-bucket
+      # The seed stages the demo dataroom and the completed analysis, both of
+      # which live with the agent rather than in this image.
+      DEMO_FIXTURES: /fixtures
+    ports:
+      - "3001:3001"
+    volumes:
+      - demo-storage:/data/storage
+      - ./apps/agent/fixtures:/fixtures:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      # The dashboard is a BFF: the browser talks to it, and it talks to the
+      # service over the compose network, so this is a container name and never
+      # needs to be reachable from the host.
+      API_BASE_URL: http://service:3001
+      NEXT_PUBLIC_API_BASE_URL: http://service:3001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - service
+
+  agent:
+    build:
+      context: apps/agent
+      dockerfile: Dockerfile
+    environment:
+      <<: *demo-secrets
+      # Never read under LLM_DRIVER=replay; present because settings require it.
+      OPENAI_API_KEY: not-used-in-replay
+      LLM_DRIVER: replay
+      LLM_FIXTURE_DIR: /app/fixtures/llm
+      STORAGE_DRIVER: local
+      STORAGE_LOCAL_ROOT: /data/storage
+      GOOGLE_CLOUD_BUCKET_NAME: local-bucket
+      BACKEND_BASE_URL: http://service:3001
+      API_KEY: demo-agent-api-key-not-for-real-use-32
+    volumes:
+      - demo-storage:/data/storage
+    depends_on:
+      - service
+
+volumes:
+  demo-postgres:
+  demo-storage:
