@@ -1,5 +1,6 @@
 from app.shared.exceptions.base import BaseAPIException
 
+
 class MissingAPIKeyException(BaseAPIException):
     def __init__(self):
         super().__init__(

@@ -1,8 +1,10 @@
-from fastapi.security import APIKeyHeader
-from fastapi import Security
 from typing import Optional
+
+from fastapi import Security
+from fastapi.security import APIKeyHeader
+
 from app.core.config.settings import settings
-from app.shared.exceptions import MissingAPIKeyException, InvalidAPIKeyException
+from app.shared.exceptions import InvalidAPIKeyException, MissingAPIKeyException
 
 api_key_schema = APIKeyHeader(name="X-API-Key", auto_error=False)
 

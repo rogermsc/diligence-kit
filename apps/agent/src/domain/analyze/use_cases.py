@@ -1,14 +1,14 @@
 import asyncio
 from typing import List, Tuple
 
-from src.core.logging import get_logger, set_log_context, reset_log_context
+from src.core.logging import get_logger, reset_log_context, set_log_context
 from src.data.analyze.conflict_resolution_service import ConflictResolutionService
+from src.data.analyze.document_renderer import convert_docx_to_pdf, render_docx
 from src.data.analyze.extraction_service import ExtractionService
 from src.data.analyze.fact_extraction_service import FactExtractionService
 from src.data.analyze.file_preparation_service import FilePreparationService
-from src.data.storage import get_storage
-from src.data.analyze.document_renderer import render_docx, convert_docx_to_pdf
 from src.data.analyze.one_pager_service import OnePagerService
+from src.data.storage import get_storage
 from src.domain.analyze.entities import AnalyzeInput, Document, MergedFacts
 from src.domain.analyze.fact_merge import merge_facts
 

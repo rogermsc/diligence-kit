@@ -1,13 +1,14 @@
 import logging
-from langchain_google_vertexai import ChatVertexAI
+
 from langchain_core.prompts import ChatPromptTemplate
-from app.domain.agent.LangGraph.state import AgentState
-from app.domain.entities.AnalysisResultEntity import AnalysisResult
-from app.domain.entities.IntentEntity import Intent
-from app.infra.adapters.google.GoogleLoggingAdapter import GoogleCloudLogRetriever
+from langchain_google_vertexai import ChatVertexAI
+
 from app.core.config.settings import settings
 from app.core.prompts import ANALYZER_SYSTEM_PROMPT
+from app.domain.agent.LangGraph.state import AgentState
+from app.domain.entities.AnalysisResultEntity import AnalysisResult
 from app.domain.services.ContextExtractor import ContextExtractor
+from app.infra.adapters.google.GoogleLoggingAdapter import GoogleCloudLogRetriever
 
 logger = logging.getLogger(__name__)
 

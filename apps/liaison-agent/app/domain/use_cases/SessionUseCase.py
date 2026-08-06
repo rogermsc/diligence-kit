@@ -1,5 +1,7 @@
 import uuid
+
 from app.domain.repositories.ChatRepository import IChatRepository
+
 
 class SessionUseCase:
     def __init__(self, repository: IChatRepository):

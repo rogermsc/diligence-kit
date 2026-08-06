@@ -6,7 +6,7 @@ from io import BytesIO
 from docxtpl import DocxTemplate
 
 from src.core.logging import get_logger
-from src.data.analyze.document_renderer import PREPARED_BY, convert_docx_to_pdf
+from src.data.analyze.document_renderer import PREPARED_BY
 from src.domain.diligence.entities import DiligenceReport
 
 logger = get_logger(__name__)

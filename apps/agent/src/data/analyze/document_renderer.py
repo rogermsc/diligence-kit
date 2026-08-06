@@ -129,14 +129,27 @@ def render_docx(one_pager: OnePager, company_name: str, automation_id: str) -> b
     return docx_bytes
 
 
+# File I/O runs off the event loop: documents are converted concurrently, and a
+# multi-megabyte blocking read stalls every other in-flight conversion.
+def _write_bytes(path: str, data: bytes) -> None:
+    with open(path, "wb") as f:
+        f.write(data)
+
+
+def _read_pdf(path: str) -> bytes | None:
+    if not os.path.exists(path):
+        return None
+    with open(path, "rb") as f:
+        return f.read()
+
+
 async def convert_docx_to_pdf(docx_bytes: bytes) -> bytes:
     """Convert DOCX bytes to PDF using LibreOffice headless."""
     with tempfile.TemporaryDirectory() as temp_dir:
         docx_path = os.path.join(temp_dir, "input.docx")
         pdf_path = os.path.join(temp_dir, "input.pdf")
 
-        with open(docx_path, "wb") as f:
-            f.write(docx_bytes)
+        await asyncio.to_thread(_write_bytes, docx_path, docx_bytes)
 
         # Give LibreOffice a writable per-call user profile. The container runs
         # as a non-root user whose HOME is not writable, so without this LO fails
@@ -154,11 +167,9 @@ async def convert_docx_to_pdf(docx_bytes: bytes) -> bytes:
         )
         stdout, stderr = await process.communicate()
 
-        if process.returncode != 0 or not os.path.exists(pdf_path):
+        pdf_bytes = await asyncio.to_thread(_read_pdf, pdf_path)
+        if process.returncode != 0 or pdf_bytes is None:
             raise RuntimeError(f"DOCX to PDF conversion failed: {stderr.decode()}")
-
-        with open(pdf_path, "rb") as f:
-            pdf_bytes = f.read()
 
         logger.info(f"PDF converted: {len(pdf_bytes)} bytes")
         return pdf_bytes

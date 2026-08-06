@@ -6,9 +6,9 @@ import jwt
 from fastapi import APIRouter, Depends
 
 from src.core.config import settings
+from src.core.logging import get_logger
 from src.core.security import verify_api_key
 from src.core.signing import canonical_json, sign_payload
-from src.core.logging import get_logger
 from src.domain.analyze.entities import AnalyzeInput, Document, MergedFacts
 from src.domain.analyze.use_cases import AnalyzeUseCase
 from src.presentation.analyze.schemas import AnalyzeRequest, AnalyzeResponse

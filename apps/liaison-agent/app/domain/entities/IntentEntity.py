@@ -1,5 +1,7 @@
-from typing import Literal, Optional, Dict, Any
+from typing import Any, Dict, Literal
+
 from pydantic import BaseModel, Field
+
 
 class Intent(BaseModel):
     """

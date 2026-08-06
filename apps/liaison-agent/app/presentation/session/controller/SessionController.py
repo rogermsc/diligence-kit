@@ -1,9 +1,9 @@
-import uuid
 from fastapi import APIRouter, Depends, Security
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.presentation.session.dtos.SessionDto import SessionResponse, SessionRequest
+
 from app.infra.di.Container import DIContainer, get_container_db
 from app.presentation.middleware.security.Auth import verify_service_account
+from app.presentation.session.dtos.SessionDto import SessionRequest, SessionResponse
 
 router = APIRouter(prefix="/session", tags=["Session"])
 

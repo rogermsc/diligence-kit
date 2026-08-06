@@ -1,11 +1,13 @@
+import datetime
 import logging
 import re
+from typing import Any, Dict, List, Optional
+
 from google.cloud import logging as glogging
 from google.cloud.logging import DESCENDING
-from typing import List, Dict, Any, Optional
-import datetime
-from app.domain.interfaces.GoogleLoggingInterface import LogRetriever
+
 from app.core.config.settings import settings
+from app.domain.interfaces.GoogleLoggingInterface import LogRetriever
 
 logger = logging.getLogger(__name__)
 

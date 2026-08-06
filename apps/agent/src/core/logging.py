@@ -7,7 +7,10 @@ from typing import Optional
 
 from .config import settings
 
-_log_context: ContextVar[dict] = ContextVar("log_context", default={})
+# Default is None rather than {}: a mutable default is a single dict shared by
+# every context that never called set(), so one accidental in-place edit would
+# leak one run's ids into every other run's logs.
+_log_context: ContextVar[Optional[dict]] = ContextVar("log_context", default=None)
 
 
 def set_log_context(
@@ -19,7 +22,7 @@ def set_log_context(
 
 
 def reset_log_context():
-    _log_context.set({})
+    _log_context.set(None)
 
 
 # Map Python log levels to GCP Cloud Logging severity names
@@ -57,7 +60,7 @@ class GCPJsonFormatter(logging.Formatter):
 
 class ContextFilter(logging.Filter):
     def filter(self, record):
-        ctx = _log_context.get()
+        ctx = _log_context.get() or {}
         record.company_id = ctx.get("company_id", "N/A")
         record.automation_id = ctx.get("automation_id", "N/A")
         return True

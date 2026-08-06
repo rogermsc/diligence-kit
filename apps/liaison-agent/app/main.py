@@ -1,8 +1,9 @@
 from fastapi import FastAPI
+
 from app.core.config.settings import settings
 from app.core.Logs.logging import setup_logging
-from app.presentation.health.controller.HealthController import router as health_router
 from app.presentation.chat.controller.ChatController import router as chat_router
+from app.presentation.health.controller.HealthController import router as health_router
 from app.presentation.session.controller.SessionController import router as session_router
 
 logger = setup_logging()

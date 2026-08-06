@@ -1,9 +1,12 @@
 from typing import List
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from app.infra.database.models.ChatModel import ChatMessageModel
+
 from app.domain.entities.ChatMessageEntity import ChatMessage
 from app.domain.repositories.ChatRepository import IChatRepository
+from app.infra.database.models.ChatModel import ChatMessageModel
+
 
 class ChatRepositoryImpl(IChatRepository):
     def __init__(self, db: AsyncSession):

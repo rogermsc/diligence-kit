@@ -6,12 +6,11 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-
 from app.core.config.settings import settings
 from app.core.database.connection_database import Base
 from app.infra.database.models.ChatModel import ChatMessageModel
-from app.infra.database.models.UserModel import UserModel 
-from app.infra.database.models.CompanyModel import CompanyModel 
+from app.infra.database.models.CompanyModel import CompanyModel
+from app.infra.database.models.UserModel import UserModel
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -1,9 +1,11 @@
 import logging
+
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_google_vertexai import ChatVertexAI
-from langchain_core.messages import SystemMessage, HumanMessage
-from app.domain.agent.LangGraph.state import AgentState
+
 from app.core.config.settings import settings
 from app.core.prompts import ENRICHMENT_SYSTEM_PROMPT
+from app.domain.agent.LangGraph.state import AgentState
 
 logger = logging.getLogger(__name__)
 

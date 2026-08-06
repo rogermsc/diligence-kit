@@ -1,11 +1,17 @@
-from fastapi import APIRouter, Security, Depends
+from fastapi import APIRouter, Depends, Security
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.presentation.chat.dtos.ChatDto import ChatRequest, ChatResponse, ChatHistoryResponse, ChatMessageDto
-from app.presentation.middleware.security.Auth import verify_service_account
-from app.shared.exceptions.common import InternalServerErrorException
-from app.shared.exceptions.base import BaseAPIException
+
 from app.core.Logs.logging import logger
 from app.infra.di.Container import DIContainer, get_container_db
+from app.presentation.chat.dtos.ChatDto import (
+    ChatHistoryResponse,
+    ChatMessageDto,
+    ChatRequest,
+    ChatResponse,
+)
+from app.presentation.middleware.security.Auth import verify_service_account
+from app.shared.exceptions.base import BaseAPIException
+from app.shared.exceptions.common import InternalServerErrorException
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -36,7 +42,9 @@ async def chat_process(
         raise
     except Exception as e:
         logger.error(f"Unexpected error in chat endpoint: {e}", exc_info=True)
-        raise InternalServerErrorException(detail="An unexpected error occurred processing your request.")
+        raise InternalServerErrorException(
+            detail="An unexpected error occurred processing your request."
+        ) from e
 
 @router.get("/messages/{session_id}", response_model=ChatHistoryResponse)
 async def get_chat_messages(
@@ -67,4 +75,6 @@ async def get_chat_messages(
         )
     except Exception as e:
         logger.error(f"Error retrieving chat history: {e}", exc_info=True)
-        raise InternalServerErrorException(detail="Failed to retrieve chat history")
+        raise InternalServerErrorException(
+            detail="Failed to retrieve chat history"
+        ) from e

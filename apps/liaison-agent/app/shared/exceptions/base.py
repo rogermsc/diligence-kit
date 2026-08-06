@@ -1,5 +1,7 @@
+from typing import Any, Dict, Optional
+
 from fastapi import HTTPException
-from typing import Any, Optional, Dict
+
 
 class BaseAPIException(HTTPException):
     """

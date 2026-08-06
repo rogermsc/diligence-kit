@@ -1,10 +1,12 @@
 import logging
 from typing import Optional
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from app.infra.database.models.CompanyModel import CompanyModel
+
 from app.domain.entities.CompanyEntity import Company
 from app.domain.repositories.CompanyRepository import ICompanyRepository
+from app.infra.database.models.CompanyModel import CompanyModel
 
 logger = logging.getLogger(__name__)
 

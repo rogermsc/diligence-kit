@@ -4,8 +4,8 @@ import tempfile
 from typing import List
 
 from src.core.logging import get_logger
-from src.data.storage import get_storage
 from src.data.analyze.extractors import excel_extractor, vision_extractor
+from src.data.storage import get_storage
 from src.domain.analyze.entities import Document, PreparedDocument
 
 logger = get_logger(__name__)
@@ -38,7 +38,7 @@ class ExtractionService:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         prepared = []
-        for doc, result in zip(documents, results):
+        for doc, result in zip(documents, results, strict=True):
             if isinstance(result, Exception):
                 logger.error(f"Failed to prepare {doc.url}: {result}")
             else:

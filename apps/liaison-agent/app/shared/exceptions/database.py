@@ -1,5 +1,6 @@
 from .base import BaseAPIException
 
+
 class DatabaseException(BaseAPIException):
     """Base exception for all database related errors"""
     def __init__(self, detail: str = "Database error"):

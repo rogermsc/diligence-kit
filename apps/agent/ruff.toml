@@ -1,0 +1,21 @@
+line-length = 100
+
+[lint]
+# Rules that catch defects, not rules that relitigate style. Ruff's defaults
+# shift between releases, so the set is pinned explicitly and CI stays stable.
+#   E4/E7/E9  import and statement errors
+#   F         pyflakes — undefined names, unused imports
+#   I         import ordering
+#   B         bugbear — mutable defaults, truncating zip, and similar traps
+#   ASYNC     blocking calls inside async functions
+select = ["E4", "E7", "E9", "F", "I", "B", "ASYNC"]
+
+[lint.isort]
+# Keep `from x import (A as B, C as D)` as one statement rather than splitting it
+# into one import per alias.
+combine-as-imports = true
+
+[lint.per-file-ignores]
+# Tests set environment variables before importing src.*, which has to happen
+# before the import block.
+"tests/conftest.py" = ["E402"]

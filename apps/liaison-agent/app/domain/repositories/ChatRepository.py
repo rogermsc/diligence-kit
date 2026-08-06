@@ -1,7 +1,8 @@
-from typing import List
-from app.domain.entities.ChatMessageEntity import ChatMessage
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import List, Optional
+
+from app.domain.entities.ChatMessageEntity import ChatMessage
+
 
 class IChatRepository(ABC):
     """

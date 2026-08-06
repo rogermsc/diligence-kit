@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.sql import func
+
 from app.core.database.connection_database import Base
-from app.infra.database.models.UserModel import UserModel
+
 
 class ChatMessageModel(Base):
     __tablename__ = "chat_messages"

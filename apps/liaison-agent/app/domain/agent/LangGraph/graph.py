@@ -1,11 +1,13 @@
-from langgraph.graph import StateGraph, END
+from langgraph.graph import END, StateGraph
+
 from app.domain.agent.LangGraph.state import AgentState
-from app.domain.agent.nodes.router_node import router_node
 from app.domain.agent.nodes.enrichment_node import enrichment_node
 from app.domain.agent.nodes.ombudsman_node import ombudsman_node
-from app.domain.agent.nodes.support_node import support_node
 from app.domain.agent.nodes.response_node import response_node
+from app.domain.agent.nodes.router_node import router_node
+from app.domain.agent.nodes.support_node import support_node
 from app.domain.entities.IntentEntity import Intent
+
 
 def route_decision(state: AgentState):
     """

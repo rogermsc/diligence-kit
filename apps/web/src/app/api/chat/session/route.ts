@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getAuthHeaders, createUnauthorizedResponse, getBaseUrl } from '@/lib/auth-server';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const authHeaders = await getAuthHeaders();
     if (!authHeaders) {
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const authHeaders = await getAuthHeaders();
     if (!authHeaders) {

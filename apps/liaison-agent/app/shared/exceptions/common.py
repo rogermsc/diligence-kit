@@ -1,4 +1,5 @@
-from typing import Any, Optional, Dict
+from typing import Any, Dict, Optional
+
 from .base import BaseAPIException
 
 

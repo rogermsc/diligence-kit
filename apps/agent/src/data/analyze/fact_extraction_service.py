@@ -50,7 +50,7 @@ class FactExtractionService:
 
         extracted = []
         failed = []
-        for doc, result in zip(documents, results):
+        for doc, result in zip(documents, results, strict=True):
             if isinstance(result, Exception):
                 logger.warning(f"Fact extraction failed for {doc.file_name}: {result}. Will retry.")
                 failed.append(doc)

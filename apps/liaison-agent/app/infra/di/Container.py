@@ -4,12 +4,13 @@ from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database.connection_database import AsyncSessionLocal
-from app.infra.database.repositories.ChatRepositoryImpl import ChatRepositoryImpl
-from app.infra.database.repositories.CompanyRepositoryImpl import CompanyRepositoryImpl
 from app.domain.repositories.ChatRepository import IChatRepository
 from app.domain.repositories.CompanyRepository import ICompanyRepository
 from app.domain.use_cases.ChatUseCase import ChatUseCase
 from app.domain.use_cases.SessionUseCase import SessionUseCase
+from app.infra.database.repositories.ChatRepositoryImpl import ChatRepositoryImpl
+from app.infra.database.repositories.CompanyRepositoryImpl import CompanyRepositoryImpl
+
 
 class DIContainer:
     """

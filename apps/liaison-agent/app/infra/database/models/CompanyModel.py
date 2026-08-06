@@ -1,5 +1,7 @@
 from sqlalchemy import Column, String
+
 from app.core.database.connection_database import Base
+
 
 class CompanyModel(Base):
     """

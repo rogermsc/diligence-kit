@@ -1,9 +1,12 @@
-from typing import TypedDict, Annotated, List, Union, Dict, Any, Optional
-from langchain_core.messages import BaseMessage
 import operator
-from app.domain.entities.IntentEntity import Intent
+from typing import Annotated, Any, Dict, List, Optional, TypedDict
+
+from langchain_core.messages import BaseMessage
+
 from app.domain.entities.AnalysisResultEntity import AnalysisResult
+from app.domain.entities.IntentEntity import Intent
 from app.domain.repositories.CompanyRepository import ICompanyRepository
+
 
 class AgentState(TypedDict):
     """

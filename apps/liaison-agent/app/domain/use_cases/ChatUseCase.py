@@ -1,9 +1,11 @@
 import uuid
-from typing import Dict, Any, Optional, List
-from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
-from app.domain.repositories.ChatRepository import IChatRepository
-from app.domain.entities.ChatMessageEntity import ChatMessage
+from typing import Any, Dict, List, Optional
+
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+
 from app.domain.agent.LangGraph.graph import create_graph
+from app.domain.entities.ChatMessageEntity import ChatMessage
+from app.domain.repositories.ChatRepository import IChatRepository
 from app.domain.repositories.CompanyRepository import ICompanyRepository
 
 agent_app = create_graph()

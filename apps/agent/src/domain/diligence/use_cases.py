@@ -2,16 +2,16 @@
 
 import asyncio
 
-from src.core.logging import get_logger, set_log_context, reset_log_context
+from src.core.logging import get_logger, reset_log_context, set_log_context
 from src.core.prompts.diligence_extraction import DOMAIN_EXTRACTION_CONFIGS
 from src.data.analyze.conflict_resolution_service import ConflictResolutionService
+from src.data.analyze.document_renderer import convert_docx_to_pdf
 from src.data.analyze.extraction_service import ExtractionService
 from src.data.analyze.fact_extraction_service import FactExtractionService
 from src.data.analyze.file_preparation_service import FilePreparationService
-from src.data.storage import get_storage
 from src.data.diligence.document_renderer import render_diligence_docx
-from src.data.analyze.document_renderer import convert_docx_to_pdf
 from src.data.diligence.report_service import DiligenceReportService
+from src.data.storage import get_storage
 from src.domain.analyze.fact_merge import merge_facts
 from src.domain.diligence.entities import DiligenceInput
 

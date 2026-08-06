@@ -9,12 +9,11 @@ string survives in memory.
 import asyncio
 import base64
 import os
-
 from typing import List
 
 from src.core.llm import upload_file
 from src.core.logging import get_logger
-from src.data.analyze.extraction_service import ExtractionService, EXCEL_EXTENSIONS
+from src.data.analyze.extraction_service import EXCEL_EXTENSIONS, ExtractionService
 from src.domain.analyze.entities import Document
 
 logger = get_logger(__name__)

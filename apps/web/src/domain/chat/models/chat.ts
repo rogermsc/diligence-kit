@@ -8,7 +8,7 @@ export interface ChatRequest {
   message: string;
   session_id?: string;
   automation_id?: string;
-  company_context?: Record<string, any>;
+  company_context?: Record<string, unknown>;
 }
 
 export interface ChatResponse {

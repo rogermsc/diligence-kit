@@ -1,0 +1,24 @@
+line-length = 100
+
+[lint]
+# Rules that catch defects, not rules that relitigate style. Ruff's defaults
+# shift between releases, so the set is pinned explicitly and CI stays stable.
+#   E4/E7/E9  import and statement errors
+#   F         pyflakes — undefined names, unused imports
+#   I         import ordering
+#   B         bugbear — mutable defaults, truncating zip, and similar traps
+#   ASYNC     blocking calls inside async functions
+select = ["E4", "E7", "E9", "F", "I", "B", "ASYNC"]
+
+# `Depends(...)` in a parameter default is the FastAPI calling convention, not
+# the mutable-default trap B008 exists to catch.
+ignore = ["B008"]
+
+[lint.isort]
+combine-as-imports = true
+
+[lint.per-file-ignores]
+# Package __init__ files re-export their contents; those imports are the API.
+"**/__init__.py" = ["F401"]
+# Alembic's generated env.py imports for their side effects.
+"alembic/env.py" = ["F401"]

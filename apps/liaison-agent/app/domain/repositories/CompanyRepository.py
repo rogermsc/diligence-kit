@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Optional
+
 from app.domain.entities.CompanyEntity import Company
+
 
 class ICompanyRepository(ABC):
     """
