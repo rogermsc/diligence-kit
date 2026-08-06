@@ -84,7 +84,7 @@ export class AssemblyJobProcessor {
             const uploadedFiles = await this.parseAndUploadZipFiles(
                 assemblyResult.assembledFile,
                 automationId,
-                finalCompanyName || "unknown",
+                companyId,
             )
 
             await this.eventBus.emit("zip.assembled", {
@@ -147,7 +147,8 @@ export class AssemblyJobProcessor {
     private async parseAndUploadZipFiles(
         zipFile: any,
         automationId: string,
-        companyName: string,
+        // The company id, not its name — see UploadDocumentUseCase for why.
+        companyId: string,
     ): Promise<any[]> {
         try {
             this.logger.log("Starting ZIP parsing and batch upload", {
@@ -167,7 +168,7 @@ export class AssemblyJobProcessor {
             // 2023/financials.pdf and 2024/financials.pdf collapsed to one row.
             const rootFolder = await this.zipParserService.parseZipToFolder(
                 zipFile.buffer,
-                `${companyName}/${automationId}`,
+                `${companyId}/${automationId}`,
             )
 
             this.logger.log("ZIP parsed successfully", {
@@ -179,14 +180,14 @@ export class AssemblyJobProcessor {
             // 2. Upload otimizado em batch para o bucket
             const uploadedFiles =
                 await this.storageService.uploadFolderOnEnterpriseRoot(
-                    `${companyName}/${automationId}`,
+                    `${companyId}/${automationId}`,
                     rootFolder,
                 )
 
             this.logger.log("Batch upload completed", {
                 automationId,
                 totalFilesUploaded: uploadedFiles.length,
-                companyName,
+                companyId,
             })
 
             return uploadedFiles

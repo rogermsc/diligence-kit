@@ -5,6 +5,8 @@ automation in PROCESSING forever.
 
 import asyncio
 
+import pytest
+
 from src.core import background
 
 
@@ -67,3 +69,69 @@ async def test_cancellation_is_reported():
 
     assert task.cancelled()
     assert background.in_flight() == 0
+
+
+async def test_heartbeat_pings_for_as_long_as_the_work_runs():
+    """Without this the backend cannot tell a slow run from an abandoned one, and
+    its sweep fails runs that are still working."""
+    pings = 0
+
+    async def send():
+        nonlocal pings
+        pings += 1
+
+    async with background.heartbeat(send, every=0.01, name="test"):
+        await asyncio.sleep(0.05)
+
+    assert pings >= 2
+
+
+async def test_heartbeat_stops_when_the_work_finishes():
+    pings = 0
+
+    async def send():
+        nonlocal pings
+        pings += 1
+
+    async with background.heartbeat(send, every=0.01, name="test"):
+        await asyncio.sleep(0.03)
+
+    settled = pings
+    await asyncio.sleep(0.05)
+
+    assert pings == settled
+
+
+async def test_a_failing_ping_does_not_kill_the_work():
+    """Losing liveness is worth a timeout, not the loss of the run itself."""
+    attempts = 0
+
+    async def send():
+        nonlocal attempts
+        attempts += 1
+        raise RuntimeError("backend unreachable")
+
+    completed = False
+    async with background.heartbeat(send, every=0.01, name="test"):
+        await asyncio.sleep(0.05)
+        completed = True
+
+    assert completed and attempts >= 2
+
+
+async def test_heartbeat_stops_even_when_the_work_raises():
+    pings = 0
+
+    async def send():
+        nonlocal pings
+        pings += 1
+
+    with pytest.raises(ValueError):
+        async with background.heartbeat(send, every=0.01, name="test"):
+            await asyncio.sleep(0.02)
+            raise ValueError("pipeline failed")
+
+    settled = pings
+    await asyncio.sleep(0.04)
+
+    assert pings == settled

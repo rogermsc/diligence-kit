@@ -24,12 +24,13 @@ export class CreateCompanyUseCase implements Usecase<
     ) {}
 
     async execute(input: CreateCompanyInput): Promise<CreateCompanyOutput> {
-        // Uniqueness is global, not per-owner. Storage paths are namespaced by
-        // company name, so allowing two tenants to both own an "Acme" would put
-        // their documents under the same prefix. Namespacing storage by company
-        // id instead would let this be per-owner — see README known issues.
-        const existingCompany = await this.companyRepository.findByNameAsSystem(
+        // Scoped to the caller. Asking globally is what leaked the existence of
+        // other tenants' company names: being refused told you one existed.
+        // The database enforces the same rule per owner, so this is a friendlier
+        // error rather than the guarantee.
+        const existingCompany = await this.companyRepository.findByNameForOwner(
             input.name,
+            input.userId,
         )
 
         if (existingCompany) {

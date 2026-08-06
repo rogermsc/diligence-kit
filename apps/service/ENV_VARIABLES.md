@@ -53,7 +53,7 @@ These variables have default values and are optional:
 ### Stale-run reaper
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `AUTOMATION_TIMEOUT_MINUTES` | `240` | How long an automation may sit in `PROCESSING` before it is marked `FAILED`. Set it **well above** the longest real run. It measures time since the row was last written, and nothing writes to the row while the agent works, so a slow healthy run is indistinguishable from an abandoned one — and a run failed while still executing can be retried, dispatching the same automation to the agent twice. Non-numeric or non-positive values fall back to the default with an error logged. |
+| `AUTOMATION_TIMEOUT_MINUTES` | `240` | How long an automation may go without a heartbeat before it is marked `FAILED`. The agent pings `POST /automation/heartbeat` while it works, so this bounds silence rather than duration — but keep it well above the agent's `HEARTBEAT_SECONDS`. Runs recorded before heartbeats existed fall back to `updatedAt`. Non-numeric or non-positive values fall back to the default with an error logged. |
 | `AUTOMATION_REAPER_INTERVAL_MINUTES` | `5` | How often to sweep. |
 | `AUTOMATION_REAPER_ENABLED` | `true` | Set to `false` to disable. Interrupted runs then stay `PROCESSING` until someone updates them by hand. |
 

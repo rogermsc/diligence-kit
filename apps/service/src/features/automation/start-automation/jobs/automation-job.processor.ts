@@ -16,7 +16,6 @@ import {
     AutomationUpdatedEventSchema,
 } from "../domain/events/automation.event-schemas"
 
-import { UploadHelper } from "../helpers/upload.helper"
 import { AutomationZipUploadUseCase } from "../use-case/automation-zip-upload.usecase"
 import { SaveDocumentsUseCase } from "../use-case/save-documents.usecase"
 import { NotifyAgentWithDocumentsUseCase } from "../use-case/notify-agent-with-documents.usecase"

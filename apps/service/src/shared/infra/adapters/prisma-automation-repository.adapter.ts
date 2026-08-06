@@ -20,6 +20,16 @@ import { ReportMapper } from "@/shared/domain/mappers/report.mapper"
 export class PrismaAutomationRepositoryAdapter implements IAutomationRepository {
     private readonly logger = new Logger(PrismaAutomationRepositoryAdapter.name)
 
+    async recordHeartbeat(id: string): Promise<boolean> {
+        // Scoped to PROCESSING so a late ping cannot revive a run the reaper has
+        // already failed or the agent has already completed.
+        const { count } = await prisma.automation.updateMany({
+            where: { id, status: "PROCESSING" },
+            data: { heartbeatAt: new Date() },
+        })
+        return count > 0
+    }
+
     async create(data: CreateAutomationData): Promise<Automation> {
         try {
             const automationId = data.id || randomUUID()

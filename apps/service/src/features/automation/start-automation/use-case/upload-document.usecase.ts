@@ -82,7 +82,12 @@ export class UploadDocumentUseCase implements Usecase<
 
         const uploaded: UploadedFile =
             await this.storageService.uploadSingleFile(
-                company.name,
+                // Keyed on the company id, not its name. The name was the prefix, which made
+                // global name uniqueness a security property — two tenants sharing a name
+                // would share a storage prefix — and that in turn leaked the existence of
+                // other tenants' company names at creation time. Ids are already unique
+                // and are not guessable from the outside.
+                company.id,
                 domainFile,
                 automationId,
             )

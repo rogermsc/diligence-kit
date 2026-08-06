@@ -88,12 +88,15 @@ export interface CompanyRepository {
      */
     findByIdAsSystem(id: string): Promise<Company | null>
     /**
-     * Global, cross-tenant name lookup. Company names must stay unique across all
-     * owners because object-storage paths are namespaced by company NAME, not id
-     * (see GoogleStorageService.uploadSingleFile) — two tenants sharing a name
-     * would share a storage prefix and overwrite each other's documents.
+     * Does this owner already have a company by this name?
+     *
+     * Scoped, deliberately. The cross-tenant version this replaces answered
+     * "does anyone have this name", which is how creating a company told you
+     * another tenant's company names — you learned one existed by being refused
+     * it. Storage paths are keyed on the company id now, so nothing needs the
+     * global answer.
      */
-    findByNameAsSystem(name: string): Promise<Company | null>
+    findByNameForOwner(name: string, ownerId: string): Promise<Company | null>
     findByIdWithAutomations(
         id: string,
         ownerId: string,

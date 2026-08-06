@@ -61,26 +61,24 @@ jobs:
         working-directory: apps/${{ matrix.app }}
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements-dev.txt ]; then
-            pip install -r requirements-dev.txt
-          elif [ -f requirements.txt ]; then
-            pip install -r requirements.txt ruff pytest pytest-asyncio
-          else
-            pip install ruff pytest pytest-asyncio
-            pip install poetry && poetry install --no-root
+          pip install -r requirements-dev.txt
+          # The liaison agent's own dependencies are managed with Poetry.
+          if [ -f pyproject.toml ]; then
+            pip install poetry
+            poetry config virtualenvs.create false
+            poetry install --no-root --no-interaction
           fi
 
       - name: Lint
         working-directory: apps/${{ matrix.app }}
         run: ruff check .
 
-      # Not every app has tests yet. Absent tests must not read as passing tests,
-      # so say which case this is rather than exiting 0 silently.
+      # Absent tests must never read as passing tests.
       - name: Test
         working-directory: apps/${{ matrix.app }}
         run: |
-          if [ -d tests ]; then
-            pytest -q
-          else
-            echo "::warning title=No tests::apps/${{ matrix.app }} has no tests/ directory"
+          if [ ! -d tests ]; then
+            echo "::error title=No tests::apps/${{ matrix.app }} has no tests/ directory"
+            exit 1
           fi
+          pytest -q

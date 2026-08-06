@@ -153,10 +153,9 @@ Nothing ties the code to GKE: the apps are four containers with Postgres and Red
 Working software extracted from a production deployment, published as a starting point rather than a
 finished product. Read `CLAUDE.md` for the architectural detail.
 
-Every pull request builds, typechecks, lints and tests both JavaScript apps, and lints both Python
-ones. `apps/agent` has a test suite; `apps/liaison-agent` does not yet, and CI says so rather than
-reporting a pass. Coverage is deliberately narrow rather than broad — it covers the places that fail
-quietly:
+Every pull request builds, typechecks, lints and tests all four apps. An app with no `tests/`
+directory fails the build rather than reporting a pass. Coverage is deliberately narrow rather than
+broad — it covers the places that fail quietly:
 
 ```bash
 make test     # jest + pytest
@@ -198,16 +197,13 @@ top of `prisma/migrations/*_add_company_owner/migration.sql`.
 An audit turned these up. They are listed rather than hidden, but they are not fixed — budget for them
 before running this on anything that matters:
 
-- **Storage paths are namespaced by company *name*, not id.** That is why company names must be
-  globally unique rather than per-owner, which leaks the existence of other tenants' company names at
-  creation time. Namespacing by company id would remove both problems; it touches the chunked-upload
-  subsystem, so it is not done here.
-- **The stale-run reaper measures wall-clock, not liveness.** Nothing writes to an automation row
-  while the agent works, so a slow healthy run is indistinguishable from an abandoned one. If one is
-  failed while still executing, retrying it dispatches the same automation to the agent twice.
-  `AUTOMATION_TIMEOUT_MINUTES` defaults to 240 for that reason; a heartbeat written by the agent is
-  the real fix and is not implemented.
-- **`apps/liaison-agent` has no tests.** CI lints it and emits a warning that it has none.
+- **A process restart still loses in-flight work.** The agent runs analysis in-process; if it is
+  restarted mid-run the work is gone and the backend's sweep marks the automation `FAILED` once the
+  heartbeat stops. Resuming rather than failing would mean checkpointing each stage — the retry path
+  already caches extracted facts, so the groundwork exists.
+- **Documents written before this branch keep their old storage paths.** Storage is keyed on company
+  id now; existing objects are not moved, and do not need to be, since each document row stores its
+  own full `gs://` path. Company *names* are no longer part of any path.
 
 Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 

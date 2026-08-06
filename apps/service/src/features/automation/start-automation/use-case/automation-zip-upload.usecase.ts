@@ -8,7 +8,8 @@ import { mapUploadedFilesToDocuments } from "../helpers/map-uploaded-files-to-do
 import { ZipParserService } from "@/shared/services/zip-parser.service"
 
 export interface AutomationZipUploadInput {
-    enterpriseName: string
+    /** Company id — the storage prefix. Not the display name. */
+    companyId: string
     automationId: string
     zipFile: MulterFile
 }
@@ -41,13 +42,13 @@ export class AutomationZipUploadUseCase implements Usecase<
     async execute(
         input: AutomationZipUploadInput,
     ): Promise<AutomationZipUploadOutput> {
-        const { enterpriseName, automationId, zipFile } = input
+        const { companyId, automationId, zipFile } = input
 
         Logger.debug("Uploading ZIP file to storage", {
             zipFile,
         })
 
-        const folderName = `${enterpriseName}/${automationId}`
+        const folderName = `${companyId}/${automationId}`
 
         const folder = await this.zipFolderFactory.createFromZipBuffer(
             folderName,

@@ -45,17 +45,16 @@ function minutes(name: string, fallback: number): number {
  * This is a timeout, not a recovery — the work is gone either way. Marking the
  * row FAILED is what makes it visible and lets the user retry.
  *
- * It measures wall-clock since the row was last written, which is not the same
- * as liveness: nothing touches updatedAt while the agent works, so a slow but
- * healthy run looks identical to an abandoned one. Two consequences follow, and
- * both argue for setting the timeout well above the longest run you expect
- * rather than tightly. First, a run failed while still executing can be retried
- * from the dashboard — retryAutomation's only precondition is FAILED — so the
- * same automation is dispatched to the agent twice and the two races on the same
- * callbacks and storage paths. Second, the original run's completion callback
- * then writes COMPLETED over the FAILED row. The default is deliberately
- * generous for that reason; a heartbeat written by the agent is the real fix and
- * is not implemented.
+ * It measures liveness rather than time since the last write: the agent pings
+ * `POST /automation/heartbeat` while it works, and this compares against that.
+ * Without it a slow but healthy run was indistinguishable from an abandoned one,
+ * and failing one that was still executing let it be retried — dispatching the
+ * same automation to the agent twice, with both racing on the same callbacks and
+ * storage paths.
+ *
+ * A run with no heartbeat at all — recorded before this existed, or whose agent
+ * died before its first ping — falls back to updatedAt. The timeout should still
+ * exceed the heartbeat interval by a wide margin.
  *
  * Deliberately not a distributed lock: the update is idempotent and scoped by
  * status and age, so several replicas running it concurrently is harmless. The
@@ -104,7 +103,17 @@ export class StaleAutomationReaper implements OnModuleInit, OnModuleDestroy {
 
         try {
             const { count } = await prisma.automation.updateMany({
-                where: { status: "PROCESSING", updatedAt: { lt: cutoff } },
+                where: {
+                    status: "PROCESSING",
+                    // Liveness, not last-write. A run reporting heartbeats is
+                    // alive however long it takes; one that predates heartbeats,
+                    // or whose agent died before the first ping, falls back to
+                    // updatedAt and behaves as it did before.
+                    OR: [
+                        { heartbeatAt: { lt: cutoff } },
+                        { heartbeatAt: null, updatedAt: { lt: cutoff } },
+                    ],
+                },
                 data: { status: "FAILED" },
             })
 

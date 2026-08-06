@@ -12,7 +12,8 @@ the process is perfectly healthy.
 """
 
 import asyncio
-from typing import Coroutine, Set
+import contextlib
+from typing import AsyncIterator, Awaitable, Callable, Coroutine, Set
 
 from src.core.logging import get_logger
 
@@ -42,5 +43,37 @@ def spawn(coro: Coroutine, *, name: str) -> asyncio.Task:
 
 
 def in_flight() -> int:
-    """How many background tasks are running. Reported by the health endpoint."""
+    """How many background tasks are running."""
     return len(_running)
+
+
+@contextlib.asynccontextmanager
+async def heartbeat(
+    send: Callable[[], Awaitable[None]], *, every: float, name: str
+) -> AsyncIterator[None]:
+    """Pings `send` on an interval for as long as the body runs.
+
+    The backend cannot otherwise tell a slow run from an abandoned one: nothing
+    writes to the automation row between dispatch and completion, so its
+    stale-run sweep had to guess from wall-clock and would fail runs that were
+    still working.
+
+    A failing ping is logged and never propagated — losing liveness is worth a
+    timeout, not the loss of the run itself.
+    """
+
+    async def _loop() -> None:
+        while True:
+            await asyncio.sleep(every)
+            try:
+                await send()
+            except Exception as error:  # noqa: BLE001 - liveness is best-effort
+                logger.warning(f"Heartbeat failed for {name}: {error}")
+
+    task = asyncio.create_task(_loop(), name=f"heartbeat:{name}")
+    try:
+        yield
+    finally:
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task

@@ -42,6 +42,9 @@ class Settings(BaseSettings):
 
     # Backend
     backend_base_url: str = ""
+    # How often to tell the backend an in-flight run is still alive. Must be
+    # comfortably below AUTOMATION_TIMEOUT_MINUTES on that side.
+    heartbeat_seconds: float = 60.0
 
     # JWT (user auth — not used by agent currently)
     jwt_secret: str = ""

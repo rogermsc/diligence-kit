@@ -21,6 +21,11 @@ export interface AutomationRepository {
     findById(id: string): Promise<Automation | null>
     findProcessingByCompanyId(companyId: string): Promise<Automation | null>
     updateStatus(id: string, status: AutomationStatus): Promise<void>
+    /**
+     * Marks a still-processing run as alive. Returns false when it matched
+     * nothing, which is the normal outcome for a run that already finished.
+     */
+    recordHeartbeat(id: string): Promise<boolean>
     getCompanyIdByAutomationId(automationId: string): Promise<string | null>
     createOrUpdateOnePager(data: CreateOnePagerData): Promise<void>
     findOnePagerByAutomationId(

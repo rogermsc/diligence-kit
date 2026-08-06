@@ -45,7 +45,11 @@ async function stageDataroom(): Promise<string[]> {
     const names = (await fs.readdir(DATAROOM)).filter((n) => !n.startsWith(".")).sort()
 
     for (const name of names) {
-        await copyInto(path.join(DATAROOM, name), `${COMPANY}/${AUTOMATION_ID}/${name}`)
+        // Keyed on the company id, matching what the upload paths write.
+        await copyInto(
+            path.join(DATAROOM, name),
+            `${COMPANY_ID}/${AUTOMATION_ID}/${name}`,
+        )
     }
     return names
 }
@@ -101,7 +105,7 @@ async function main() {
             Documents: {
                 create: dataroom.map((name) => ({
                     name,
-                    bucketPath: `gs://${BUCKET}/${COMPANY}/${AUTOMATION_ID}/${name}`,
+                    bucketPath: `gs://${BUCKET}/${COMPANY_ID}/${AUTOMATION_ID}/${name}`,
                 })),
             },
         },

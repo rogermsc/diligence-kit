@@ -120,6 +120,7 @@ describe("tenancy coverage", () => {
             "POST /automation/complete-onepager-error",
             "POST /automation/complete-report",
             "POST /automation/complete-report-error",
+            "POST /automation/heartbeat",
         ])
     })
 

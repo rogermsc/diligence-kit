@@ -82,6 +82,29 @@ export class CompleteOnePagerController {
         return result
     }
 
+    /**
+     * Liveness ping from the agent while a run is in flight.
+     *
+     * The reaper needs to tell a slow healthy run from an abandoned one, and
+     * nothing else writes to the row between dispatch and completion. Signed and
+     * agent-guarded like every other callback, so a client cannot use it to keep
+     * a dead run alive.
+     */
+    @Post("heartbeat")
+    async heartbeat(@Body() payload: { automationId: string }) {
+        const updated = await this.automationRepository.recordHeartbeat(
+            payload.automationId,
+        )
+
+        if (!updated) {
+            // Not an error: the run may have completed or been failed already.
+            this.logger.debug(
+                `Heartbeat for ${payload.automationId} matched no processing run`,
+            )
+        }
+        return { acknowledged: true }
+    }
+
     @Post("complete-onepager-error")
     async completeOnePagerError(
         @Body() payload: { automationId: string; error: string },

@@ -68,7 +68,7 @@ export class ConfirmUploadUseCase implements Usecase<
         // caller could name any object in the bucket — including another tenant's
         // dataroom — and read it back. Pin it to the prefix this automation's own
         // uploads produce (see GoogleStorageService.uploadSingleFile).
-        const expectedPrefix = `gs://${process.env.GCLOUD_STORAGE_BUCKET}/${company.name}/${automationId}/`
+        const expectedPrefix = `gs://${process.env.GCLOUD_STORAGE_BUCKET}/${company.id}/${automationId}/`
         for (const file of files) {
             // startsWith is the whole check: GCS object names are flat strings,
             // so ".." carries no traversal meaning and rejecting it would fail

@@ -20,6 +20,7 @@ from src.domain.analyze.use_cases import AnalyzeUseCase
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DATAROOM = ROOT / "fixtures" / "dataroom"
 COMPANY = "Northwind Robotics"
+COMPANY_ID = "00000000-0000-4000-8000-000000000002"
 AUTOMATION_ID = "00000000-0000-4000-8000-000000000001"
 
 
@@ -46,7 +47,7 @@ def pipeline(tmp_path, monkeypatch):
     storage = LocalStorage()
     documents = []
     for i, path in enumerate(sorted(DATAROOM.iterdir()), start=1):
-        key = f"{COMPANY}/{AUTOMATION_ID}/{path.name}"
+        key = f"{COMPANY_ID}/{AUTOMATION_ID}/{path.name}"
         storage.upload_bytes(key, path.read_bytes(), "application/octet-stream")
         documents.append(
             Document(
@@ -60,7 +61,7 @@ def pipeline(tmp_path, monkeypatch):
 async def run(documents):
     return await AnalyzeUseCase().execute(
         AnalyzeInput(
-            company_id="00000000-0000-4000-8000-000000000002",
+            company_id=COMPANY_ID,
             company_name=COMPANY,
             automation_id=AUTOMATION_ID,
             documents=documents,

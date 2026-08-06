@@ -51,6 +51,7 @@ export interface IAutomationRepository {
         parentAutomationId: string,
     ): Promise<DomainAutomation[]>
     updateStatus(id: string, status: AutomationStatus): Promise<void>
+    recordHeartbeat(id: string): Promise<boolean>
     updateAutomationWithReport(
         data: UpdateAutomationWithReportData,
     ): Promise<Report | null>

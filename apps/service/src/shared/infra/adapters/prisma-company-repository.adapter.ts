@@ -111,17 +111,27 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
         }
     }
 
-    async findByNameAsSystem(name: string): Promise<Company | null> {
+    async findByNameForOwner(
+        name: string,
+        ownerId: string,
+    ): Promise<Company | null> {
         try {
-            const company = await prisma.company.findFirst({ where: { name } })
-
+            const company = await prisma.company.findFirst({
+                where: {
+                    name: requireId(name, "name"),
+                    ownerId: requireId(ownerId, "ownerId"),
+                },
+            })
             return company ? CompanyMapper.toDomain(company) : null
         } catch (error) {
+            // requireId's deliberate 4xx must not be rewritten into a 500.
+            if (error instanceof RecordNotFoundError) throw error
+
             this.logger.error(
-                `Failed to find company by name: ${error.message}`,
+                `Failed to find company "${name}" for owner`,
                 error.stack,
             )
-            throw new DatabaseAccessError(`Failed to find company by name`)
+            throw new DatabaseAccessError("Failed to find company by name")
         }
     }
 

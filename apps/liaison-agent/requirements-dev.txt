@@ -1,0 +1,4 @@
+# Test and lint tooling. The app itself is managed with Poetry.
+pytest==8.4.2
+pytest-asyncio==1.2.0
+ruff==0.14.2

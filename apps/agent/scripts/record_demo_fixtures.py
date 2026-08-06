@@ -343,7 +343,8 @@ def stage_dataroom() -> list[Document]:
     storage = get_storage()
     documents = []
     for i, path in enumerate(sorted(DATAROOM.iterdir()), start=1):
-        key = f"{COMPANY}/{AUTOMATION_ID}/{path.name}"
+        # Keyed on the company id, matching what the backend writes.
+        key = f"{COMPANY_ID}/{AUTOMATION_ID}/{path.name}"
         storage.upload_bytes(key, path.read_bytes(), "application/octet-stream")
         documents.append(
             Document(id=f"00000000-0000-4000-8000-00000000010{i}",

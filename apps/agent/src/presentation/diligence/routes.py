@@ -2,7 +2,7 @@ import httpx
 import jwt
 from fastapi import APIRouter, Depends
 
-from src.core.background import spawn
+from src.core.background import heartbeat, spawn
 from src.core.config import settings
 from src.core.logging import get_logger
 from src.core.security import verify_api_key
@@ -47,7 +47,12 @@ async def _run_diligence(automation: DiligenceAutomation):
         )
 
         use_case = DiligenceUseCase(domain)
-        pdf_url = await use_case.execute(input)
+        async with heartbeat(
+            lambda: _notify_backend_heartbeat(automation.automation_id),
+            every=settings.heartbeat_seconds,
+            name=f"diligence:{domain}:{automation.automation_id}",
+        ):
+            pdf_url = await use_case.execute(input)
 
         await _notify_backend_complete(automation.automation_id, domain, pdf_url)
     except Exception as e:
@@ -56,6 +61,13 @@ async def _run_diligence(automation: DiligenceAutomation):
             exc_info=True,
         )
         await _notify_backend_error(automation.automation_id, domain, "processing_failed")
+
+
+async def _notify_backend_heartbeat(automation_id: str) -> None:
+    url = f"{settings.backend_base_url}/automation/heartbeat"
+    body = canonical_json({"automationId": automation_id})
+    async with httpx.AsyncClient() as client:
+        await client.post(url, content=body, headers=_build_headers(body), timeout=10.0)
 
 
 def _build_jwt_token() -> str:
