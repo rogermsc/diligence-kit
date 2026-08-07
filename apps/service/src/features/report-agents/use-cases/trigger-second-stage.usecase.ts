@@ -2,7 +2,6 @@ import { Injectable, Logger, Inject } from "@nestjs/common"
 import { Usecase } from "@/shared/interfaces/usecase"
 import { AgentType } from "@prisma/client"
 import { AutomationStatus } from "@/shared/domain/entities/automation.entity"
-import { EventBusPort } from "@/shared/domain/interfaces/event-bus.interface"
 import { AgentService } from "@/features/onePager-agent/agent/agent.service"
 import { StartReportsPayload } from "@/features/onePager-agent/agent/data/dto/agent-event-payload"
 
@@ -42,8 +41,6 @@ export class TriggerSecondStageUseCase implements Usecase<
     constructor(
         @Inject("AutomationRepository")
         private readonly automationRepository: IAutomationRepository,
-        @Inject("EventBusPort")
-        private readonly eventBus: EventBusPort,
         @Inject("DocumentRepository")
         private readonly documentRepository: DocumentRepository,
         @Inject("CompanyRepository")

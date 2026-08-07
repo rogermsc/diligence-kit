@@ -1,5 +1,4 @@
 import { Module } from "@nestjs/common"
-import { BullModule } from "@nestjs/bull"
 import { CompanyModule } from "@/features/company/company.module"
 import { ErrorDispatcherService } from "@/shared/errors/error-dispatcher.service"
 import { AutomationModule } from "@/features/automation/automation.module"
@@ -20,16 +19,6 @@ config()
 
 @Module({
     imports: [
-        BullModule.forRoot({
-            redis: {
-                host: process.env.REDIS_HOST || "localhost",
-                port: parseInt(process.env.REDIS_PORT || "6381"),
-            },
-            // defaultJobOptions: {
-            //     removeOnComplete: true,
-            //     attempts: 3,
-            // },
-        }),
         CompanyModule,
         AutomationModule,
         AuthModule,

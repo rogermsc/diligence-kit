@@ -1,5 +1,4 @@
 import { Module } from "@nestjs/common"
-import { BullModule } from "@nestjs/bull"
 
 import { TriggerSecondStageController } from "./presentation/trigger-second-stage.controller"
 import { TriggerSecondStageUseCase } from "./use-cases/trigger-second-stage.usecase"
@@ -8,27 +7,16 @@ import { PrismaAutomationRepositoryAdapter } from "@/shared/infra/adapters/prism
 import { PrismaCompanyRepositoryAdapter } from "@/shared/infra/adapters/prisma-company-repository.adapter"
 import { PrismaDocumentRepositoryAdapter } from "@/shared/infra/adapters/prisma-document-repository.adapter"
 import { PrismaResultRepositoryAdapter } from "@/shared/infra/adapters/prisma-result-repository.adapter"
-import { MultiQueueEventBusAdapter } from "@/shared/infra/adapters/multi-queue-event-bus.adapter"
 import { AuthModule } from "@/features/auth/auth.module"
 import { AgentModule } from "@/features/onePager-agent/agent/agent.module"
 import { ReportAgentsExceptionFilter } from "./infra/filters/report-agents-exception.filter"
 
 @Module({
-    imports: [
-        AuthModule,
-        AgentModule,
-        BullModule.registerQueue({ name: "automation-queue" }),
-        BullModule.registerQueue({ name: "chunk-processing-queue" }),
-        BullModule.registerQueue({ name: "chunk-retry-queue" }),
-        BullModule.registerQueue({ name: "assembly-queue" }),
-    ],
+    imports: [AuthModule, AgentModule],
     controllers: [TriggerSecondStageController],
     providers: [
         // Exception filters
         ReportAgentsExceptionFilter,
-
-        // Event bus
-        { provide: "EventBusPort", useClass: MultiQueueEventBusAdapter },
 
         // Use cases
         TriggerSecondStageUseCase,
