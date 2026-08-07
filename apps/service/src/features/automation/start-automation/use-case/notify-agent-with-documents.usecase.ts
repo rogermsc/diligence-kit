@@ -6,7 +6,6 @@ import {
     AutomationStatus,
 } from "@/shared/domain/entities/automation.entity"
 import { AutomationStatusValidator } from "@/shared/validators/automation-status-validator"
-import { UploadedDocument } from "./automation-upload.usecase"
 import { AutomationRepository } from "../domain/repository/automation-repository.interface"
 import { AutomationCannotStartTriageError } from "@/features/automation/start-automation/domain/errors/automation-errors"
 

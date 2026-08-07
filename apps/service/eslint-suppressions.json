@@ -47,11 +47,6 @@
       "count": 1
     }
   },
-  "src/features/automation/start-automation/domain/events/automation.events.ts": {
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
   "src/features/automation/start-automation/gateway/agent-gateway-axios.adapter.ts": {
     "@typescript-eslint/no-unsafe-assignment": {
       "count": 2
@@ -60,216 +55,12 @@
       "count": 1
     }
   },
-  "src/features/automation/start-automation/helpers/automation-process.helper.ts": {
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
-  "src/features/automation/start-automation/helpers/upload.helper.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unsafe-call": {
-      "count": 2
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 2
-    },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
-  "src/features/automation/start-automation/helpers/zip-validation.helper.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 4
-    },
-    "@typescript-eslint/no-unsafe-call": {
-      "count": 2
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 5
-    },
-    "@typescript-eslint/no-unsafe-return": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
-  "src/features/automation/start-automation/infra/repositories/redis-chunk-registry.repository.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 12
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 14
-    },
-    "@typescript-eslint/no-unsafe-return": {
-      "count": 1
-    }
-  },
-  "src/features/automation/start-automation/interceptors/automation-id.interceptor.ts": {
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 1
-    }
-  },
-  "src/features/automation/start-automation/jobs/assembly-job.processor.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 11
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 11
-    },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
-  "src/features/automation/start-automation/jobs/automation-job.processor.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 3
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 3
-    },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 6
-    },
-    "@typescript-eslint/require-await": {
-      "count": 1
-    }
-  },
-  "src/features/automation/start-automation/jobs/chunk-processing-job.processor.ts": {
-    "@typescript-eslint/no-unused-vars": {
-      "count": 4
-    }
-  },
-  "src/features/automation/start-automation/jobs/chunk-retry-job.processor.ts": {
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
-  "src/features/automation/start-automation/middleware/automation-id.middleware.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 1
-    }
-  },
   "src/features/automation/start-automation/presentation/automation.controller.ts": {
     "@typescript-eslint/no-unsafe-assignment": {
-      "count": 10
-    },
-    "@typescript-eslint/no-unsafe-call": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 11
-    },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
-  "src/features/automation/start-automation/services/automation-orchestrator.service.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
-  "src/features/automation/start-automation/services/automation-status-updater.service.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
-  "src/features/automation/start-automation/services/batch-chunk-processor.service.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
       "count": 4
     },
     "@typescript-eslint/no-unsafe-member-access": {
-      "count": 3
-    }
-  },
-  "src/features/automation/start-automation/services/batch-download-adapter.service.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 2
-    }
-  },
-  "src/features/automation/start-automation/services/batch-upload-adapter.service.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 2
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 8
-    }
-  },
-  "src/features/automation/start-automation/services/chunk-batch-accumulator.service.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 1
-    }
-  },
-  "src/features/automation/start-automation/services/chunk-processing-optimizer.service.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 6
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
       "count": 4
-    },
-    "@typescript-eslint/require-await": {
-      "count": 1
-    }
-  },
-  "src/features/automation/start-automation/services/chunk-validator.service.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 4
-    }
-  },
-  "src/features/automation/start-automation/services/enhanced-assembly-coordinator.service.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 4
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 2
-    },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
-  "src/features/automation/start-automation/services/enhanced-chunk-processor.service.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 2
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 2
-    },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
-  "src/features/automation/start-automation/use-case/automation-zip-upload.usecase.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 2
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 1
     }
   },
   "src/features/automation/start-automation/use-case/download-one-pager.usecase.ts": {
@@ -279,9 +70,6 @@
   },
   "src/features/automation/start-automation/use-case/notify-agent-with-documents.usecase.ts": {
     "@typescript-eslint/no-unsafe-member-access": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unused-vars": {
       "count": 1
     }
   },
@@ -398,14 +186,6 @@
       "count": 7
     }
   },
-  "src/shared/domain/factories/dataroom-folder.factory.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 4
-    }
-  },
   "src/shared/domain/factories/file.factory.ts": {
     "@typescript-eslint/no-unsafe-member-access": {
       "count": 4
@@ -491,7 +271,7 @@
       "count": 4
     },
     "@typescript-eslint/no-unsafe-member-access": {
-      "count": 26
+      "count": 25
     }
   },
   "src/shared/infra/adapters/prisma-document-repository.adapter.ts": {
@@ -574,26 +354,6 @@
       "count": 1
     }
   },
-  "src/shared/services/yauzl-zip-parser.service.ts": {
-    "@typescript-eslint/no-misused-promises": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 4
-    },
-    "@typescript-eslint/no-unsafe-call": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 4
-    },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 2
-    },
-    "@typescript-eslint/prefer-promise-reject-errors": {
-      "count": 2
-    }
-  },
   "src/shared/validators/file-validator.ts": {
     "@typescript-eslint/no-unsafe-assignment": {
       "count": 1
@@ -621,23 +381,6 @@
       "count": 1
     },
     "@typescript-eslint/no-unused-vars": {
-      "count": 2
-    }
-  },
-  "test/trigger-second-stage.usecase.e2e-spec.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 7
-    },
-    "@typescript-eslint/no-unsafe-call": {
-      "count": 6
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 27
-    },
-    "@typescript-eslint/no-unsafe-return": {
-      "count": 4
-    },
-    "@typescript-eslint/require-await": {
       "count": 2
     }
   }

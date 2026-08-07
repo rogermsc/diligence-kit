@@ -9,24 +9,16 @@ import {
     UseInterceptors,
     StreamableFile,
     UseGuards,
-    Headers,
     Logger,
     Body,
     Inject,
-    Req,
     Res,
     NotFoundException,
     BadRequestException,
-    ForbiddenException,
 } from "@nestjs/common"
 import { Response } from "express"
 import { FileInterceptor } from "@nestjs/platform-express"
 import { File as MulterFile } from "multer"
-import { AutomationRequest } from "../types/request.types"
-import { EventBusPort } from "@/shared/domain/interfaces/event-bus.interface"
-import { ChunkValidator } from "../services/chunk-validator.service"
-import { AutomationOrchestrator } from "../services/automation-orchestrator.service"
-import { ChunkRegistry } from "../infra/repositories/redis-chunk-registry.repository"
 import { GetDocumentsByAutomationIdUseCase } from "../use-case/get-documents-by-automation-id.usecase"
 import { DownloadDocumentUseCase } from "../use-case/download-document.usecase"
 import { DownloadOnePagerUseCase } from "../use-case/download-one-pager.usecase"
@@ -48,7 +40,6 @@ import {
     AutomationStatus,
     AutomationStageDomain,
 } from "@/shared/domain/entities/automation.entity"
-import { AutomationIdInterceptor } from "../interceptors/automation-id.interceptor"
 import { AuthGuard } from "@/features/auth/guards/auth.guard"
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger"
 import {
@@ -56,7 +47,6 @@ import {
     ApiDownloadOnePager,
     ApiDownloadReport,
     ApiGetDocumentsByAutomationId,
-    ApiStartAutomation,
 } from "@/shared/decorators"
 @ApiTags("Automation")
 @ApiBearerAuth("access-token")
@@ -66,12 +56,6 @@ export class AutomationController {
     private readonly logger = new Logger(AutomationController.name)
 
     constructor(
-        @Inject("EventBusPort")
-        private readonly eventBus: EventBusPort,
-        private readonly chunkValidator: ChunkValidator,
-        private readonly automationOrchestrator: AutomationOrchestrator,
-        @Inject("ChunkRegistry")
-        private readonly chunkRegistry: ChunkRegistry,
         private readonly getDocumentsByAutomationIdUseCase: GetDocumentsByAutomationIdUseCase,
         private readonly downloadDocumentUseCase: DownloadDocumentUseCase,
         private readonly downloadOnePagerUseCase: DownloadOnePagerUseCase,
@@ -87,124 +71,6 @@ export class AutomationController {
         @Inject("AgentGateway")
         private readonly agentGateway: AgentGateway,
     ) {}
-
-    @Post("start/:companyId")
-    @Tenancy({ company: "param:companyId" })
-    @UseInterceptors(
-        FileInterceptor("file", { limits: { fileSize: 100 * 1024 * 1024 } }),
-        AutomationIdInterceptor,
-    )
-    @ApiStartAutomation()
-    async startAutomation(
-        @Param("companyId", new ParseUUIDPipe()) companyId: string,
-        @UploadedFile() file: MulterFile,
-        @Body() chunkData: unknown,
-        // Still needed: AutomationIdMiddleware puts the generated id here.
-        @Req() req: AutomationRequest,
-    ) {
-        const logger = new Logger("StartAutomation")
-
-        const validatedChunkData = this.chunkValidator.validate(chunkData)
-
-        const isLastChunk = this.chunkValidator.isLastChunk(validatedChunkData)
-
-        // O automation ID é gerado pelo middleware se for o último chunk
-        const automationId = req?.automationId || ""
-
-        logger.log(
-            `CONTROLLER AutomationId recebido do middleware: ${automationId}`,
-            {
-                isLastChunk,
-                chunkNumber: validatedChunkData.chunkNumber,
-                totalChunks: validatedChunkData.totalChunks,
-            },
-        )
-
-        // Se é o último chunk, criar automação ANTES de processar
-
-        // TODO: Create useCase to create automation for last chunk
-        if (isLastChunk) {
-            const automation =
-                await this.automationOrchestrator.createAutomationForLastChunk({
-                    companyId,
-                    chunkIdentifier: validatedChunkData.identifier,
-                    metadata: {
-                        totalChunks: Number(validatedChunkData.totalChunks),
-                        filename: validatedChunkData.filename,
-                    },
-                    automationId,
-                })
-
-            // companyId is the one the tenancy check already proved the caller
-            // owns; the registry refuses if the upload id was claimed by anyone
-            // else.
-            await this.chunkRegistry.updateAutomationId(
-                validatedChunkData.identifier,
-                automation.id,
-                companyId,
-            )
-
-            logger.log(`Automation created for last chunk`, {
-                automationId: automation.id,
-                uploadId: validatedChunkData.identifier,
-            })
-        }
-
-        // Emite evento para processamento assíncrono (qualquer ordem)
-
-        // TODO: Create useCase to register chunk
-
-        await this.eventBus.emit("chunk.registered", {
-            uploadId: validatedChunkData.identifier,
-            chunkNumber: Number(validatedChunkData.chunkNumber),
-            totalChunks: Number(validatedChunkData.totalChunks),
-            file: {
-                originalname: file.originalname,
-                mimetype: file.mimetype,
-                size: file.size,
-                buffer: file.buffer.toString("base64"),
-                encoding: file.encoding,
-                fieldname: file.fieldname,
-            },
-            metadata: {
-                filename: validatedChunkData.filename,
-                totalSize:
-                    Number(validatedChunkData.totalSize) ||
-                    file.size * Number(validatedChunkData.totalChunks),
-            },
-            companyId,
-            automationId: automationId || "", // Será buscado do registry quando necessário
-            timestamp: new Date(),
-            registeredAt: new Date(),
-        })
-
-        if (isLastChunk) {
-            return {
-                status: "automation_created",
-                chunk: validatedChunkData.chunkNumber,
-                uploadId: validatedChunkData.identifier,
-                totalChunks: validatedChunkData.totalChunks,
-                message:
-                    "Last chunk queued for processing and automation created",
-            }
-        }
-
-        logger.debug(
-            `Chunk registered for processing ${validatedChunkData.chunkNumber}/${validatedChunkData.totalChunks}`,
-            {
-                chunkNumber: validatedChunkData.chunkNumber,
-                uploadId: validatedChunkData.identifier,
-            },
-        )
-
-        return {
-            status: "chunk_stored",
-            chunk: validatedChunkData.chunkNumber,
-            uploadId: validatedChunkData.identifier,
-            totalChunks: validatedChunkData.totalChunks,
-            message: "Chunk uploaded and verified successfully",
-        }
-    }
 
     @Post("create/:companyId")
     @Tenancy({ company: "param:companyId" })

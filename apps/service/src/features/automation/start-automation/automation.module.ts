@@ -1,10 +1,7 @@
 import { Module } from "@nestjs/common"
-import { BullModule } from "@nestjs/bull"
 import { AutomationController } from "./presentation/automation.controller"
-import { AutomationZipUploadUseCase } from "./use-case/automation-zip-upload.usecase"
 import { GoogleStorageService } from "@/shared/services/google-storage.service"
 import { LocalStorageService } from "@/shared/services/local-storage.service"
-import { YauzlZipParserService } from "@/shared/services/yauzl-zip-parser.service"
 import { AgentGatewayAxiosAdapter } from "./gateway/agent-gateway-axios.adapter"
 import { GetCompanyByIdUseCase } from "./use-case/get-company-by-id.usecase"
 import { SaveDocumentsUseCase } from "./use-case/save-documents.usecase"
@@ -25,72 +22,14 @@ import { CreateAutomationUseCase } from "./use-case/create-automation.usecase"
 import { UploadDocumentUseCase } from "./use-case/upload-document.usecase"
 import { ConfirmUploadUseCase } from "./use-case/confirm-upload.usecase"
 
-import { InMemoryUploadProgressTracker } from "./infra/repositories/in-memory-chunk-metadata.repository"
-import { RedisChunkRegistry } from "./infra/repositories/redis-chunk-registry.repository"
-import { MultiQueueEventBusAdapter } from "@/shared/infra/adapters/multi-queue-event-bus.adapter"
-import { AutomationOrchestrator } from "./services/automation-orchestrator.service"
-import { ChunkValidator } from "./services/chunk-validator.service"
-import { AutomationJobProcessor } from "./jobs/automation-job.processor"
-import { ChunkProcessingJobProcessor } from "./jobs/chunk-processing-job.processor"
-import { ChunkRetryJobProcessor } from "./jobs/chunk-retry-job.processor"
-import { AssemblyJobProcessor } from "./jobs/assembly-job.processor"
-import { AutomationStatusUpdaterService } from "./services/automation-status-updater.service"
-import { BatchChunkProcessorService } from "./services/batch-chunk-processor.service"
-import { BatchUploadAdapterService } from "./services/batch-upload-adapter.service"
-import { EnhancedChunkProcessorService } from "./services/enhanced-chunk-processor.service"
-import { BatchDownloadAdapterService } from "./services/batch-download-adapter.service"
-import { EnhancedAssemblyCoordinatorService } from "./services/enhanced-assembly-coordinator.service"
-import { ChunkProcessingOptimizerService } from "./services/chunk-processing-optimizer.service"
-import { AutomationIdMiddleware } from "./middleware/automation-id.middleware"
-import { AutomationIdInterceptor } from "./interceptors/automation-id.interceptor"
-
 @Module({
-    imports: [
-        AuthModule,
-        BullModule.registerQueue({
-            name: "automation-queue",
-        }),
-        BullModule.registerQueue({
-            name: "chunk-processing-queue",
-            // força processamento estritamente serial (1 por vez)
-            // a concorrência do processor também está 1
-            defaultJobOptions: {
-                attempts: 3,
-                backoff: { type: "exponential", delay: 1000 },
-                removeOnComplete: 100,
-                removeOnFail: 50,
-            },
-        }),
-        BullModule.registerQueue({
-            name: "chunk-retry-queue",
-        }),
-        BullModule.registerQueue({
-            name: "assembly-queue",
-        }),
-    ],
+    imports: [AuthModule],
     controllers: [AutomationController],
     providers: [
-        // Event-driven architecture components
-        {
-            provide: "EventBusPort",
-            useClass: MultiQueueEventBusAdapter,
-        },
-        AutomationOrchestrator,
-        ChunkValidator,
-        AutomationJobProcessor,
-        ChunkProcessingJobProcessor,
-        ChunkRetryJobProcessor,
-        AssemblyJobProcessor,
-        AutomationStatusUpdaterService,
-        BatchChunkProcessorService,
-        BatchUploadAdapterService,
-        EnhancedChunkProcessorService,
-        BatchDownloadAdapterService,
-        EnhancedAssemblyCoordinatorService,
-        ChunkProcessingOptimizerService,
-
-        // Existing use cases and services
-        AutomationZipUploadUseCase,
+        // Use cases. The dashboard's upload is create -> upload-document (one
+        // call per file) -> confirm; the browser expands the dataroom zip with
+        // jszip before it posts, so nothing here unpacks archives or reassembles
+        // chunks.
         GetCompanyByIdUseCase,
         SaveDocumentsUseCase,
         GetDocumentsByAutomationIdUseCase,
@@ -103,8 +42,6 @@ import { AutomationIdInterceptor } from "./interceptors/automation-id.intercepto
         CreateAutomationUseCase,
         UploadDocumentUseCase,
         ConfirmUploadUseCase,
-        AutomationIdMiddleware,
-        AutomationIdInterceptor,
 
         // Storage and infrastructure
         {
@@ -119,15 +56,6 @@ import { AutomationIdInterceptor } from "./interceptors/automation-id.intercepto
                     ? new LocalStorageService()
                     : new GoogleStorageService(),
         },
-        {
-            provide: "ChunkUploadProgressTracker",
-            useClass: InMemoryUploadProgressTracker,
-        },
-        {
-            provide: "ChunkRegistry",
-            useClass: RedisChunkRegistry,
-        },
-        YauzlZipParserService,
 
         // Repositories
         { provide: "AgentGateway", useClass: AgentGatewayAxiosAdapter },
@@ -151,7 +79,6 @@ import { AutomationIdInterceptor } from "./interceptors/automation-id.intercepto
             provide: "ReportRepository",
             useClass: PrismaReportRepositoryAdapter,
         },
-        { provide: "ZipParserService", useClass: YauzlZipParserService },
     ],
     exports: [
         // Export StorageService so other modules can use it
