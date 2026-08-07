@@ -67,13 +67,6 @@ export interface Automation {
   updatedAt: string;
 }
 
-export interface StartAutomationResponse {
-  automation: Automation;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  agentResponse: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  documents: any[];
-}
 export interface StartStage2Response {
   success: boolean;
   message: string;

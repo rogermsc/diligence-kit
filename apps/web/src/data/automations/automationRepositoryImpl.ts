@@ -1,5 +1,4 @@
 import type {
-    StartAutomationResponse,
     StartStage2Response,
     StartStage2Request,
 } from "@/domain/automations/models/automation";
@@ -10,24 +9,6 @@ import {httpClient} from "@/lib/httpClient";
  * Implementation of AutomationRepository that fetches from internal API routes
  */
 export class AutomationRepositoryImpl implements AutomationRepository {
-    async startAutomation(
-        companyId: string,
-        file: File
-    ): Promise<StartAutomationResponse> {
-        try {
-            const formData = new FormData();
-            formData.append("file", file);
-
-            return await httpClient.postFormData<StartAutomationResponse>(
-                `/automation/start/${companyId}`,
-                formData
-            );
-        } catch (error) {
-            console.error("Error starting automation:", error);
-            throw error;
-        }
-    }
-
     async downloadOnePagerSummary(automationId: string): Promise<Blob> {
         try {
             return await httpClient.getBlob(

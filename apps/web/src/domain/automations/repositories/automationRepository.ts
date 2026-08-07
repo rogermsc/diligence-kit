@@ -1,5 +1,4 @@
 import {
-  StartAutomationResponse,
   StartStage2Response,
   StartStage2Request,
 } from "../models/automation";
@@ -8,10 +7,6 @@ import {
  * Repository interface for automation data access
  */
 export interface AutomationRepository {
-  startAutomation(
-    companyId: string,
-    file: File
-  ): Promise<StartAutomationResponse>;
   downloadOnePagerSummary(automationId: string): Promise<Blob>;
   downloadOnePager(triageAutomationId: string): Promise<Blob>;
   downloadReport(automationId: string): Promise<Blob>;
