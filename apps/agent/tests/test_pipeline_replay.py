@@ -100,6 +100,57 @@ async def test_facts_keep_the_document_they_came_from(pipeline):
     assert all(f.quote for f in revenue), "a fact with no quote cannot be checked"
 
 
+async def test_every_quote_is_checked_against_the_document_it_cites(pipeline):
+    """A citation nobody checked is decoration.
+
+    The PDF half of this is the part that used to be impossible: Step 0 uploads
+    each PDF and keeps only the file_id, so by extraction time there were no
+    bytes left to check a quote against. The text layer now rides along.
+    """
+    _, _, merged = await run(pipeline)
+    facts = [f for fs in merged.facts.values() for f in fs]
+
+    assert all(f.grounding for f in facts), "every fact is classified"
+    assert all(f.quote_verified is not None for f in facts), (
+        "every document in this dataroom is machine-readable, so no fact should "
+        "come back unverifiable"
+    )
+
+    for name in ("01_pitch_deck.pdf", "04_audited_accounts.pdf"):
+        from_pdf = [f for f in facts if f.source == name]
+        assert from_pdf and all(f.quote_verified for f in from_pdf), (
+            f"{name}: quotes should be found verbatim in the PDF text layer"
+        )
+
+
+async def test_the_recorded_fixtures_misattribute_nine_excel_facts(pipeline):
+    """A known defect in the committed fixtures, kept visible on purpose.
+
+    Excel is extracted one sheet per document. The recorded response for
+    `02_financial_model.xlsx (Pipeline)` — a sheet holding nothing but sales
+    accounts and close quarters — returns revenue, EBITDA and headcount quoted
+    verbatim from the Summary sheet. `(Terms)` does the same with the Cap Table
+    sheet's shareholder rows. The model cited content it was never shown.
+
+    It matters beyond the wrong page reference: the same fact now arrives from
+    two apparently different sources, so a merge that counts sources reads it as
+    corroboration. One sheet double-counted looks exactly like two documents
+    agreeing, in a product whose whole job is adjudicating between documents.
+
+    The fix is to re-record (`make fixtures`); this test should then fail and be
+    deleted. Until then, asserting the exact shape stops it drifting quietly.
+    """
+    _, _, merged = await run(pipeline)
+    facts = [f for fs in merged.facts.values() for f in fs]
+
+    misattributed = {f.source for f in facts if f.quote_verified is False}
+    assert misattributed == {
+        "02_financial_model.xlsx (Pipeline)",
+        "03_cap_table.xlsx (Terms)",
+    }
+    assert sum(1 for f in facts if f.quote_verified is False) == 9
+
+
 async def test_a_difference_of_basis_is_not_reported_as_a_contradiction(pipeline):
     """Year-end headcount of 52 and a 49 average are both true. Flagging that as
     a conflict would bury the revenue one in noise."""

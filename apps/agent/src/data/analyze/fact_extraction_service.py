@@ -12,6 +12,7 @@ from src.core.prompts.fact_extraction import (
     FINANCIAL_FIELDS as DEFAULT_FINANCIAL_FIELDS,
     INFORMATION_TYPES as DEFAULT_INFORMATION_TYPES,
 )
+from src.data.analyze import grounding
 from src.domain.analyze.entities import DocumentFacts, Fact, PreparedDocument
 
 logger = get_logger(__name__)
@@ -190,6 +191,10 @@ class FactExtractionService:
                 coverage=[],
             )
 
+        # Read once per document, not once per fact: for a PDF this parses the
+        # whole file. None means there is nothing to check against.
+        text = grounding.source_text(doc)
+
         facts = []
         dropped = 0
         for f in data.get("facts", []):
@@ -197,21 +202,40 @@ class FactExtractionService:
             if not self._is_valid_field(field):
                 dropped += 1
                 continue
+            quote = f.get("quote", "")
+            page = f.get("page", "")
             facts.append(
                 Fact(
                     field=field,
                     value=f.get("value", ""),
                     source=doc.file_name,
-                    page=f.get("page", ""),
-                    quote=f.get("quote", ""),
+                    page=page,
+                    quote=quote,
                     source_type=f.get("source_type", ""),
                     document_version=f.get("document_version", ""),
                     document_date=f.get("document_date", ""),
+                    grounding=grounding.classify(quote, page),
+                    quote_verified=grounding.verify(quote, text),
                 )
             )
 
         if dropped:
             logger.warning(f"{doc.file_name}: dropped {dropped} facts with unknown fields")
+
+        if text is None:
+            logger.info(
+                f"{doc.file_name}: no readable text, {len(facts)} facts left unverified"
+            )
+        else:
+            unverified = [f for f in facts if f.quote_verified is False]
+            if unverified:
+                # Worth a warning rather than a debug line: a quote that is not in
+                # the document is the model having written prose instead of copying,
+                # and every downstream citation of that fact inherits it.
+                logger.warning(
+                    f"{doc.file_name}: {len(unverified)}/{len(facts)} quotes not found "
+                    f"in the source ({', '.join(f.field for f in unverified[:5])})"
+                )
 
         coverage = [c for c in data.get("coverage", []) if c in self._information_types]
 

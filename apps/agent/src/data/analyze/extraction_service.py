@@ -87,12 +87,15 @@ class ExtractionService:
             logger.warning(f"Unsupported file type '{ext}': {doc.url}")
             return []
 
-        # Already pre-uploaded to OpenAI Files API — lightweight PreparedDocument
+        # Already pre-uploaded to OpenAI Files API — lightweight PreparedDocument.
+        # source_text rides along so quote verification still has something to
+        # check against; the PDF bytes themselves are long gone by here.
         if doc.openai_file_id:
             return [PreparedDocument(
                 document_id=doc.id,
                 file_name=file_name,
                 openai_file_id=doc.openai_file_id,
+                source_text=doc.source_text,
             )]
 
         with tempfile.TemporaryDirectory() as tmp_dir:

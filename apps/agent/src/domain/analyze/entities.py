@@ -7,6 +7,10 @@ class Document(BaseModel):
     id: str
     url: str
     openai_file_id: str | None = None
+    # The document's text layer, captured at Step 0 while its bytes are in hand.
+    # Once uploaded, only the file_id survives, and quote verification would have
+    # nothing to check a PDF against.
+    source_text: str | None = None
 
 
 class AnalyzeInput(BaseModel):
@@ -23,6 +27,7 @@ class PreparedDocument(BaseModel):
     text_content: Optional[str] = None  # Excel CSVs
     pdf_data: Optional[str] = None  # base64 whole PDF (uploaded to OpenAI Files API)
     openai_file_id: Optional[str] = None  # Pre-uploaded OpenAI file_id (skip re-upload)
+    source_text: Optional[str] = None  # text layer carried over from Step 0
 
 
 # --- Fact extraction entities ---
@@ -37,6 +42,14 @@ class Fact(BaseModel):
     source_type: str = ""  # "actual", "pro_forma", "projection", or ""
     document_version: str = ""  # e.g. "v1.5", "vA1"
     document_date: str = ""  # e.g. "2023-09-20"
+
+    # How well this fact is tied back to its document. Both are derived from what
+    # came back, not asked of the model — see data/analyze/grounding.py.
+    grounding: str = ""  # "quoted", "quoted_unlocated", or "unquoted"
+    # True/False once checked against the source text; None when there was no
+    # source text to check — a retry carrying only an openai_file_id, or a scan
+    # with no text layer. "Could not check" is not "failed the check".
+    quote_verified: Optional[bool] = None
 
 
 class DocumentFacts(BaseModel):
