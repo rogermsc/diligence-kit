@@ -6,43 +6,7 @@ import { Building2, RefreshCw, AlertCircle } from "lucide-react"
 import { useCompaniesViewModel } from "./companiesViewModel"
 import { CreateCompanyModal } from "@/components/create-company-modal"
 import { useRouter } from "next/navigation"
-import { CompanyStatus } from "@/domain/companies/models/company"
-
-/**
- * Get status indicator color based on company status
- */
-const getStatusColor = (status: CompanyStatus): string => {
-  switch (status) {
-    case CompanyStatus.PENDING:
-      return 'bg-yellow-500'
-    case CompanyStatus.PROCESSING:
-      return 'bg-blue-500'
-    case CompanyStatus.COMPLETED:
-      return 'bg-green-500'
-    case CompanyStatus.FAILED:
-      return 'bg-red-500'
-    default:
-      return 'bg-gray-500'
-  }
-}
-
-/**
- * Get human-readable status label
- */
-const getStatusLabel = (status: CompanyStatus): string => {
-  switch (status) {
-    case CompanyStatus.PENDING:
-      return 'Pending'
-    case CompanyStatus.PROCESSING:
-      return 'Processing'
-    case CompanyStatus.COMPLETED:
-      return 'Completed'
-    case CompanyStatus.FAILED:
-      return 'Failed'
-    default:
-      return status
-  }
-}
+import { StatusChip } from "@/presentation/shared/statusChip"
 
 /**
  * Company dashboard view component
@@ -122,10 +86,7 @@ export function CompaniesView() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                  <div className={`w-2 h-2 rounded-full ${getStatusColor(company.status)}`}></div>
-                  <span>{getStatusLabel(company.status)}</span>
-                </div>
+                <StatusChip status={company.status} className="text-muted-foreground" />
               </CardContent>
             </Card>
           ))}
