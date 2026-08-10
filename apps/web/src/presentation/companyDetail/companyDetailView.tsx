@@ -32,11 +32,12 @@ import {AddAutomationModal} from "@/components/add-automation-modal"
 import {ViewDocumentsModal} from "@/components/view-documents-modal"
 import {OnePager} from "@/components/one-pager"
 import {AutomationStatus, AutomationStage, ReportStatus} from "@/domain/automations/models/automation"
-import {CompanyStatus} from "@/domain/companies/models/company"
 import Link from "next/link"
 import {useLongPolling} from "@/presentation/hooks/useLongPolling"
 import {StartStage2Button} from "@/components/start-stage2-button"
 import {useCompanyContext} from "@/components/chat/chat-company-context"
+import {formatDate} from "@/lib/formatDate"
+import {StatusChip} from "@/presentation/shared/statusChip"
 
 /**
  * Document status display component
@@ -134,36 +135,6 @@ const DocumentsStatusDisplay = ({result}: DocumentsStatusDisplayProps) => {
         </div>
     );
 };
-
-const getCompanyStatusColor = (status: CompanyStatus): string => {
-    switch (status) {
-        case CompanyStatus.PENDING:
-            return 'bg-yellow-500'
-        case CompanyStatus.PROCESSING:
-            return 'bg-blue-500'
-        case CompanyStatus.COMPLETED:
-            return 'bg-green-500'
-        case CompanyStatus.FAILED:
-            return 'bg-red-500'
-        default:
-            return 'bg-gray-500'
-    }
-}
-
-const getCompanyStatusLabel = (status: CompanyStatus): string => {
-    switch (status) {
-        case CompanyStatus.PENDING:
-            return 'Pending'
-        case CompanyStatus.PROCESSING:
-            return 'Processing'
-        case CompanyStatus.COMPLETED:
-            return 'Completed'
-        case CompanyStatus.FAILED:
-            return 'Failed'
-        default:
-            return status
-    }
-}
 
 const getStageLabel = (stage?: AutomationStage): string => {
     if (!stage) return ''
@@ -300,13 +271,6 @@ export function CompanyDetailView({id}: CompanyDetailViewProps) {
         )
     }
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric', month: 'long', day: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-        })
-    }
-
     const getStatusIcon = (status: AutomationStatus) => {
         switch (status) {
             case AutomationStatus.PENDING:
@@ -419,9 +383,13 @@ export function CompanyDetailView({id}: CompanyDetailViewProps) {
                                 <p className="text-sm text-blue-800 dark:text-blue-200">
                                     Generating final report with domain-specific agents...
                                 </p>
+                                {/* `progress-slide` was never defined in any
+                                    stylesheet and the bar had no width, so this
+                                    rendered as an empty track and has never
+                                    animated. An indeterminate pulse is honest
+                                    about not knowing the progress. */}
                                 <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2 overflow-hidden">
-                                    <div
-                                        className="h-full bg-blue-600 dark:bg-blue-400 rounded-full progress-slide"></div>
+                                    <div className="h-full w-full animate-pulse rounded-full bg-blue-600 dark:bg-blue-400"></div>
                                 </div>
                                 <p className="text-xs text-blue-700 dark:text-blue-300">
                                     Processing in parallel with specialized AI agents
@@ -597,8 +565,7 @@ export function CompanyDetailView({id}: CompanyDetailViewProps) {
                             <p className="font-medium mt-1">{company.name}</p>
                         </div>
                         <div className="flex items-center space-x-2 text-sm">
-                            <div className={`w-2 h-2 rounded-full ${getCompanyStatusColor(company.status)}`}></div>
-                            <span className="text-muted-foreground">{getCompanyStatusLabel(company.status)}</span>
+                            <StatusChip status={company.status} className="text-muted-foreground" />
                         </div>
                     </CardContent>
                 </Card>
