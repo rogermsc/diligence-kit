@@ -567,6 +567,18 @@ export function CompanyDetailView({id}: CompanyDetailViewProps) {
                         <div className="flex items-center space-x-2 text-sm">
                             <StatusChip status={company.status} className="text-muted-foreground" />
                         </div>
+                        {company.automations?.some(
+                            (a) =>
+                                a.stage === AutomationStage.TRIAGE &&
+                                a.status === AutomationStatus.COMPLETED,
+                        ) && (
+                            <Button asChild variant="outline" size="sm" className="w-full">
+                                <Link href={`/dashboard/company/${company.id}/conflicts`}>
+                                    <AlertTriangle className="h-4 w-4" />
+                                    Where the documents disagree
+                                </Link>
+                            </Button>
+                        )}
                     </CardContent>
                 </Card>
 
