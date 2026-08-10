@@ -1,0 +1,5 @@
+{
+  "purpose": "fact_extraction",
+  "model": "gpt-5-mini",
+  "output": "{\"facts\": [{\"field\": \"annual_revenue_fy2024\", \"value\": \"\\u00a33.8M\", \"page\": \"Summary!B10\", \"quote\": \"FY2024 revenue shown as \\u00a33.8M on a run-rate basis.\", \"source_type\": \"pro_forma\"}, {\"field\": \"annual_revenue_fy2023\", \"value\": \"\\u00a31.95M\", \"page\": \"Summary!B5\", \"quote\": \"Revenue (GBP),1950000\", \"source_type\": \"actual\"}, {\"field\": \"ebitda\", \"value\": \"(\\u00a30.31M) FY2024\", \"page\": \"Summary!C7\", \"quote\": \"EBITDA (GBP),-820000,-310000\", \"source_type\": \"actual\"}, {\"field\": \"employees\", \"value\": \"52\", \"page\": \"Summary!C8\", \"quote\": \"Headcount,31,52,78,104\"}], \"coverage\": [\"financial_forecasts\", \"usage_data\"]}"
+}

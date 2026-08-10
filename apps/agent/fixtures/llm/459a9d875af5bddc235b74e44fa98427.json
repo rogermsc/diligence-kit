@@ -1,5 +1,0 @@
-{
-  "purpose": "fact_extraction",
-  "model": "gpt-5-mini",
-  "output": "{\"facts\": [{\"field\": \"deal_type\", \"value\": \"Seed Preferred equity\", \"page\": \"Terms\", \"quote\": \"Instrument,Seed Preferred\"}, {\"field\": \"payment_structure\", \"value\": \"1x non-participating liquidation preference\", \"page\": \"Terms\", \"quote\": \"Liquidation preference,1x non-participating\"}], \"coverage\": [\"investment_docs\", \"shareholder_agreements\"]}"
-}

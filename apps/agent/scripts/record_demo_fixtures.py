@@ -173,14 +173,14 @@ def facts_for(doc_name: str) -> dict:
     if doc_name.startswith("02_financial_model.xlsx (Summary)"):
         return {
             "facts": [
-                {"field": "annual_revenue_fy2024", "value": "£3.8M", "page": "Summary",
+                {"field": "annual_revenue_fy2024", "value": "£3.8M", "page": "Summary!B10",
                  "quote": "FY2024 revenue shown as £3.8M on a run-rate basis.",
                  "source_type": "pro_forma"},
-                {"field": "annual_revenue_fy2023", "value": "£1.95M", "page": "Summary",
+                {"field": "annual_revenue_fy2023", "value": "£1.95M", "page": "Summary!B5",
                  "quote": "Revenue (GBP),1950000", "source_type": "actual"},
-                {"field": "ebitda", "value": "(£0.31M) FY2024", "page": "Summary",
+                {"field": "ebitda", "value": "(£0.31M) FY2024", "page": "Summary!C7",
                  "quote": "EBITDA (GBP),-820000,-310000", "source_type": "actual"},
-                {"field": "employees", "value": "52", "page": "Summary",
+                {"field": "employees", "value": "52", "page": "Summary!C8",
                  "quote": "Headcount,31,52,78,104"},
             ],
             "coverage": ["financial_forecasts", "usage_data"],
@@ -198,16 +198,16 @@ def facts_for(doc_name: str) -> dict:
     if doc_name.startswith("03_cap_table.xlsx (Cap Table)"):
         return {
             "facts": [
-                {"field": "shareholder", "value": "A. Okonkwo (CEO) — 31.0%", "page": "Cap Table",
+                {"field": "shareholder", "value": "A. Okonkwo (CEO) — 31.0%", "page": "Cap Table!A2",
                  "quote": "A. Okonkwo (CEO),Ordinary,3100000,31.0%"},
                 {"field": "shareholder", "value": "R. Lindqvist (CTO) — 24.0%",
-                 "page": "Cap Table", "quote": "R. Lindqvist (CTO),Ordinary,2400000,24.0%"},
-                {"field": "shareholder", "value": "Seedwell Ventures — 19.0%", "page": "Cap Table",
+                 "page": "Cap Table!A3", "quote": "R. Lindqvist (CTO),Ordinary,2400000,24.0%"},
+                {"field": "shareholder", "value": "Seedwell Ventures — 19.0%", "page": "Cap Table!A4",
                  "quote": "Seedwell Ventures,Seed Preferred,1900000,19.0%"},
                 {"field": "key_person", "value": "A. Okonkwo, Chief Executive Officer",
-                 "page": "Cap Table", "quote": "A. Okonkwo (CEO)"},
+                 "page": "Cap Table!A2", "quote": "A. Okonkwo (CEO)"},
                 {"field": "key_person", "value": "R. Lindqvist, Chief Technology Officer",
-                 "page": "Cap Table", "quote": "R. Lindqvist (CTO)"},
+                 "page": "Cap Table!A3", "quote": "R. Lindqvist (CTO)"},
             ],
             "coverage": ["cap_table", "contracts_esop"],
         }
@@ -215,10 +215,10 @@ def facts_for(doc_name: str) -> dict:
     if doc_name.startswith("03_cap_table.xlsx (Terms)"):
         return {
             "facts": [
-                {"field": "deal_type", "value": "Seed Preferred equity", "page": "Terms",
+                {"field": "deal_type", "value": "Seed Preferred equity", "page": "Terms!B1",
                  "quote": "Instrument,Seed Preferred"},
                 {"field": "payment_structure",
-                 "value": "1x non-participating liquidation preference", "page": "Terms",
+                 "value": "1x non-participating liquidation preference", "page": "Terms!B2",
                  "quote": "Liquidation preference,1x non-participating"},
             ],
             "coverage": ["investment_docs", "shareholder_agreements"],
@@ -381,9 +381,9 @@ DILIGENCE_FACTS = {
         "03_cap_table.xlsx (Cap Table)": {
             "facts": [
                 {"field": "key_person", "value": "A. Okonkwo, Chief Executive Officer",
-                 "page": "Cap Table", "quote": "A. Okonkwo (CEO)"},
+                 "page": "Cap Table!A2", "quote": "A. Okonkwo (CEO)"},
                 {"field": "key_person", "value": "R. Lindqvist, Chief Technology Officer",
-                 "page": "Cap Table", "quote": "R. Lindqvist (CTO)"},
+                 "page": "Cap Table!A3", "quote": "R. Lindqvist (CTO)"},
             ],
             "coverage": ["structure_incorporation"],
         },
@@ -407,10 +407,10 @@ DILIGENCE_FACTS = {
                 # in this domain, so several would merge into a conflict between
                 # four accounts that do not disagree about anything.
                 {"field": "pipeline_value", "value": "£480k — Coastal Freight Group",
-                 "page": "Pipeline", "quote": "Coastal Freight Group,Discovery,480000,Q3 2025",
+                 "page": "Pipeline!C4", "quote": "Coastal Freight Group,Discovery,480000,Q3 2025",
                  "source_type": "projection"},
                 {"field": "pipeline_stage", "value": "Contracting — Meridian 3PL, Q1 2025",
-                 "page": "Pipeline", "quote": "Meridian 3PL,Contracting,340000,Q1 2025"},
+                 "page": "Pipeline!B2", "quote": "Meridian 3PL,Contracting,340000,Q1 2025"},
             ],
             "coverage": ["pipeline"],
         },
@@ -429,7 +429,7 @@ DILIGENCE_FACTS = {
         },
         "02_financial_model.xlsx (Summary)": {
             "facts": [
-                {"field": "annual_revenue_fy2024", "value": "£3.8M", "page": "Summary",
+                {"field": "annual_revenue_fy2024", "value": "£3.8M", "page": "Summary!B10",
                  "quote": "FY2024 revenue shown as £3.8M on a run-rate basis.",
                  "source_type": "pro_forma"},
             ],
@@ -439,17 +439,17 @@ DILIGENCE_FACTS = {
     "CAP_TABLE_AND_LEGAL_REVIEW": {
         "03_cap_table.xlsx (Cap Table)": {
             "facts": [
-                {"field": "shareholder", "value": "A. Okonkwo (CEO) — 31.0%", "page": "Cap Table",
+                {"field": "shareholder", "value": "A. Okonkwo (CEO) — 31.0%", "page": "Cap Table!A2",
                  "quote": "A. Okonkwo (CEO),Ordinary,3100000,31.0%"},
                 {"field": "option_pool", "value": "12.0% granted, 5.0% unallocated",
-                 "page": "Cap Table", "quote": "Employee option pool,Options,1200000,12.0%"},
+                 "page": "Cap Table!A6", "quote": "Employee option pool,Options,1200000,12.0%"},
             ],
             "coverage": ["cap_table", "contracts_esop"],
         },
         "03_cap_table.xlsx (Terms)": {
             "facts": [
                 {"field": "liquidation_preference", "value": "1x non-participating",
-                 "page": "Terms", "quote": "Liquidation preference,1x non-participating"},
+                 "page": "Terms!B2", "quote": "Liquidation preference,1x non-participating"},
             ],
             "coverage": ["investment_docs", "shareholder_agreements"],
         },
