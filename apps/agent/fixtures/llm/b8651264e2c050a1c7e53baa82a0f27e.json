@@ -1,5 +1,0 @@
-{
-  "purpose": "fact_extraction",
-  "model": "gpt-5-mini",
-  "output": "{\"facts\": [{\"field\": \"key_person\", \"value\": \"A. Okonkwo, Chief Executive Officer\", \"page\": \"Cap Table\", \"quote\": \"A. Okonkwo (CEO)\"}, {\"field\": \"key_person\", \"value\": \"R. Lindqvist, Chief Technology Officer\", \"page\": \"Cap Table\", \"quote\": \"R. Lindqvist (CTO)\"}], \"coverage\": [\"structure_incorporation\"]}"
-}

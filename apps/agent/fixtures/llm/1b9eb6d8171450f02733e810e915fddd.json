@@ -1,0 +1,5 @@
+{
+  "purpose": "fact_extraction",
+  "model": "gpt-5-mini",
+  "output": "{\"facts\": [{\"field\": \"liquidation_preference\", \"value\": \"1x non-participating\", \"page\": \"Terms!B2\", \"quote\": \"Liquidation preference,1x non-participating\"}], \"coverage\": [\"investment_docs\", \"shareholder_agreements\"]}"
+}
