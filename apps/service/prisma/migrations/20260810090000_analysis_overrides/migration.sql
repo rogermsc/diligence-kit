@@ -22,7 +22,9 @@ CREATE TABLE "analysis_overrides" (
     "targetKey" TEXT NOT NULL,
     "value" JSONB,
     "rationale" TEXT NOT NULL,
-    "authorId" UUID NOT NULL,
+    -- TEXT, not UUID: users.id is TEXT (User.id has no @db.Uuid), and Postgres
+    -- refuses a foreign key between mismatched types.
+    "authorId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "analysis_overrides_pkey" PRIMARY KEY ("id")
