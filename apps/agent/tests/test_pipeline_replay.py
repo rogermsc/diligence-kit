@@ -70,7 +70,7 @@ async def run(documents):
 
 
 async def test_the_whole_pipeline_runs_with_no_network(pipeline):
-    pdf_url, _, merged = await run(pipeline)
+    pdf_url, _, merged, _ = await run(pipeline)
 
     assert pdf_url == f"gs://local-bucket/one-pagers/{AUTOMATION_ID}.pdf"
     assert merged.facts, "extraction produced nothing"
@@ -79,7 +79,7 @@ async def test_the_whole_pipeline_runs_with_no_network(pipeline):
 async def test_the_planted_revenue_disagreement_is_caught(pipeline):
     """Three documents state FY2024 revenue three ways. Finding that is the
     product; a pipeline that reports one number and moves on has failed."""
-    _, _, merged = await run(pipeline)
+    _, _, merged, _ = await run(pipeline)
 
     conflict = next(c for c in merged.conflicts if c.field == "annual_revenue_fy2024")
     joined = " ".join(conflict.values)
@@ -100,7 +100,7 @@ async def test_the_planted_revenue_disagreement_is_caught(pipeline):
 
 
 async def test_facts_keep_the_document_they_came_from(pipeline):
-    _, _, merged = await run(pipeline)
+    _, _, merged, _ = await run(pipeline)
 
     revenue = merged.facts["annual_revenue_fy2024"]
     sources = {f.source for f in revenue}
@@ -117,7 +117,7 @@ async def test_every_quote_is_checked_against_the_document_it_cites(pipeline):
     each PDF and keeps only the file_id, so by extraction time there were no
     bytes left to check a quote against. The text layer now rides along.
     """
-    _, _, merged = await run(pipeline)
+    _, _, merged, _ = await run(pipeline)
     facts = [f for fs in merged.facts.values() for f in fs]
 
     assert all(f.grounding for f in facts), "every fact is classified"
@@ -143,7 +143,7 @@ async def test_no_fact_cites_a_sheet_it_did_not_come_from(pipeline):
     apparently different sources, and anything counting sources reads one sheet
     double-counted as two documents agreeing.
     """
-    _, _, merged = await run(pipeline)
+    _, _, merged, _ = await run(pipeline)
     facts = [f for fs in merged.facts.values() for f in fs]
 
     misattributed = [f for f in facts if f.quote_verified is False]
@@ -152,10 +152,25 @@ async def test_no_fact_cites_a_sheet_it_did_not_come_from(pipeline):
     ]
 
 
+async def test_the_scorecard_survives_the_pipeline(pipeline):
+    """The one-pager is now a return value, not just a rendered PDF.
+
+    Everything the frontend will show — the weighted scorecard, the coverage
+    denominator, the summary — used to exist for the length of one function call
+    and then be discarded in favour of a URL.
+    """
+    _, _, _, one_pager = await run(pipeline)
+
+    assert len(one_pager.scorecard) == 8
+    assert all(c.weighted_score for c in one_pager.scorecard)
+    assert one_pager.overall_score
+    assert one_pager.executive_summary
+
+
 async def test_a_difference_of_basis_is_not_reported_as_a_contradiction(pipeline):
     """Year-end headcount of 52 and a 49 average are both true. Flagging that as
     a conflict would bury the revenue one in noise."""
-    _, _, merged = await run(pipeline)
+    _, _, merged, _ = await run(pipeline)
 
     assert not any(c.field == "employees" for c in merged.conflicts)
 
@@ -163,7 +178,7 @@ async def test_a_difference_of_basis_is_not_reported_as_a_contradiction(pipeline
 async def test_absent_information_is_reported_rather_than_assumed(pipeline):
     """The dataroom has no contracts, insurance or policies. Saying so is what
     turns the run into a document request list."""
-    _, _, merged = await run(pipeline)
+    _, _, merged, _ = await run(pipeline)
 
     assert "cap_table" in merged.coverage
     assert {"insurance", "policies", "client_contracts"} <= set(merged.missing)

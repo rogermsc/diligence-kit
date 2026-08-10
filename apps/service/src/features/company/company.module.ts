@@ -5,6 +5,7 @@ import { CreateCompanyUseCase } from "./use-case/create-company.usecase"
 import { ListCompaniesUseCase } from "./use-case/list-companies.usecase"
 import { GetCompanyDetailsUseCase } from "./use-case/get-company-details.usecase"
 import { GetCompanyOnePagerUseCase } from "./use-case/get-company-one-pager.usecase"
+import { GetCompanyAnalysisUseCase } from "./use-case/get-company-analysis.usecase"
 import { DeleteCompanyUseCase } from "./use-case/delete-company.usecase"
 import { AuthModule } from "@/features/auth/auth.module"
 import { MarkdownFileHelper } from "./domain/helpers/markdown-file.helper"
@@ -27,6 +28,7 @@ import { AutomationModule as StartAutomationModule } from "@/features/automation
         ListCompaniesUseCase,
         GetCompanyDetailsUseCase,
         GetCompanyOnePagerUseCase,
+        GetCompanyAnalysisUseCase,
         DeleteCompanyUseCase,
         MarkdownFileHelper,
         StorageFileReaderAdapter,
@@ -40,6 +42,7 @@ import { AutomationModule as StartAutomationModule } from "@/features/automation
         ListCompaniesUseCase,
         GetCompanyDetailsUseCase,
         GetCompanyOnePagerUseCase,
+        GetCompanyAnalysisUseCase,
         DeleteCompanyUseCase,
         MarkdownFileHelper,
     ],

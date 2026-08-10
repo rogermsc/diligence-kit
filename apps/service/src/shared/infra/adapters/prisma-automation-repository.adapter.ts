@@ -2,7 +2,7 @@ import { Injectable, Logger } from "@nestjs/common"
 import { randomUUID } from "crypto"
 
 import { Automation } from "@/shared/domain/entities/automation.entity"
-import { AutomationStatus, AgentType } from "@prisma/client"
+import { AutomationStatus, AgentType, Prisma } from "@prisma/client"
 import { prisma } from "@/shared/infra/prisma"
 import { AutomationMapper } from "@/shared/domain/mappers/automation.mapper"
 import { DatabaseAccessError } from "@/shared/errors/db/data-base-error"
@@ -307,6 +307,7 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
         automationId: string
         companyId: string
         url: string
+        analysis?: Prisma.InputJsonValue
     }): Promise<void> {
         try {
             const existingOnePager = await prisma.onePager.findFirst({
@@ -319,6 +320,10 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
                     data: {
                         url: data.url,
                         companyId: data.companyId,
+                        // Prisma skips `undefined`, so a callback from an older
+                        // agent updates the URL and leaves a good blob alone
+                        // rather than wiping it.
+                        analysis: data.analysis,
                         updatedAt: new Date(),
                     },
                 })
@@ -328,6 +333,7 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
                         automationId: data.automationId,
                         companyId: data.companyId,
                         url: data.url,
+                        analysis: data.analysis,
                     },
                 })
             }
@@ -342,11 +348,11 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
 
     async findOnePagerByAutomationId(
         automationId: string,
-    ): Promise<{ id: string; url: string } | null> {
+    ): Promise<{ id: string; url: string; analysis: unknown } | null> {
         try {
             const onePager = await prisma.onePager.findFirst({
                 where: { automationId },
-                select: { id: true, url: true },
+                select: { id: true, url: true, analysis: true },
             })
 
             return onePager

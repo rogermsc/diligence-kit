@@ -9,7 +9,7 @@ from src.core.config import settings
 from src.core.logging import get_logger
 from src.core.security import verify_api_key
 from src.core.signing import canonical_json, sign_payload
-from src.domain.analyze.entities import AnalyzeInput, Document, MergedFacts
+from src.domain.analyze.entities import AnalyzeInput, Document, MergedFacts, OnePager
 from src.domain.analyze.use_cases import AnalyzeUseCase
 from src.presentation.analyze.schemas import AnalyzeRequest, AnalyzeResponse
 
@@ -48,8 +48,8 @@ async def _run_analysis(input: AnalyzeInput):
             every=settings.heartbeat_seconds,
             name=f"analyze:{input.automation_id}",
         ):
-            pdf_url, documents, merged = await analyze_use_case.execute(input)
-        await _notify_backend(input.automation_id, pdf_url, documents, merged)
+            pdf_url, documents, merged, one_pager = await analyze_use_case.execute(input)
+        await _notify_backend(input.automation_id, pdf_url, documents, merged, one_pager)
     except Exception as e:
         logger.error(f"Analysis failed for automation {input.automation_id}: {e}", exc_info=True)
         await _notify_backend_error(input.automation_id, "processing_failed")
@@ -78,7 +78,13 @@ def _build_headers(body: bytes) -> dict:
     }
 
 
-async def _notify_backend(automation_id: str, one_pager_url: str, documents: List[Document] = None, merged: MergedFacts = None):
+async def _notify_backend(
+    automation_id: str,
+    one_pager_url: str,
+    documents: List[Document] = None,
+    merged: MergedFacts = None,
+    one_pager: OnePager = None,
+):
     url = f"{settings.backend_base_url}/automation/complete-onepager"
     payload = {
         "automationId": automation_id,
@@ -94,8 +100,25 @@ async def _notify_backend(automation_id: str, one_pager_url: str, documents: Lis
     if merged:
         payload["coverage"] = list(merged.coverage.keys())
         payload["missing"] = merged.missing
+    if merged and one_pager:
+        # The whole analysis, in the agent's own snake_case. Converting it here
+        # would mean a second copy of entities.py maintained in lockstep on the
+        # TypeScript side, and the backend never reads inside this — it stores it
+        # and serves it back.
+        #
+        # ponytail: inlined. Measured at ~230 bytes per fact against the demo
+        # dataroom, and the backend's body limit is 5mb — around 22,000 facts of
+        # headroom. If a dataroom ever exceeds it the run is not lost: facts.json
+        # and one_pager.json are already in storage under agent-facts/, so switch
+        # this to a pointer and have the backend read them.
+        payload["analysis"] = {
+            "version": 1,
+            **merged.model_dump(),
+            "one_pager": one_pager.model_dump(),
+        }
     try:
         body = canonical_json(payload)
+        logger.info(f"complete_onepager payload: {len(body)} bytes")
         async with httpx.AsyncClient() as client:
             response = await client.post(url, content=body, headers=_build_headers(body), timeout=30.0)
             logger.info(f"Backend callback complete_onepager: {response.status_code}")

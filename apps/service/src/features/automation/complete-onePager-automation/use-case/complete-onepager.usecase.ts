@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client"
 import { Injectable, Inject, Logger } from "@nestjs/common"
 import { Usecase } from "@/shared/interfaces/usecase"
 import { AutomationRepository } from "@/features/automation/start-automation/domain/repository/automation-repository.interface"
@@ -133,6 +134,7 @@ export class CompleteOnePagerUseCase implements Usecase<
             automationId,
             companyId,
             url: data.onePagerUrl,
+            analysis: data.analysis as Prisma.InputJsonValue | undefined,
         })
 
         // Create Result + OutputDocuments from coverage/missing data
