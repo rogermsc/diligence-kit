@@ -245,7 +245,10 @@ model AnalysisOverride {
   /// Restrict, not Cascade: deleting a user must not silently rewrite the
   /// history of a run they made decisions on.
   author       User               @relation(fields: [authorId], references: [id], onDelete: Restrict)
-  authorId     String             @db.Uuid
+  /// Not @db.Uuid: User.id is a bare String, so users.id is TEXT. A uuid column
+  /// here cannot carry a foreign key to it — Postgres refuses the constraint
+  /// outright, which is how this was found.
+  authorId     String
   createdAt    DateTime           @default(now())
 
   @@index([automationId, targetType, targetKey], name: "idx_override_target")
