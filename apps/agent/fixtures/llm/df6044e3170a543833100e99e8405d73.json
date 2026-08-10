@@ -1,0 +1,5 @@
+{
+  "purpose": "conflict_resolution",
+  "model": "gpt-5-mini",
+  "output": "{\"resolutions\": [{\"field\": \"annual_revenue_fy2024\", \"is_real_conflict\": true, \"reason\": \"Three different FY2024 revenue figures. The pitch deck's \\u00a34.1M is pro-forma, the model's \\u00a33.8M is an annualised exit run-rate, and only the audited accounts state an actual.\"}, {\"field\": \"employees\", \"is_real_conflict\": false, \"reason\": \"52 is the headcount at year end and 49 is the average over the year. Both are correct on their own basis.\"}, {\"field\": \"ebitda\", \"is_real_conflict\": false, \"reason\": \"Same figure, one carrying an explicit period label.\"}]}"
+}

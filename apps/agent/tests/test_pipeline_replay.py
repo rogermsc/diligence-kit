@@ -85,8 +85,18 @@ async def test_the_planted_revenue_disagreement_is_caught(pipeline):
     joined = " ".join(conflict.values)
 
     assert "£4.1M" in joined and "£3.8M" in joined and "£3.2M" in joined
-    # The audited actual wins over the deck's pro-forma and the model's run-rate.
+
+    # Computed, not canned. This assertion used to pass because a hand-written
+    # dict in record_demo_fixtures.py returned the string "£3.2M" and the
+    # fixture round-tripped it — it proved a hash worked, not that anything
+    # adjudicated. The rules now run: two of the three values are pro-forma and
+    # only the audited accounts state an actual, so no model call is involved in
+    # settling it at all.
     assert conflict.preferred_value == "£3.2M"
+    assert conflict.preferred_source == "04_audited_accounts.pdf"
+    assert conflict.resolution_basis == "source_type"
+    assert conflict.confidence == 1.0
+    assert conflict.magnitude == "28% spread, £3.2M to £4.1M"
 
 
 async def test_facts_keep_the_document_they_came_from(pipeline):

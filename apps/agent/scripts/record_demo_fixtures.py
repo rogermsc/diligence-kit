@@ -228,27 +228,27 @@ def facts_for(doc_name: str) -> dict:
 
 
 CONFLICT_RESOLUTION = {
+    # The model's only job here is telling a real disagreement from the same
+    # figure written twice. Which value prevails is decided in fact_merge by a
+    # stated rule, before this runs, so there is no preferred_value to cann.
     "resolutions": [
         {
             "field": "annual_revenue_fy2024",
             "is_real_conflict": True,
             "reason": "Three different FY2024 revenue figures. The pitch deck's £4.1M is "
-                      "unlabelled but reconciles to a pro-forma basis; the model's £3.8M is an "
-                      "annualised exit run-rate; only the audited accounts state an actual.",
-            "preferred_value": "£3.2M",
+                      "pro-forma, the model's £3.8M is an annualised exit run-rate, and only "
+                      "the audited accounts state an actual.",
         },
         {
             "field": "employees",
             "is_real_conflict": False,
             "reason": "52 is the headcount at year end and 49 is the average over the year. "
                       "Both are correct on their own basis.",
-            "preferred_value": "",
         },
         {
             "field": "ebitda",
             "is_real_conflict": False,
             "reason": "Same figure, one carrying an explicit period label.",
-            "preferred_value": "",
         },
     ]
 }

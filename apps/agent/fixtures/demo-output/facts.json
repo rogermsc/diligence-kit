@@ -441,7 +441,12 @@
         "£3.8M (02_financial_model.xlsx (Summary) Summary type=pro_forma)",
         "£3.2M (04_audited_accounts.pdf 1 date=2024-12-31 type=actual)"
       ],
-      "preferred_value": "£3.2M"
+      "preferred_value": "£3.2M",
+      "preferred_source": "04_audited_accounts.pdf",
+      "resolution_basis": "source_type",
+      "rationale": "actual beats pro_forma; only 04_audited_accounts.pdf states this on an actual basis (audited accounts)",
+      "confidence": 1.0,
+      "magnitude": "28% spread, £3.2M to £4.1M"
     }
   ]
 }

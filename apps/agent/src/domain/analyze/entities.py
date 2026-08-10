@@ -62,7 +62,18 @@ class DocumentFacts(BaseModel):
 class Conflict(BaseModel):
     field: str
     values: List[str]  # e.g. ["£3M (financials.pdf p.3)", "£2.8M (projections.xlsx)"]
-    preferred_value: str = ""  # resolved preferred value from newest document version
+
+    # How the disagreement was settled. Derived by a stated rule in
+    # domain/analyze/authority.py, not asked of a model — a reader can disagree
+    # with the rule, which they cannot do with a preference.
+    preferred_value: str = ""
+    preferred_source: str = ""  # the document the preferred value came from
+    resolution_basis: str = ""  # source_type | document_authority | recency | unresolved
+    rationale: str = ""  # one sentence naming the rule that decided it
+    # 0.0 when nothing resolved it. Derived from which rule fired and how
+    # authoritative the winner was; never a number a model produced.
+    confidence: float = 0.0
+    magnitude: str = ""  # e.g. "28% spread, £3.2M to £4.1M"; "" if unparseable
 
 
 class MergedFacts(BaseModel):
