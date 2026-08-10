@@ -5,6 +5,7 @@ import { ErrorDispatcherService } from "@/shared/errors/error-dispatcher.service
 import { AutomationModule } from "@/features/automation/automation.module"
 import { AuthModule } from "@/features/auth/auth.module"
 import { ReportAgentsModule } from "@/features/report-agents/report-agents.module"
+import { OverridesModule } from "@/features/overrides/overrides.module"
 import { LiaisonModule } from "@/features/liaison/liaison.module"
 
 import { config } from "dotenv"
@@ -37,6 +38,7 @@ config()
         ReportModule,
         ReportAgentsModule,
         LiaisonModule,
+        OverridesModule,
     ],
     controllers: [HealthController],
     providers: [

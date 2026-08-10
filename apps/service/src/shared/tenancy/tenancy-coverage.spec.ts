@@ -10,6 +10,7 @@ import { TriggerSecondStageController } from "@/features/report-agents/presentat
 import { AuthController } from "@/features/auth/presentation/auth.controller"
 import { CompleteOnePagerController } from "@/features/automation/complete-onePager-automation/presentation/complete-onepager.controller"
 import { CompleteReportController } from "@/features/onePager-agent/report/presentation/complete-report.controller"
+import { OverridesController } from "@/features/overrides/presentation/overrides.controller"
 import { HealthController } from "@/shared/infra/health/health.controller"
 
 /**
@@ -26,6 +27,7 @@ const CONTROLLERS = [
     CompleteOnePagerController,
     CompleteReportController,
     HealthController,
+    OverridesController,
 ]
 
 interface Route {
