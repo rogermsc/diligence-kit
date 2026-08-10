@@ -1,0 +1,5 @@
+{
+  "purpose": "fact_extraction",
+  "model": "gpt-5-mini",
+  "output": "{\"facts\": [{\"field\": \"headcount\", \"value\": \"52\", \"page\": \"1\", \"quote\": \"52 employees\"}], \"coverage\": [\"deck\", \"one_pager\"]}"
+}

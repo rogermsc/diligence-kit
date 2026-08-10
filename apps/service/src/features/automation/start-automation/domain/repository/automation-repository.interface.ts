@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client"
 import {
     Automation,
     AutomationStageDomain,
@@ -14,6 +15,12 @@ export interface CreateOnePagerData {
     automationId: string
     companyId: string
     url: string
+    /**
+     * The structured analysis, stored verbatim as the agent produced it.
+     * Optional so a callback from an older agent leaves an existing blob
+     * intact — Prisma skips `undefined` on update rather than nulling it.
+     */
+    analysis?: Prisma.InputJsonValue
 }
 
 export interface AutomationRepository {
@@ -30,7 +37,7 @@ export interface AutomationRepository {
     createOrUpdateOnePager(data: CreateOnePagerData): Promise<void>
     findOnePagerByAutomationId(
         automationId: string,
-    ): Promise<{ id: string; url: string } | null>
+    ): Promise<{ id: string; url: string; analysis: unknown } | null>
     findLatestOnePagerByCompanyId(
         companyId: string,
     ): Promise<{ id: string; url: string } | null>

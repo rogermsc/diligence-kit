@@ -1,0 +1,5 @@
+{
+  "purpose": "fact_extraction",
+  "model": "gpt-5-mini",
+  "output": "{\"facts\": [{\"field\": \"shareholder\", \"value\": \"A. Okonkwo (CEO) \\u2014 31.0%\", \"page\": \"Cap Table\", \"quote\": \"A. Okonkwo (CEO),Ordinary,3100000,31.0%\"}, {\"field\": \"option_pool\", \"value\": \"12.0% granted, 5.0% unallocated\", \"page\": \"Cap Table\", \"quote\": \"Employee option pool,Options,1200000,12.0%\"}], \"coverage\": [\"cap_table\", \"contracts_esop\"]}"
+}

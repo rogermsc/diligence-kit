@@ -1,6 +1,6 @@
 COMPOSE := docker compose -f docker-compose.demo.yml
 
-.PHONY: help demo demo-logs demo-down dev test lint
+.PHONY: help demo demo-logs demo-down dev test lint fixtures fixtures-check
 
 help:
 	@echo "make demo        Bring up a complete demo with no cloud account and no API key"
@@ -9,6 +9,8 @@ help:
 	@echo "make dev         Start postgres and redis only, to run the apps natively"
 	@echo "make test        Run the test suites"
 	@echo "make lint        Lint every app"
+	@echo "make fixtures       Re-record the offline LLM fixtures and demo artefacts"
+	@echo "make fixtures-check Replay both pipelines against the committed fixtures"
 
 demo:
 	$(COMPOSE) up -d --build
@@ -49,3 +51,14 @@ lint:
 	pnpm lint
 	cd apps/agent && ruff check .
 	cd apps/liaison-agent && ruff check .
+
+# Rerun after changing anything the fixture key is built from: a prompt, a
+# LLM_MODEL_* value, the Excel renderer, or the dataroom itself. Writes
+# fixtures/llm/ and fixtures/demo-output/, both committed. Makes no API call.
+fixtures:
+	cd apps/agent && python scripts/record_demo_fixtures.py
+
+# The check to run when you are not sure whether the committed fixtures still
+# match the prompts in the tree. Fails on the first replay miss.
+fixtures-check:
+	cd apps/agent && python scripts/record_demo_fixtures.py --check

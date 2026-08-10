@@ -15,6 +15,29 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
+
+        // Provenance. A figure's basis travels with it onto every surface it
+        // appears on, so it needs one definition rather than an inline colour
+        // string per component — which is how the current code accumulated
+        // roughly forty of them. Mono and squared off, because these label a
+        // value transcribed from a document.
+        actual:
+          "rounded-sm border-transparent bg-evidence-actual-bg font-mono font-medium tracking-tight text-evidence-actual",
+        "pro-forma":
+          "rounded-sm border-transparent bg-evidence-proforma-bg font-mono font-medium tracking-tight text-evidence-proforma",
+        projection:
+          "rounded-sm border-transparent bg-evidence-projection-bg font-mono font-medium tracking-tight text-evidence-projection",
+        unknown:
+          "rounded-sm border-transparent bg-evidence-unknown-bg font-mono font-medium tracking-tight text-evidence-unknown",
+
+        // Disagreement, and its opposite. Conflict is not destructive: two
+        // documents stating different numbers is the finding, not a fault.
+        conflict:
+          "rounded-sm border-transparent bg-conflict-bg font-mono font-medium tracking-tight text-conflict",
+        corroborated:
+          "rounded-sm border-transparent bg-evidence-actual-bg font-mono font-medium tracking-tight text-corroborated",
+        missing:
+          "rounded-sm border border-dashed bg-transparent font-mono font-normal text-missing",
       },
     },
     defaultVariants: {

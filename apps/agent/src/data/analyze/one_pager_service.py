@@ -40,6 +40,27 @@ CATEGORY_WEIGHTS = {
 }
 
 
+def _describe_conflict(c) -> str:
+    """One line per conflict, carrying the decision and the reason for it.
+
+    The rule that settled it is included on purpose. Synthesis is told not to
+    re-adjudicate, and the memo has to be able to say why a figure was chosen —
+    "the audited accounts are the only actual" is an argument, "the model
+    preferred it" is not.
+    """
+    line = f"- {c.field}: {c.values}"
+    if c.magnitude:
+        line += f" [{c.magnitude}]"
+    if c.preferred_value:
+        line += (
+            f" -> USE {c.preferred_value} (from {c.preferred_source}; "
+            f"{c.resolution_basis}: {c.rationale})"
+        )
+    elif c.resolution_basis == "unresolved":
+        line += " -> UNRESOLVED: no rule separated these. Report every value and say the dataroom does not settle it."
+    return line
+
+
 class OnePagerService:
     async def generate(self, company_name: str, merged: MergedFacts) -> OnePager:
         """Generate a one-pager from merged facts via a single GPT call."""
@@ -69,11 +90,7 @@ class OnePagerService:
         covered = ", ".join(merged.coverage.keys()) if merged.coverage else "None"
         missing = ", ".join(merged.missing) if merged.missing else "None"
         conflicts = (
-            "\n".join(
-                f"- {c.field}: {c.values}"
-                + (f" → PREFERRED (newest version): {c.preferred_value}" if c.preferred_value else "")
-                for c in merged.conflicts
-            )
+            "\n".join(_describe_conflict(c) for c in merged.conflicts)
             if merged.conflicts
             else "No unresolved conflicts."
         )

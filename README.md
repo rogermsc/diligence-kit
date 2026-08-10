@@ -162,10 +162,31 @@ make test     # jest + pytest
 make lint     # eslint + ruff across all four apps
 ```
 
-The agent's suite includes an end-to-end run of the whole pipeline against the committed dataroom,
-offline, in about a second. Because each recorded response is keyed by a hash of the exact prompt,
-editing a prompt makes replay miss and that test fail — which is the intended alarm, not a flake.
-Re-record with `python scripts/record_demo_fixtures.py`.
+The agent's suite includes an end-to-end run of both pipelines — the one-pager and all four domain
+reports — against the committed dataroom, offline, in about a second. Because each recorded response
+is keyed by a hash of the request, a change to what goes into that hash makes replay miss and the
+test fail, which is the intended alarm, not a flake.
+
+What goes into the hash is wider than "the prompt", and this is the part that surprises people. The
+key covers the purpose, the model name, and the prompt text — and for a spreadsheet or a CSV the
+rendered document *is* the prompt text. So all of these invalidate the committed set:
+
+| Change | Why it re-keys |
+|---|---|
+| `apps/agent/src/core/prompts/*.py` | the prompt text itself |
+| `LLM_MODEL_*` in `core/config.py` | the model name is part of the key |
+| `extractors/excel_extractor.py` | it renders the text the prompt carries |
+| `apps/agent/fixtures/dataroom/*` | different documents, different prompts |
+
+```bash
+make fixtures        # re-record; writes fixtures/llm/ and fixtures/demo-output/
+make fixtures-check  # replay both pipelines and fail on the first miss
+```
+
+Recording makes no API call — the model is replaced by a canned answer set and only the *keys* come
+from a real pipeline run. `make fixtures` also refreshes the three artefacts `make demo` seeds from,
+which is why it is a make target rather than a bare script: running the script alone used to leave
+the demo showing the previous one-pager.
 
 The ~575 inherited type-safety lint violations are captured in `apps/service/eslint-suppressions.json`
 so they don't block work; any newly introduced error fails the build.

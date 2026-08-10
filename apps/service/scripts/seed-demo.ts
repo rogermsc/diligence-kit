@@ -10,7 +10,7 @@
  *
  * Idempotent: rerunning replaces the demo company and leaves everything else.
  */
-import { PrismaClient } from "@prisma/client"
+import { Prisma, PrismaClient } from "@prisma/client"
 import * as bcrypt from "bcryptjs"
 import { randomUUID } from "crypto"
 import { promises as fs } from "fs"
@@ -28,7 +28,9 @@ const AUTOMATION_ID = "00000000-0000-4000-8000-000000000001"
 const COMPANY_ID = "00000000-0000-4000-8000-000000000002"
 
 const BUCKET = process.env.GCLOUD_STORAGE_BUCKET || "local-bucket"
-const STORAGE_ROOT = path.resolve(process.env.STORAGE_LOCAL_ROOT || ".data/storage")
+const STORAGE_ROOT = path.resolve(
+    process.env.STORAGE_LOCAL_ROOT || ".data/storage",
+)
 const FIXTURES =
     process.env.DEMO_FIXTURES || path.resolve(__dirname, "../../agent/fixtures")
 const DATAROOM = path.join(FIXTURES, "dataroom")
@@ -42,7 +44,9 @@ async function copyInto(from: string, to: string): Promise<void> {
 
 /** Copies the dataroom into local storage under the path the pipeline uses. */
 async function stageDataroom(): Promise<string[]> {
-    const names = (await fs.readdir(DATAROOM)).filter((n) => !n.startsWith(".")).sort()
+    const names = (await fs.readdir(DATAROOM))
+        .filter((n) => !n.startsWith("."))
+        .sort()
 
     for (const name of names) {
         // Keyed on the company id, matching what the upload paths write.
@@ -60,7 +64,16 @@ async function stageDataroom(): Promise<string[]> {
  * Shipping the output means the demo needs only Docker and Node; producing it
  * needs Python, LibreOffice and the recorded fixtures.
  */
-async function stageAnalysis(): Promise<boolean> {
+/**
+ * Stages the rendered artefacts and returns the two JSON halves, so the seeded
+ * row carries the same analysis a live callback would write — assembled from
+ * the same files the agent assembles it from, rather than a third copy kept in
+ * sync by hand.
+ */
+async function stageAnalysis(): Promise<{
+    facts: Prisma.JsonObject
+    onePager: Prisma.JsonObject
+} | null> {
     const files: [string, string][] = [
         ["one_pager.pdf", `one-pagers/${AUTOMATION_ID}.pdf`],
         ["facts.json", `agent-facts/${AUTOMATION_ID}/facts.json`],
@@ -69,10 +82,24 @@ async function stageAnalysis(): Promise<boolean> {
 
     for (const [name, key] of files) {
         const source = path.join(OUTPUT, name)
-        if (!(await fs.access(source).then(() => true, () => false))) return false
+        if (
+            !(await fs.access(source).then(
+                () => true,
+                () => false,
+            ))
+        )
+            return null
         await copyInto(source, key)
     }
-    return true
+
+    return {
+        facts: JSON.parse(
+            await fs.readFile(path.join(OUTPUT, "facts.json"), "utf8"),
+        ) as Prisma.JsonObject,
+        onePager: JSON.parse(
+            await fs.readFile(path.join(OUTPUT, "one_pager.json"), "utf8"),
+        ) as Prisma.JsonObject,
+    }
 }
 
 async function main() {
@@ -111,14 +138,21 @@ async function main() {
         },
     })
 
-    const hasAnalysis = await stageAnalysis()
+    const analysis = await stageAnalysis()
 
-    if (hasAnalysis) {
+    if (analysis) {
         await prisma.onePager.create({
             data: {
                 automationId: AUTOMATION_ID,
                 companyId: COMPANY_ID,
                 url: `gs://${BUCKET}/one-pagers/${AUTOMATION_ID}.pdf`,
+                // The same envelope the agent posts back, so the demo lands on
+                // a populated analysis rather than a download link.
+                analysis: {
+                    version: 1,
+                    ...analysis.facts,
+                    one_pager: analysis.onePager,
+                },
             },
         })
     }
@@ -126,7 +160,7 @@ async function main() {
     console.log(`\n  user      ${EMAIL} / ${PASSWORD}`)
     console.log(`  company   ${COMPANY} (${dataroom.length} documents)`)
     console.log(
-        `  analysis  ${hasAnalysis ? "completed one-pager staged" : "missing — run the agent to produce it"}`,
+        `  analysis  ${analysis ? "completed one-pager staged" : "missing — run the agent to produce it"}`,
     )
     console.log(`\nOpen http://localhost:3000 and sign in.`)
 }

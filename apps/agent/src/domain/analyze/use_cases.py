@@ -9,7 +9,7 @@ from src.data.analyze.fact_extraction_service import FactExtractionService
 from src.data.analyze.file_preparation_service import FilePreparationService
 from src.data.analyze.one_pager_service import OnePagerService
 from src.data.storage import get_storage
-from src.domain.analyze.entities import AnalyzeInput, Document, MergedFacts
+from src.domain.analyze.entities import AnalyzeInput, Document, MergedFacts, OnePager
 from src.domain.analyze.fact_merge import merge_facts
 
 logger = get_logger(__name__)
@@ -24,7 +24,9 @@ class AnalyzeUseCase:
         self._gcs = get_storage()
         self._one_pager_service = OnePagerService()
 
-    async def execute(self, input: AnalyzeInput) -> Tuple[str, List[Document], MergedFacts]:
+    async def execute(
+        self, input: AnalyzeInput
+    ) -> Tuple[str, List[Document], MergedFacts, OnePager]:
         set_log_context(company_id=input.company_id, automation_id=input.automation_id)
 
         try:
@@ -118,6 +120,9 @@ class AnalyzeUseCase:
             pdf_url = f"gs://{bucket}/{pdf_path}"
 
             logger.info(f"Pipeline complete for '{input.company_name}'")
-            return pdf_url, input.documents, merged
+            # The one-pager travels back too. It was built at Step 5, rendered,
+            # and then dropped on the floor — the callback carried a URL, so
+            # every structured thing the pipeline computed died with the process.
+            return pdf_url, input.documents, merged, one_pager
         finally:
             reset_log_context()

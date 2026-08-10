@@ -16,9 +16,12 @@ export class ReportMapper {
         )
     }
 
+    // `analysis` is omitted alongside the timestamps: it is written by the
+    // agent callback, not carried on the domain entity, and including it here
+    // would force every caller to supply a blob it does not have.
     static toPrisma(
         report: Report,
-    ): Omit<PrismaReport, "createdAt" | "updatedAt"> {
+    ): Omit<PrismaReport, "createdAt" | "updatedAt" | "analysis"> {
         return {
             id: report.getId(),
             automationId: report.getAutomationId(),

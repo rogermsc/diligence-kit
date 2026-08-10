@@ -26,6 +26,7 @@ import { CreateCompanyUseCase } from "@/features/company/use-case/create-company
 import { ListCompaniesUseCase } from "@/features/company/use-case/list-companies.usecase"
 import { GetCompanyDetailsUseCase } from "@/features/company/use-case/get-company-details.usecase"
 import { GetCompanyOnePagerUseCase } from "../use-case/get-company-one-pager.usecase"
+import { GetCompanyAnalysisUseCase } from "../use-case/get-company-analysis.usecase"
 import { DeleteCompanyUseCase } from "../use-case/delete-company.usecase"
 import { AuthGuard } from "@/features/auth/guards/auth.guard"
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger"
@@ -51,6 +52,7 @@ export class CompanyController {
         private readonly listCompaniesUseCase: ListCompaniesUseCase,
         private readonly getCompanyDetailsUseCase: GetCompanyDetailsUseCase,
         private readonly getCompanyOnePagerUseCase: GetCompanyOnePagerUseCase,
+        private readonly getCompanyAnalysisUseCase: GetCompanyAnalysisUseCase,
         private readonly deleteCompanyUseCase: DeleteCompanyUseCase,
     ) {}
 
@@ -88,6 +90,18 @@ export class CompanyController {
             userId: req.user.id,
         })
     }
+    @Get("automation/:automationId/analysis")
+    @Tenancy({ automation: "param:automationId" })
+    async getAnalysis(@Param() params: unknown) {
+        const { automationId } = RequestValidator.validate(
+            params,
+            z.object({
+                automationId: z.string().uuid("Invalid automation ID format"),
+            }),
+        )
+        return this.getCompanyAnalysisUseCase.execute({ automationId })
+    }
+
     @Get("automation/:automationId/one-pager")
     @ApiGetCompanyOnePager()
     @Tenancy({ automation: "param:automationId" })

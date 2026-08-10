@@ -13,6 +13,7 @@ from typing import List
 
 from src.core.llm import upload_file
 from src.core.logging import get_logger
+from src.data.analyze import grounding
 from src.data.analyze.extraction_service import (
     EXCEL_EXTENSIONS,
     TEXT_EXTENSIONS,
@@ -67,8 +68,21 @@ class FilePreparationService:
                     file_id = await upload_file(upload_name, pdf_bytes)
                     logger.info(f"Pre-uploaded {file_name} to Files API: {file_id}")
 
+                    # The only point in the pipeline where these bytes exist. After
+                    # this the document travels as a file_id, so a quote from a PDF
+                    # could never be checked against its source. Keeping the text
+                    # layer costs a couple of KB per page against the megabytes of
+                    # base64 this step exists to release.
+                    #
+                    # ponytail: the whole text, held for the length of the run. If a
+                    # dataroom of thousand-page PDFs ever strains this, spill it to
+                    # storage beside facts.json and read it back per document.
+                    text = await asyncio.to_thread(grounding.pdf_text, pdf_bytes, file_name)
+
                     # pdf_bytes and pdf_b64 go out of scope → GC'd
-                    return doc.model_copy(update={"openai_file_id": file_id})
+                    return doc.model_copy(
+                        update={"openai_file_id": file_id, "source_text": text}
+                    )
 
                 except Exception as e:
                     logger.error(f"Pre-upload failed for {doc.url}: {e}")

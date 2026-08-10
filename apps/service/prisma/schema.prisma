@@ -191,6 +191,10 @@ model Report {
   domain       AgentType
   status       ReportStatus @default(UNTRACKED)
   reportUrl    String
+  /// Same envelope as OnePager.analysis, carrying the domain report instead of
+  /// the one-pager. Written now, read later — landing both columns in one
+  /// migration avoids a second one racing this from a parallel branch.
+  analysis     Json?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -208,6 +212,18 @@ model OnePager {
   company       Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
   companyId     String      @db.Uuid
   url           String      @db.Text
+  /// The structured analysis behind the PDF: every fact with its source file,
+  /// page and verbatim quote, the coverage map, the resolved conflicts, and the
+  /// one-pager sections including the weighted scorecard. Stored verbatim in
+  /// the agent's shape — see apps/agent/src/domain/analyze/entities.py.
+  ///
+  /// ponytail: one document, not fact and conflict tables. Every write is a
+  /// whole run and every read is a whole run, and nothing queries across runs.
+  /// Normalise when that stops being true.
+  ///
+  /// Nullable: rows written before this column have only the PDF, and the read
+  /// endpoint returns null rather than failing.
+  analysis      Json?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 

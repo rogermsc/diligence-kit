@@ -48,11 +48,19 @@ The executive summary, scorecard key_issues, risk factors, deal rationale, and a
 narrative sections SHOULD reference projections and forecasts when they are material to \
 the investment thesis. Projections are key to telling the investment story.
 
-### Version Resolution
-Each fact may include version and date metadata from its source document. \
-When multiple document versions provide conflicting values for the same field, \
-prefer the MOST RECENT version (by date first, then by version number). \
-Flag the discrepancy in the relevant scorecard key_issues section.
+### Resolved Conflicts
+Where documents disagree, the conflict list states which value prevails, which \
+rule decided it, and how far apart the figures are. That decision is already \
+made — use the preferred value throughout, and do not re-adjudicate it.
+
+Two things you must still do. Say in the executive summary that the figures \
+disagree, name the other values and their basis, and say which one you are \
+using; a memo that silently reports one number has hidden the finding. And \
+raise the discrepancy in the relevant scorecard key_issues.
+
+A conflict marked unresolved has no preferred value on purpose — no rule \
+separated the documents. Report every value and say plainly that the dataroom \
+does not settle it. Do not pick one.
 
 ### No Fabricated Ranges
 NEVER synthesize a range (e.g. "X–Y") unless BOTH endpoints appear explicitly \

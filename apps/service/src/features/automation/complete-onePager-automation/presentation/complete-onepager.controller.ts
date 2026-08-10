@@ -37,15 +37,32 @@ export class CompleteOnePagerController {
             fileIds?: { documentId: string; openaiFileId: string }[]
             coverage?: string[]
             missing?: string[]
+            analysis?: unknown
         },
     ) {
-        this.logger.log(`Received complete-onepager HTTP callback`, { payload })
+        // Deliberately not the payload. It now carries the whole analysis —
+        // hundreds of kilobytes of verbatim quotes lifted out of a client's
+        // confidential documents — and this line ran at INFO on every single
+        // run, shipping all of it into the log sink.
+        this.logger.log(
+            `Received complete-onepager HTTP callback for ${payload.automationId}`,
+            {
+                facts: Object.keys(
+                    (payload.analysis as { facts?: object })?.facts ?? {},
+                ).length,
+                documents: payload.fileIds?.length ?? 0,
+            },
+        )
 
         const validatedData = PayloadValidator.validateWithErrorHandling(
             {
                 onePagerUrl: payload.onePagerUrl,
                 coverage: payload.coverage,
                 missing: payload.missing,
+                // The validator is handed a hand-picked object rather than the
+                // payload, so a field added to the schema and not to this list
+                // is silently dropped while every test still passes.
+                analysis: payload.analysis,
             },
             completeOnePagerSchema,
             "CompleteOnePagerHTTP",

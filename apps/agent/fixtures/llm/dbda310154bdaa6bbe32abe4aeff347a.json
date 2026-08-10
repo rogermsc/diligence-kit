@@ -1,0 +1,5 @@
+{
+  "purpose": "fact_extraction",
+  "model": "gpt-5-mini",
+  "output": "{\"facts\": [{\"field\": \"annual_revenue_fy2024\", \"value\": \"\\u00a33.8M\", \"page\": \"Summary\", \"quote\": \"FY2024 revenue shown as \\u00a33.8M on a run-rate basis.\", \"source_type\": \"pro_forma\"}], \"coverage\": [\"financial_forecasts\"]}"
+}
