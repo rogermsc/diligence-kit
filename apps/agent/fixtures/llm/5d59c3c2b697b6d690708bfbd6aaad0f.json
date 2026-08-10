@@ -1,0 +1,5 @@
+{
+  "purpose": "fact_extraction",
+  "model": "gpt-5-mini",
+  "output": "{\"facts\": [{\"field\": \"customer_count\", \"value\": \"34 enterprise customers\", \"page\": \"1\", \"quote\": \"34 enterprise customers across the UK, Ireland and the Netherlands\"}, {\"field\": \"customer_segment\", \"value\": \"3PL operators running between 4 and 40 sites\", \"page\": \"1\", \"quote\": \"We target 3PL operators running between 4 and 40 sites\"}], \"coverage\": [\"deck\", \"go_to_market_strategy\"]}"
+}

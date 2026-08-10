@@ -1,0 +1,5 @@
+{
+  "purpose": "fact_extraction",
+  "model": "gpt-5-mini",
+  "output": "{\"facts\": [{\"field\": \"pipeline_value\", \"value\": \"\\u00a3480k \\u2014 Coastal Freight Group\", \"page\": \"Pipeline\", \"quote\": \"Coastal Freight Group,Discovery,480000,Q3 2025\", \"source_type\": \"projection\"}, {\"field\": \"pipeline_stage\", \"value\": \"Contracting \\u2014 Meridian 3PL, Q1 2025\", \"page\": \"Pipeline\", \"quote\": \"Meridian 3PL,Contracting,340000,Q1 2025\"}], \"coverage\": [\"pipeline\"]}"
+}

@@ -123,32 +123,23 @@ async def test_every_quote_is_checked_against_the_document_it_cites(pipeline):
         )
 
 
-async def test_the_recorded_fixtures_misattribute_nine_excel_facts(pipeline):
-    """A known defect in the committed fixtures, kept visible on purpose.
+async def test_no_fact_cites_a_sheet_it_did_not_come_from(pipeline):
+    """Excel is extracted one prepared document per sheet, and the canned answers
+    used to be selected by file name — so both sheets of a workbook were given the
+    same facts, and the Summary sheet's revenue was also recorded against the
+    Pipeline sheet, which holds nothing but sales accounts.
 
-    Excel is extracted one sheet per document. The recorded response for
-    `02_financial_model.xlsx (Pipeline)` — a sheet holding nothing but sales
-    accounts and close quarters — returns revenue, EBITDA and headcount quoted
-    verbatim from the Summary sheet. `(Terms)` does the same with the Cap Table
-    sheet's shareholder rows. The model cited content it was never shown.
-
-    It matters beyond the wrong page reference: the same fact now arrives from
-    two apparently different sources, so a merge that counts sources reads it as
-    corroboration. One sheet double-counted looks exactly like two documents
-    agreeing, in a product whose whole job is adjudicating between documents.
-
-    The fix is to re-record (`make fixtures`); this test should then fail and be
-    deleted. Until then, asserting the exact shape stops it drifting quietly.
+    Beyond the wrong page reference, the same fact then arrived from two
+    apparently different sources, and anything counting sources reads one sheet
+    double-counted as two documents agreeing.
     """
     _, _, merged = await run(pipeline)
     facts = [f for fs in merged.facts.values() for f in fs]
 
-    misattributed = {f.source for f in facts if f.quote_verified is False}
-    assert misattributed == {
-        "02_financial_model.xlsx (Pipeline)",
-        "03_cap_table.xlsx (Terms)",
-    }
-    assert sum(1 for f in facts if f.quote_verified is False) == 9
+    misattributed = [f for f in facts if f.quote_verified is False]
+    assert not misattributed, [
+        f"{f.source}: {f.field} = {f.quote!r}" for f in misattributed
+    ]
 
 
 async def test_a_difference_of_basis_is_not_reported_as_a_contradiction(pipeline):
@@ -184,3 +175,81 @@ async def test_a_changed_prompt_invalidates_the_fixtures(pipeline, monkeypatch):
 
     with pytest.raises(llm.ReplayMiss):
         await run(pipeline)
+
+
+# ---------------------------------------------------------------------------
+# The four domain reports. Until these fixtures existed, diligence_extraction.py
+# and diligence_synthesis.py — some 600 lines behind the four reports advertised
+# on the README front page — had no offline coverage at all, and stage 2 of
+# `make demo` died on a replay miss.
+# ---------------------------------------------------------------------------
+
+DOMAINS = ["OPERATIONAL", "COMMERCIAL", "FINANCIAL", "CAP_TABLE_AND_LEGAL_REVIEW"]
+
+
+@pytest.mark.parametrize("index, domain", list(enumerate(DOMAINS)))
+async def test_each_domain_report_runs_with_no_network(pipeline, monkeypatch, index, domain):
+    from src.data.diligence import document_renderer as diligence_renderer
+    from src.domain.diligence.entities import DiligenceInput
+    from src.domain.diligence.use_cases import DiligenceUseCase
+
+    async def _no_pdf(docx_bytes):
+        return b"%PDF-1.4 stub"
+
+    monkeypatch.setattr(diligence_renderer, "convert_docx_to_pdf", _no_pdf, raising=False)
+    monkeypatch.setattr("src.domain.diligence.use_cases.convert_docx_to_pdf", _no_pdf)
+
+    # The same child automation ids the recorder used, and the ones the backend
+    # creates for stage 2. A shared id would have each domain overwrite the
+    # previous one's cached facts.
+    automation_id = f"{AUTOMATION_ID[:-1]}{index + 2}"
+
+    url = await DiligenceUseCase(domain).execute(
+        DiligenceInput(
+            company_id=COMPANY_ID,
+            company_name=COMPANY,
+            automation_id=automation_id,
+            domain=domain,
+            documents=pipeline,
+        )
+    )
+
+    assert url.startswith("gs://local-bucket/")
+    assert url.endswith(".pdf")
+
+
+async def test_the_financial_report_carries_the_disagreement_into_stage_two(pipeline, monkeypatch):
+    """The conflict found in triage has to survive into the domain report, or
+    stage 2 quietly restates whichever figure it happened to read last."""
+    from src.data.diligence import document_renderer as diligence_renderer
+    from src.data.diligence.report_service import DiligenceReportService
+    from src.domain.diligence.entities import DiligenceInput
+    from src.domain.diligence.use_cases import DiligenceUseCase
+
+    async def _no_pdf(docx_bytes):
+        return b"%PDF-1.4 stub"
+
+    monkeypatch.setattr(diligence_renderer, "convert_docx_to_pdf", _no_pdf, raising=False)
+    monkeypatch.setattr("src.domain.diligence.use_cases.convert_docx_to_pdf", _no_pdf)
+
+    captured = {}
+    original = DiligenceReportService.generate
+
+    async def spy(self, domain, company_name, merged):
+        captured["merged"] = merged
+        return await original(self, domain, company_name, merged)
+
+    monkeypatch.setattr(DiligenceReportService, "generate", spy)
+
+    await DiligenceUseCase("FINANCIAL").execute(
+        DiligenceInput(
+            company_id=COMPANY_ID, company_name=COMPANY,
+            automation_id=f"{AUTOMATION_ID[:-1]}4",
+            domain="FINANCIAL", documents=pipeline,
+        )
+    )
+
+    merged = captured["merged"]
+    revenue = merged.facts["annual_revenue_fy2024"]
+    assert {f.value for f in revenue} == {"£3.2M", "£3.8M"}
+    assert any(c.field == "annual_revenue_fy2024" for c in merged.conflicts)

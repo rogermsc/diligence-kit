@@ -1,5 +1,5 @@
 {
   "purpose": "fact_extraction",
   "model": "gpt-5-mini",
-  "output": "{\"facts\": [], \"coverage\": [\"pipeline\"]}"
+  "output": "{\"facts\": [], \"coverage\": []}"
 }

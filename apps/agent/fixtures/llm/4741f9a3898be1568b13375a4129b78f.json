@@ -1,0 +1,5 @@
+{
+  "purpose": "fact_extraction",
+  "model": "gpt-5-mini",
+  "output": "{\"facts\": [{\"field\": \"annual_revenue_fy2024\", \"value\": \"\\u00a33.2M\", \"page\": \"1\", \"quote\": \"Turnover                          \\u00a33.2M\", \"source_type\": \"actual\", \"document_date\": \"2024-12-31\"}, {\"field\": \"ebitda\", \"value\": \"(\\u00a30.31M)\", \"page\": \"1\", \"quote\": \"EBITDA                            (\\u00a30.31M)\", \"source_type\": \"actual\", \"document_date\": \"2024-12-31\"}], \"coverage\": [\"quality_of_earnings\", \"revenue_analysis\"]}"
+}

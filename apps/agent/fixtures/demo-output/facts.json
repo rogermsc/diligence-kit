@@ -9,7 +9,9 @@
         "quote": "Northwind Robotics Ltd",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       }
     ],
     "industry": [
@@ -21,7 +23,9 @@
         "quote": "Warehouse automation for mid-market third-party logistics",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       }
     ],
     "headquarters": [
@@ -33,7 +37,9 @@
         "quote": "Headquartered in Bristol, United Kingdom",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       }
     ],
     "founded_year": [
@@ -45,7 +51,9 @@
         "quote": "Founded 2019",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       }
     ],
     "website": [
@@ -57,7 +65,9 @@
         "quote": "www.example.com",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       }
     ],
     "employees": [
@@ -69,7 +79,9 @@
         "quote": "52 employees",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       },
       {
         "field": "employees",
@@ -79,17 +91,9 @@
         "quote": "Headcount,31,52,78,104",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
-      },
-      {
-        "field": "employees",
-        "value": "52",
-        "source": "02_financial_model.xlsx (Pipeline)",
-        "page": "Summary",
-        "quote": "Headcount,31,52,78,104",
-        "source_type": "",
-        "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       },
       {
         "field": "employees",
@@ -99,7 +103,9 @@
         "quote": "Average monthly number of employees during the year: 49",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       }
     ],
     "annual_revenue_fy2024": [
@@ -111,7 +117,9 @@
         "quote": "FY2024 revenue: £4.1M",
         "source_type": "pro_forma",
         "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       },
       {
         "field": "annual_revenue_fy2024",
@@ -121,17 +129,9 @@
         "quote": "FY2024 revenue shown as £3.8M on a run-rate basis.",
         "source_type": "pro_forma",
         "document_version": "",
-        "document_date": ""
-      },
-      {
-        "field": "annual_revenue_fy2024",
-        "value": "£3.8M",
-        "source": "02_financial_model.xlsx (Pipeline)",
-        "page": "Summary",
-        "quote": "FY2024 revenue shown as £3.8M on a run-rate basis.",
-        "source_type": "pro_forma",
-        "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       },
       {
         "field": "annual_revenue_fy2024",
@@ -141,7 +141,9 @@
         "quote": "Turnover                          £3.2M",
         "source_type": "actual",
         "document_version": "",
-        "document_date": "2024-12-31"
+        "document_date": "2024-12-31",
+        "grounding": "quoted",
+        "quote_verified": true
       }
     ],
     "market_position": [
@@ -153,7 +155,9 @@
         "quote": "We target 3PL operators running between 4 and 40 sites",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       }
     ],
     "customer_base": [
@@ -165,7 +169,9 @@
         "quote": "34 enterprise customers across the UK, Ireland and the Netherlands",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       }
     ],
     "geographic_presence": [
@@ -177,7 +183,9 @@
         "quote": "across the UK, Ireland and the Netherlands",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       }
     ],
     "transaction_value": [
@@ -189,7 +197,9 @@
         "quote": "Raising GBP 6M Series A at a GBP 30M pre-money valuation",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       }
     ],
     "annual_revenue_fy2023": [
@@ -201,17 +211,9 @@
         "quote": "Revenue (GBP),1950000",
         "source_type": "actual",
         "document_version": "",
-        "document_date": ""
-      },
-      {
-        "field": "annual_revenue_fy2023",
-        "value": "£1.95M",
-        "source": "02_financial_model.xlsx (Pipeline)",
-        "page": "Summary",
-        "quote": "Revenue (GBP),1950000",
-        "source_type": "actual",
-        "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       }
     ],
     "ebitda": [
@@ -223,17 +225,9 @@
         "quote": "EBITDA (GBP),-820000,-310000",
         "source_type": "actual",
         "document_version": "",
-        "document_date": ""
-      },
-      {
-        "field": "ebitda",
-        "value": "(£0.31M) FY2024",
-        "source": "02_financial_model.xlsx (Pipeline)",
-        "page": "Summary",
-        "quote": "EBITDA (GBP),-820000,-310000",
-        "source_type": "actual",
-        "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       },
       {
         "field": "ebitda",
@@ -243,7 +237,9 @@
         "quote": "EBITDA                            (£0.31M)",
         "source_type": "actual",
         "document_version": "",
-        "document_date": "2024-12-31"
+        "document_date": "2024-12-31",
+        "grounding": "quoted",
+        "quote_verified": true
       }
     ],
     "shareholder": [
@@ -255,7 +251,9 @@
         "quote": "A. Okonkwo (CEO),Ordinary,3100000,31.0%",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       },
       {
         "field": "shareholder",
@@ -265,7 +263,9 @@
         "quote": "R. Lindqvist (CTO),Ordinary,2400000,24.0%",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       },
       {
         "field": "shareholder",
@@ -275,37 +275,9 @@
         "quote": "Seedwell Ventures,Seed Preferred,1900000,19.0%",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
-      },
-      {
-        "field": "shareholder",
-        "value": "A. Okonkwo (CEO) — 31.0%",
-        "source": "03_cap_table.xlsx (Terms)",
-        "page": "Cap Table",
-        "quote": "A. Okonkwo (CEO),Ordinary,3100000,31.0%",
-        "source_type": "",
-        "document_version": "",
-        "document_date": ""
-      },
-      {
-        "field": "shareholder",
-        "value": "R. Lindqvist (CTO) — 24.0%",
-        "source": "03_cap_table.xlsx (Terms)",
-        "page": "Cap Table",
-        "quote": "R. Lindqvist (CTO),Ordinary,2400000,24.0%",
-        "source_type": "",
-        "document_version": "",
-        "document_date": ""
-      },
-      {
-        "field": "shareholder",
-        "value": "Seedwell Ventures — 19.0%",
-        "source": "03_cap_table.xlsx (Terms)",
-        "page": "Cap Table",
-        "quote": "Seedwell Ventures,Seed Preferred,1900000,19.0%",
-        "source_type": "",
-        "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       }
     ],
     "key_person": [
@@ -317,7 +289,9 @@
         "quote": "A. Okonkwo (CEO)",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       },
       {
         "field": "key_person",
@@ -327,27 +301,37 @@
         "quote": "R. Lindqvist (CTO)",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
-      },
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
+      }
+    ],
+    "deal_type": [
       {
-        "field": "key_person",
-        "value": "A. Okonkwo, Chief Executive Officer",
+        "field": "deal_type",
+        "value": "Seed Preferred equity",
         "source": "03_cap_table.xlsx (Terms)",
-        "page": "Cap Table",
-        "quote": "A. Okonkwo (CEO)",
+        "page": "Terms",
+        "quote": "Instrument,Seed Preferred",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
-      },
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
+      }
+    ],
+    "payment_structure": [
       {
-        "field": "key_person",
-        "value": "R. Lindqvist, Chief Technology Officer",
+        "field": "payment_structure",
+        "value": "1x non-participating liquidation preference",
         "source": "03_cap_table.xlsx (Terms)",
-        "page": "Cap Table",
-        "quote": "R. Lindqvist (CTO)",
+        "page": "Terms",
+        "quote": "Liquidation preference,1x non-participating",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       }
     ],
     "net_income": [
@@ -359,7 +343,9 @@
         "quote": "Loss for the financial year       (£0.58M)",
         "source_type": "actual",
         "document_version": "",
-        "document_date": "2024-12-31"
+        "document_date": "2024-12-31",
+        "grounding": "quoted",
+        "quote_verified": true
       }
     ],
     "total_assets": [
@@ -371,7 +357,9 @@
         "quote": "Total assets                      £4.15M",
         "source_type": "actual",
         "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       }
     ],
     "risk_factor": [
@@ -383,7 +371,9 @@
         "quote": "the company is dependent on completing a further funding round within twelve months of signing",
         "source_type": "",
         "document_version": "",
-        "document_date": ""
+        "document_date": "",
+        "grounding": "quoted",
+        "quote_verified": true
       }
     ]
   },
@@ -401,31 +391,24 @@
       "01_pitch_deck.pdf"
     ],
     "financial_forecasts": [
-      "02_financial_model.xlsx (Summary)",
-      "02_financial_model.xlsx (Pipeline)"
-    ],
-    "pipeline": [
-      "02_financial_model.xlsx (Summary)",
-      "02_financial_model.xlsx (Pipeline)"
+      "02_financial_model.xlsx (Summary)"
     ],
     "usage_data": [
-      "02_financial_model.xlsx (Summary)",
+      "02_financial_model.xlsx (Summary)"
+    ],
+    "pipeline": [
       "02_financial_model.xlsx (Pipeline)"
     ],
     "cap_table": [
-      "03_cap_table.xlsx (Cap Table)",
-      "03_cap_table.xlsx (Terms)"
+      "03_cap_table.xlsx (Cap Table)"
+    ],
+    "contracts_esop": [
+      "03_cap_table.xlsx (Cap Table)"
     ],
     "investment_docs": [
-      "03_cap_table.xlsx (Cap Table)",
       "03_cap_table.xlsx (Terms)"
     ],
     "shareholder_agreements": [
-      "03_cap_table.xlsx (Cap Table)",
-      "03_cap_table.xlsx (Terms)"
-    ],
-    "contracts_esop": [
-      "03_cap_table.xlsx (Cap Table)",
       "03_cap_table.xlsx (Terms)"
     ],
     "quality_of_earnings": [
