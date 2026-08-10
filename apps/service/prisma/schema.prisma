@@ -69,6 +69,7 @@ model Automation {
   results   Result[]
   reports   Report[]
   onePagers OnePager[]
+  overrides AnalysisOverride[]
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
   Documents Documents[]
@@ -165,6 +166,7 @@ model User {
   companyId     String?      @db.Uuid
   refreshTokens RefreshToken[]
   companies     Company[]
+  overrides     AnalysisOverride[]
 
   @@map("users")
 }
@@ -230,4 +232,45 @@ model OnePager {
   @@index([automationId], name: "idx_onepager_automation")
   @@index([companyId], name: "idx_onepager_company")
   @@map("one_pagers")
+}
+
+/// A human decision recorded on top of a run, never inside it.
+///
+/// The machine's analysis is a run artefact and is not edited: it stays exactly
+/// as the agent produced it, in OnePager.analysis. Judgement about it lives
+/// here, attributed and timestamped, and the read endpoint merges the two so
+/// every value can say whether it came from the model or from a person.
+///
+/// That separation is the same discipline the product applies to a dataroom —
+/// a figure is worth what its source is worth — turned on its own users. It
+/// also makes the audit trail free, because this table *is* the trail.
+model AnalysisOverride {
+  id           String             @id @default(uuid()) @db.Uuid
+  automation   Automation         @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  automationId String             @db.Uuid
+  targetType   OverrideTargetType
+  /// What is being overridden: a fact or conflict field name, or a scorecard
+  /// category as "category:Financial Readiness".
+  targetKey    String
+  /// The replacement. Null for an ANNOTATION, which adds a note without
+  /// changing a value, and for a revert, which withdraws an earlier override.
+  value        Json?
+  /// Required, at the schema level. An override with no stated reason is the
+  /// unsourced assertion this product exists to argue against.
+  rationale    String             @db.Text
+  /// Restrict, not Cascade: deleting a user must not silently rewrite the
+  /// history of a run they made decisions on.
+  author       User               @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  authorId     String             @db.Uuid
+  createdAt    DateTime           @default(now())
+
+  @@index([automationId, targetType, targetKey], name: "idx_override_target")
+  @@map("analysis_overrides")
+}
+
+enum OverrideTargetType {
+  FACT
+  CONFLICT
+  SCORECARD
+  ANNOTATION
 }
