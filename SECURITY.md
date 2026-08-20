@@ -9,7 +9,8 @@ than opening a public issue.
 ## Scope and expectations
 
 This project handles investment datarooms — documents that are confidential by nature. It is
-published as a working starting point, not as hardened software, and it ships with **no test suite**.
+published as a working starting point, not as hardened software. It has a test suite covering the
+pipeline, authorization and the agent seam, but it has never been audited or penetration-tested.
 Review it before putting real data through it.
 
 Security-relevant design decisions worth knowing:

@@ -67,8 +67,8 @@ product; a dataroom where every document agrees would demonstrate none of it.
 
 Sign in at [localhost:3000](http://localhost:3000) with `you@example.com` / `demo-password`.
 
-Storage is a local volume (`STORAGE_DRIVER=local`) and the agent replays recorded model
-responses (`LLM_DRIVER=replay`), so the whole thing runs offline. `make demo-down` removes it.
+Storage is a local volume (`STORAGE_DRIVER=local`) and the agent answers from committed
+fixtures (`LLM_DRIVER=replay`) rather than calling a model, so the whole thing runs offline. `make demo-down` removes it.
 
 ## Quick start
 
@@ -184,7 +184,10 @@ make fixtures-check  # replay both pipelines and fail on the first miss
 ```
 
 Recording makes no API call — the model is replaced by a canned answer set and only the *keys* come
-from a real pipeline run. `make fixtures` also refreshes the three artefacts `make demo` seeds from,
+from a real pipeline run. So the offline suite proves the pipeline around the model is correct — that
+facts keep their source, that a quote is checked against the document it cites, that the stated rule
+picks the audited figure — and proves nothing about how accurately the model reads a document. Those
+are different claims and only the first one is tested here. `make fixtures` also refreshes the three artefacts `make demo` seeds from,
 which is why it is a make target rather than a bare script: running the script alone used to leave
 the demo showing the previous one-pager.
 

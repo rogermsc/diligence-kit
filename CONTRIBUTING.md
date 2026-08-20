@@ -4,9 +4,10 @@ Thanks for taking a look. Issues and pull requests are both welcome.
 
 ## Before you start
 
-There is **no test suite** — `pnpm test` is wired up but runs nothing. That is the honest state of the
-project, and it means changes are verified by running the thing. If you add tests alongside a change,
-even better.
+`make test` runs jest and pytest across the four apps, and CI runs them on every pull request. The
+agent's suite runs both pipelines end to end offline in about a second, so most changes can be
+verified without an API key. It covers the pipeline rather than the model's accuracy, so changes are
+still worth running against the real thing. If you add tests alongside a change, even better.
 
 Please open an issue before starting anything large, so you don't build something that doesn't fit.
 
