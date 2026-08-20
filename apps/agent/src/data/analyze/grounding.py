@@ -16,6 +16,7 @@ and a fabricated number on an investment memo is worse than no number.
 
 import base64
 import re
+import unicodedata
 from typing import Optional
 
 import fitz  # pymupdf
@@ -83,10 +84,16 @@ def verify(quote: str, text: Optional[str]) -> Optional[bool]:
     CSVs, and case-insensitive because it re-cases headings. Anything looser
     would start passing paraphrases, which is the thing this exists to catch.
 
-    ponytail: exact containment after normalising. If real documents turn out to
-    fail this too often — ligatures, soft hyphens, smart quotes — normalise those
-    too before reaching for fuzzy matching, which cannot tell a near-miss
-    transcription from a near-miss invention.
+    ponytail: exact containment after normalising, and it holds. That used to be
+    a hope — the only corpus behind it was written by the same library that reads
+    it back, so it could only ever agree. Measured since against 22 SEC annual
+    reports this pipeline did not author: 2,640 of 2,640 sampled sentences
+    verify, up from 2,564 before the normalisation below. See evals/README.md.
+
+    Keep it exact. Fuzzy matching cannot tell a near-miss transcription from a
+    near-miss invention, and the same measurement shows the discrimination is
+    worth keeping: quotes taken from a different company's report are rejected
+    outright, bar shared auditor's-report boilerplate, which is a true match.
     """
     if text is None:
         return None
@@ -95,5 +102,37 @@ def verify(quote: str, text: Optional[str]) -> Optional[bool]:
     return _normalize(quote) in _normalize(text)
 
 
+# A hyphen between two letters, and any whitespace after it. Applied to both
+# sides, so it does not matter which of the two a hyphen came from: a word split
+# across a line break ("opera-\ntions") and a real compound ("well-known") both
+# reduce to the same thing, and the reader's transcription reduces to it too.
+#
+# Between *letters* only. "2023-2024" and "-310000" are left alone, which
+# matters more here than in ordinary prose.
+_LINE_HYPHEN = re.compile(r"(?<=[^\W\d_])-\s*(?=[^\W\d_])", re.UNICODE)
+
+_SOFT_HYPHEN = "­"
+
+
 def _normalize(s: str) -> str:
+    """Fold away the differences between a rendered page and its text layer.
+
+    A model quoting a PDF reads the page as drawn; `pdf_text` reads the text
+    layer underneath. Measured over 2,640 sentences from 22 SEC annual reports,
+    those two disagreed on 2.9% of sentences, and 95% of that was one thing:
+    a word broken across a justified line break, which every one of the 22
+    documents contains. That is what `_LINE_HYPHEN` is for.
+
+    NFKC covers the rest — a "™" the layer stores as one glyph and a reader may
+    write as "TM", fullwidth forms, fractions. Ligatures are *not* on that list:
+    `casefold()` already turns "ﬁ" into "fi", which the measurement only showed
+    because it was checked rather than assumed.
+
+    Deliberately still exact containment afterwards. Fuzzy matching cannot tell
+    a near-miss transcription from a near-miss invention, and at the thresholds
+    that would accept a reformatted number it also accepts £3.8M as evidence
+    for £3.2M.
+    """
+    s = unicodedata.normalize("NFKC", s).replace(_SOFT_HYPHEN, "")
+    s = _LINE_HYPHEN.sub("", s)
     return _WHITESPACE.sub(" ", s).strip().casefold()

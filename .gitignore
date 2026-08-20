@@ -54,3 +54,8 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# Grounding-study corpus: ~150 MB of third-party filings, fetched on demand by
+# `python -m evals.grounding_study --fetch`. The finding is the artefact worth
+# keeping, not the PDFs.
+apps/agent/evals/corpus/

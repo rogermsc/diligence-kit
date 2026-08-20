@@ -187,7 +187,13 @@ Recording makes no API call — the model is replaced by a canned answer set and
 from a real pipeline run. So the offline suite proves the pipeline around the model is correct — that
 facts keep their source, that a quote is checked against the document it cites, that the stated rule
 picks the audited figure — and proves nothing about how accurately the model reads a document. Those
-are different claims and only the first one is tested here. `make fixtures` also refreshes the three artefacts `make demo` seeds from,
+are different claims and only the first one is tested here.
+
+One thing the committed dataroom cannot check is the quote check itself: those PDFs are written with
+PyMuPDF and read back with PyMuPDF, so they agree by construction. `apps/agent/evals/` measures it
+against 22 SEC annual reports the pipeline did not author instead, and records what that found —
+words broken across a line break were failing in every one of them. See
+[`apps/agent/evals/README.md`](apps/agent/evals/README.md). `make fixtures` also refreshes the three artefacts `make demo` seeds from,
 which is why it is a make target rather than a bare script: running the script alone used to leave
 the demo showing the previous one-pager.
 
