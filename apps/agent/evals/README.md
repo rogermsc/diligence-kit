@@ -25,6 +25,10 @@ character, and NFKC-equivalent glyphs are what they are drawn as. Nothing else
 is changed — smart quotes and dashes are left alone, because they render as
 themselves and a verbatim quote should keep them.
 
+> That last clause was wrong, and the live arm below caught it. A real model
+> writes `("AI")` where the page shows `(“AI”)`. The verifier now folds those;
+> this arm still leaves them alone, which is why its number did not move.
+
 **No model runs in this study.** It isolates the verifier, which was the open
 question. It says nothing about how accurately a model reads a document.
 
@@ -90,6 +94,42 @@ Tesseract is a pessimistic stand-in — a capable vision model transcribes far
 better and would not produce `ofthe` — so read this as a lower bound and read
 the bands rather than the 66.5% headline.
 
+## A third arm: the model itself
+
+Both arms above measure whether the verifier accepts a *faithful* transcription.
+Neither says what a real model actually sends. This one does: the production
+extraction prompt, `gpt-5-mini`, and six-page excerpts of four filings — real
+pages copied rather than re-rendered, so the typography is the filing's own.
+
+**87 facts. 68 verified — 78%.** Nineteen quotes failed, and not one was a
+fabrication. Every one was a true quote the verifier called unverified, which on
+an investment memo reads as "the model made this up".
+
+| why the quote failed | n |
+|---|---|
+| elided with `...`, every fragment present **in order** | 7 |
+| elided, a fragment genuinely missing | 3 |
+| dot-leader table read in a different sequence | 2 |
+| smart quotes flattened — `(“AI”)` quoted as `("AI")` | 2 |
+| U+FFFE noncharacter mid-word — `distribu￾tion` | 2 |
+| em-dash spacing, dropped full stop | 2 |
+| paraphrase around a real figure | 1 |
+
+The first is the big one and the most interesting: asked for a verbatim quote, a
+model elides the boring middle of a long sentence and considers that verbatim.
+So `verify()` now accepts an elided quote **provided every fragment appears and
+each one after the one before it**. Order is the entire safeguard — it permits
+the convention without permitting a claim assembled from phrases collected on
+three different pages. Typographic quotes and dashes are folded, and Unicode
+noncharacters stripped.
+
+**Re-run against the same saved model output: 82 of 87, 94%.** The five that
+still fail are meant to — a dropped full stop, a table of dot leaders, a
+genuinely missing fragment, and a sentence whose words are all present in a
+different order.
+
+Cost of the whole arm: about 60k tokens on `gpt-5-mini`.
+
 ## The check still discriminates
 
 A normalisation loose enough to fix a metric can also break it, so the same
@@ -118,10 +158,15 @@ stops being visible. Hence exact containment, after normalising.
   rather than `False`, so a scan never reads as fabrication. That case is
   covered instead by a unit test that renders a page of figures to pixels and
   keeps only the image, which is the closest thing to a scan we can commit.
-- **No model was involved.** The first arm assumes a reader; the second uses
-  tesseract, which is a worse reader than a vision model, not the same one.
-  Neither tells you how accurately a model reads a document — only whether the
-  verifier accepts a faithful transcription.
+- **Nothing here measures whether the model read the document *correctly*.**
+  The third arm measures whether its quotes are real, not whether the values it
+  attached to them are right. A model can quote an audited revenue line
+  perfectly and still file it under the wrong field, or miss it entirely. That
+  needs a labelled corpus, which is a different exercise and deliberately not
+  this one.
+- **The live arm is one model, one prompt, four documents, one run.** 87 facts
+  is enough to find a failure mode present in every document; it is not a
+  precision figure, and no percentage from it belongs in the README.
 - **n = 2,640 sentences from 22 documents, all US annual reports.** Enough to
   find a defect present in every document; not enough to put a percentage on a
   dataroom of contracts, board minutes and spreadsheets.

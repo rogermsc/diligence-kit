@@ -87,19 +87,42 @@ def verify(quote: str, text: Optional[str]) -> Optional[bool]:
     ponytail: exact containment after normalising, and it holds. That used to be
     a hope — the only corpus behind it was written by the same library that reads
     it back, so it could only ever agree. Measured since against 22 SEC annual
-    reports this pipeline did not author: 2,640 of 2,640 sampled sentences
-    verify, up from 2,564 before the normalisation below. See evals/README.md.
+    reports this pipeline did not author, and against gpt-5-mini quoting four of
+    them: 82 of 87 real model quotes verify, up from 68. See evals/README.md.
 
     Keep it exact. Fuzzy matching cannot tell a near-miss transcription from a
-    near-miss invention, and the same measurement shows the discrimination is
-    worth keeping: quotes taken from a different company's report are rejected
-    outright, bar shared auditor's-report boilerplate, which is a true match.
+    near-miss invention, and the discrimination is worth keeping: quotes from a
+    different company's report are rejected outright, bar shared auditor's-report
+    boilerplate, which is a true match.
     """
     if text is None:
         return None
     if not quote or not quote.strip():
         return False
-    return _normalize(quote) in _normalize(text)
+
+    source = _normalize(text)
+    if _normalize(quote) in source:
+        return True
+
+    # A model asked for a verbatim quote will elide the boring middle of a long
+    # sentence with "…" and consider that verbatim. Measured against gpt-5-mini
+    # on real filings, that is the single largest reason a true quote is
+    # rejected — 7 of 19 failures over 87 facts.
+    #
+    # Every fragment must appear, and each after the one before it. Order is
+    # what keeps this honest: it permits the convention without permitting a
+    # claim assembled out of phrases collected from three different pages.
+    fragments = [f for f in _ELLIPSIS.split(quote) if f.strip()]
+    if len(fragments) < 2:
+        return False
+
+    at = 0
+    for fragment in fragments:
+        found = source.find(_normalize(fragment), at)
+        if found < 0:
+            return False
+        at = found + len(_normalize(fragment))
+    return True
 
 
 # A hyphen between two letters, and any whitespace after it. Applied to both
@@ -112,6 +135,23 @@ def verify(quote: str, text: Optional[str]) -> Optional[bool]:
 _LINE_HYPHEN = re.compile(r"(?<=[^\W\d_])-\s*(?=[^\W\d_])", re.UNICODE)
 
 _SOFT_HYPHEN = "­"
+
+_ELLIPSIS = re.compile(r"\s*(?:\.\.\.+|…)\s*")
+
+# Typographic variants a model flattens on its way out. The layer holds a
+# printer's quote and the model writes an apostrophe; both are the same
+# character to a reader, and folding them cannot make an invention match
+# something it does not already say.
+_TYPOGRAPHY = str.maketrans({
+    "‘": "'", "’": "'", "‚": "'", "‛": "'",
+    "“": '"', "”": '"', "„": '"', "‟": '"',
+    "–": "-", "—": "-", "‒": "-", "―": "-", "−": "-",
+})
+
+# Noncharacters and zero-width marks. U+FFFE turns up mid-word in filings
+# ("distribu￾tion") where the PDF carries an optional hyphen, and a model
+# reading the page copies it straight through.
+_INVISIBLE = re.compile(r"[\ufffe\uffff\ufeff\u200b-\u200f\u2028\u2029]")
 
 
 def _normalize(s: str) -> str:
@@ -138,5 +178,6 @@ def _normalize(s: str) -> str:
     # pipeline that spends seconds per LLM call. Normalise once per document and
     # pass it down if that ever stops being true.
     s = unicodedata.normalize("NFKC", s).replace(_SOFT_HYPHEN, "")
+    s = _INVISIBLE.sub("", s).translate(_TYPOGRAPHY)
     s = _LINE_HYPHEN.sub("", s)
     return _WHITESPACE.sub(" ", s).strip().casefold()

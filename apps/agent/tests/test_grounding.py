@@ -181,3 +181,61 @@ def test_a_page_full_of_text_with_no_text_layer_is_unverifiable():
     assert grounding.source_text(doc(pdf_data=scanned)) is None
     # and therefore, at the point it matters:
     assert grounding.verify("Turnover for the year was £3.2M", None) is None
+
+
+class TestWhatARealModelActuallyQuotes:
+    """Measured against gpt-5-mini on four real SEC filings, not assumed.
+
+    87 facts, 19 of which failed verification — and not one was a fabrication.
+    The model elides, and it flattens typography on the way out. Every failure
+    below was a true quote reported as unverified, which on an investment memo
+    reads as "the model made this up".
+
+    Fixing these took 78% to 94% on that same live output. The five that still
+    fail are meant to: a dropped full stop, a table of dot leaders, a genuinely
+    missing fragment, and a sentence whose words are all present in a different
+    order.
+    """
+
+    SOURCE = ("Revenue rose to £3.2M in FY2024. Costs fell to £1.1M. "
+              "The board approved a dividend.")
+
+    def test_a_quote_that_elides_the_middle_is_still_a_quote(self):
+        # 7 of the 19, the largest single cause.
+        assert grounding.verify(
+            "Revenue rose to £3.2M ... The board approved a dividend.", self.SOURCE
+        ) is True
+
+    def test_fragments_must_appear_in_the_order_given(self):
+        # Order is the whole safeguard: without it, an ellipsis lets a claim be
+        # assembled out of phrases collected from anywhere in the document.
+        assert grounding.verify(
+            "The board approved a dividend ... Revenue rose to £3.2M", self.SOURCE
+        ) is False
+
+    @pytest.mark.parametrize("quote", [
+        "Revenue rose to £3.2M ... and the CEO resigned",   # invented fragment
+        "Revenue rose to £3.8M ... dividend",               # wrong figure in a fragment
+        "...",                                              # not a quote at all
+        "Revenue rose .. dividend",                         # two dots is not an ellipsis
+    ])
+    def test_elision_is_not_a_loophole(self, quote):
+        assert grounding.verify(quote, self.SOURCE) is False
+
+    def test_a_model_writes_an_apostrophe_where_the_page_has_a_printers_quote(self):
+        # The first study assumed models preserve smart quotes. They do not —
+        # 2 of the 19 were exactly this.
+        assert grounding.verify(
+            'artificial intelligence ("AI") available',
+            'making digital technology and artificial intelligence (“AI”) available broadly',
+        ) is True
+
+    def test_an_en_dash_and_a_hyphen_are_the_same_range(self):
+        assert grounding.verify("2023-2024", "for 2023–2024 the figure") is True
+
+    def test_a_noncharacter_inside_a_word_does_not_break_it(self):
+        # U+FFFE turns up mid-word in filings where the PDF carries an optional
+        # hyphen, and the model copies it through: "distribu￾tion".
+        assert grounding.verify(
+            "temperature-sensitive distribu￾tion", "time and temperature-sensitive distribution"
+        ) is True
