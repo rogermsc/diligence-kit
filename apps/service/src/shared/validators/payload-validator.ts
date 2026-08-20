@@ -3,6 +3,24 @@ import { Logger } from "@nestjs/common"
 import { ValidationError } from "@/shared/errors/errors"
 import { ValidationErrorDescription } from "@/shared/errors/types"
 
+/**
+ * What a payload looks like, without what it contains.
+ *
+ * The agent's `analysis` payload carries verbatim excerpts from a client's
+ * dataroom. Logging the payload itself on a validation failure copies those
+ * quotes into the log sink — which in production is Cloud Logging, the sink the
+ * liaison agent reads back. The field names and the Zod issue paths are what a
+ * reader actually needs to diagnose a shape mismatch; the values are not.
+ */
+function shape(value: unknown): string {
+    if (value === null || value === undefined) return String(value)
+    if (Array.isArray(value)) return `array[${value.length}]`
+    if (typeof value === "object") {
+        return `{${Object.keys(value).sort().join(", ")}}`
+    }
+    return typeof value
+}
+
 export class PayloadValidator {
     private static readonly logger = new Logger(PayloadValidator.name)
 
@@ -26,14 +44,14 @@ export class PayloadValidator {
 
             this.logger.debug(`${logContext} Payload validation successful`, {
                 context,
-                validatedData: result,
+                validatedShape: shape(result),
             })
 
             return result
         } catch (error) {
             this.logger.error(`${logContext} Payload validation failed`, {
                 context,
-                receivedData: data,
+                receivedShape: shape(data),
             })
 
             if (error instanceof ZodError) {
@@ -163,7 +181,7 @@ export class PayloadValidator {
         const baseErrorInfo = {
             errorType: error.constructor.name,
             errorMessage: error.message,
-            receivedPayload: payload,
+            receivedShape: shape(payload),
             context,
         }
 
