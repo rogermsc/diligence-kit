@@ -154,4 +154,23 @@ describe("tenancy coverage", () => {
         // The liaison session id is the agent's, not a record in this database.
         expect(notChecked).toEqual(["GET /liaison/messages/:sessionId"])
     })
+
+    it("scopes an :automationId path to that automation, bar the two that cannot", () => {
+        // Declaring `company:` on a route keyed by :automationId passes every
+        // check above while authorizing a different record than the one the
+        // handler acts on. The two exceptions are real and documented: the
+        // automation row is not persisted until confirm, so upload and confirm
+        // have no automation to own yet and authorize against the company.
+        const misScoped = ROUTES.filter(
+            (r) =>
+                r.authenticated &&
+                r.path.includes(":automationId") &&
+                !r.rule?.automation,
+        ).map((r) => `${r.verb} ${r.path}`)
+
+        expect(misScoped.sort()).toEqual([
+            "POST /automation/:automationId/confirm",
+            "POST /automation/:automationId/upload-document",
+        ])
+    })
 })
