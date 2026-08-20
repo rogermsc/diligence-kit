@@ -59,3 +59,7 @@ Thumbs.db
 # `python -m evals.grounding_study --fetch`. The finding is the artefact worth
 # keeping, not the PDFs.
 apps/agent/evals/corpus/
+
+# Extracted facts carry source_text from third-party filings; regenerate with
+# `python -m evals.accuracy_study --extract`.
+apps/agent/evals/extracted/

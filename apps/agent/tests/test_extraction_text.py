@@ -93,3 +93,41 @@ def test_the_pre_upload_step_skips_text_files():
 
     assert {".csv", ".txt"} == TEXT_EXTENSIONS
     assert extraction.TEXT_EXTENSIONS is TEXT_EXTENSIONS
+
+
+# --- a figure that does not carry its own scale --------------------------------
+
+from src.data.analyze.fact_extraction_service import _has_no_unit  # noqa: E402
+
+
+@pytest.mark.parametrize("value", [
+    "$ 98,011",                 # eGain: the unit is in a column header, not the row
+    "963,708",
+    "$ (2,441)",
+])
+def test_a_bare_figure_is_flagged_as_carrying_no_unit(value):
+    # authority.parse_amount reads these literally, so a revenue stated "in
+    # thousands" by one document and "£98.0M" by another would look like a
+    # thousand-fold disagreement instead of agreement.
+    assert _has_no_unit(value) is True
+
+
+@pytest.mark.parametrize("value", [
+    "£3.2M",
+    "$281.7 billion",
+    "$ 963,708 (Dollars in thousands)",
+    "(£0.31M) FY2024",
+])
+def test_a_figure_that_states_its_scale_is_not_flagged(value):
+    assert _has_no_unit(value) is False
+
+
+def test_a_bare_count_is_only_spared_because_it_is_not_a_financial_field():
+    # "52" employees needs no scale, and this predicate would flag it. What
+    # keeps headcount quiet is the caller: only fields matching a financial
+    # prefix are checked at all.
+    assert _has_no_unit("52") is True
+
+
+def test_prose_without_a_number_is_not_a_unit_problem():
+    assert _has_no_unit("Warehouse automation for third-party logistics") is False

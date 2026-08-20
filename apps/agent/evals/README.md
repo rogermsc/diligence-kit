@@ -130,6 +130,67 @@ different order.
 
 Cost of the whole arm: about 60k tokens on `gpt-5-mini`.
 
+## A fourth arm: is the number right?
+
+Everything above asks whether a quote is *real*. None of it asks whether the
+value attached to it is *correct* — a model can quote an audited revenue line
+perfectly and still file it under the wrong year.
+
+Checking that needs ground truth, and labels we write ourselves are worth
+little: the traps, the prompts and the answers would all come from the same
+person. So the labels are the company's own XBRL submission to the SEC. Nobody
+in this repo authored them.
+
+Ten companies, one filing each, statement pages only (`--extract`). **57
+headline figures.**
+
+| | n |
+|---|---|
+| matches the filer's XBRL | **42** |
+| pro forma — excluded, see below | 4 |
+| pre-XBRL filer (2001–2003) | 6 |
+| value carried no unit | 4 |
+| period XBRL no longer retains | 1 |
+
+**42 of 43 checkable, and the one exception is not an error.** Axcelis FY2022
+net income is `183,079`, from the row `Net income $ 200,992 $ 246,263 $ 183,079`.
+XBRL confirms 200,992 for 2024 and 246,263 for 2023, so the row maps
+2024 | 2023 | 2022 and the third figure is consistent — XBRL simply no longer
+carries that period. Zero incorrect figures.
+
+### The pro forma four are the interesting ones
+
+Microsoft's annual report states revenue twice: `245,122` on the income
+statement and `247,442` on a later page headed *"supplemental consolidated
+financial results … on an unaudited pro forma basis, as if the acquisition had
+been"*. Both were extracted. The first is tagged `actual` and matches XBRL; the
+second is tagged `pro_forma` and does not, because XBRL reports GAAP actuals.
+
+That is the distinction the whole product is built on, and it held on a real
+filing without being prompted for. Scoring pro forma figures against XBRL would
+have counted that discipline as five errors — which is what the first version of
+this harness did.
+
+### The one real defect
+
+eGain's statements put the unit in a column header, so four figures came back as
+`$ 98,011` with no scale. `authority.parse_amount` reads that as ninety-eight
+thousand dollars. A revenue stated "in thousands" by one document and "£98.0M"
+by another would then look like a thousand-fold disagreement instead of
+agreement — and the memo would print an ambiguous figure. Extraction now logs a
+warning naming those facts. Not a refusal: 4 of 57 is too thin a base for one.
+
+### The harness was wrong five times; the model was wrong none
+
+Worth recording, because it is the whole lesson of this directory. Before the
+numbers above settled, this harness reported mismatches caused by: double-scaling
+a figure already scaled, stopping at the first XBRL concept that answered,
+picking "thousand" out of a quote because it came first in a list rather than
+nearest the number, keeping only the first filed value for a period when
+restatements mean there are several, and — worst — fuzzy-matching company names,
+which mapped Golden Telecom to Genesco and Redfin to Redwire. Every one would
+have been published as "the model got it wrong".
+
 ## The check still discriminates
 
 A normalisation loose enough to fix a metric can also break it, so the same
@@ -158,12 +219,9 @@ stops being visible. Hence exact containment, after normalising.
   rather than `False`, so a scan never reads as fabrication. That case is
   covered instead by a unit test that renders a page of figures to pixels and
   keeps only the image, which is the closest thing to a scan we can commit.
-- **Nothing here measures whether the model read the document *correctly*.**
-  The third arm measures whether its quotes are real, not whether the values it
-  attached to them are right. A model can quote an audited revenue line
-  perfectly and still file it under the wrong field, or miss it entirely. That
-  needs a labelled corpus, which is a different exercise and deliberately not
-  this one.
+- **Nothing here measures what the model *missed*.** The fourth arm scores the
+  figures it produced, not the ones it should have produced and did not. Recall
+  needs a document-by-document answer key; this measures precision only.
 - **The live arm is one model, one prompt, four documents, one run.** 87 facts
   is enough to find a failure mode present in every document; it is not a
   precision figure, and no percentage from it belongs in the README.
@@ -178,6 +236,9 @@ cd apps/agent
 python -m evals.grounding_study --fetch   # ~22 filings, ~160 MB, into evals/corpus/
 python -m evals.grounding_study           # modelled reader
 python -m evals.grounding_study --ocr     # real reader; needs tesseract
+
+python -m evals.accuracy_study --extract  # costs money: one model call per filing
+python -m evals.accuracy_study            # score against the filers' XBRL
 ```
 
 The corpus is not committed — it is third-party documents, and the finding is

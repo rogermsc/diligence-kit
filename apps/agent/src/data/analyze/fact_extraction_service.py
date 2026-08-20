@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import json
+import re
 from typing import List
 
 from src.core.llm import respond_json, upload_file
@@ -16,6 +17,14 @@ from src.data.analyze import grounding
 from src.domain.analyze.entities import DocumentFacts, Fact, PreparedDocument
 
 logger = get_logger(__name__)
+
+# A figure carries its own scale, or it does not: "£3.2M", "$281.7 billion" and
+# "963,708 (in thousands)" all do; "$ 98,011" does not.
+_UNIT = re.compile(r"\d\s*[kmb]\b|thousand|million|billion|%", re.IGNORECASE)
+
+
+def _has_no_unit(value: str) -> bool:
+    return bool(re.search(r"\d", value or "")) and not _UNIT.search(value or "")
 
 MAX_CONTENT_CHARS = 100_000
 
@@ -160,6 +169,9 @@ class FactExtractionService:
             {"type": "input_text", "text": user_prompt},
         ]
 
+    def _is_financial_field(self, field: str) -> bool:
+        return any(field.startswith(prefix) for prefix in self._financial_fields)
+
     def _is_valid_field(self, field: str) -> bool:
         """Check if a field name matches the fixed schema."""
         if field in self._valid_fields:
@@ -221,6 +233,22 @@ class FactExtractionService:
 
         if dropped:
             logger.warning(f"{doc.file_name}: dropped {dropped} facts with unknown fields")
+
+        # A money figure whose scale is stated somewhere else on the page comes
+        # back as "$ 98,011", and nothing downstream can tell that from ninety-
+        # eight thousand dollars. authority.parse_amount reads it literally, so
+        # the same revenue quoted "in thousands" by one document and "$98.0M" by
+        # another looks like a thousand-fold disagreement rather than agreement.
+        # Measured on ten real filings: 4 of 57 headline figures, all from the
+        # one filer whose statements put the unit in a column header.
+        ambiguous = [f for f in facts
+                     if self._is_financial_field(f.field) and _has_no_unit(f.value)]
+        if ambiguous:
+            logger.warning(
+                f"{doc.file_name}: {len(ambiguous)} financial facts state no unit — "
+                f"{', '.join(f'{f.field}={f.value.strip()}' for f in ambiguous[:3])}"
+                f"{' …' if len(ambiguous) > 3 else ''}"
+            )
 
         if text is None:
             logger.info(
