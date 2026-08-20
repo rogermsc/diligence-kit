@@ -76,10 +76,11 @@ stops being visible. Hence exact containment, after normalising.
 
 ## What this does not cover
 
-- **No scanned document appeared in the sample.** All 22 had text layers, so the
-  `unverifiable` path — `verify()` returning `None` rather than `False`, so a
-  scan never reads as fabrication — is exercised only by unit tests, not by a
-  real document here.
+- **No scanned document appeared in the sample.** All 22 had text layers, so
+  nothing here exercised the `unverifiable` path — `verify()` returning `None`
+  rather than `False`, so a scan never reads as fabrication. That case is
+  covered instead by a unit test that renders a page of figures to pixels and
+  keeps only the image, which is the closest thing to a scan we can commit.
 - **No model was involved**, so the reader model above stands in for one. It is
   conservative, but it is an assumption.
 - **n = 2,640 sentences from 22 documents, all US annual reports.** Enough to
