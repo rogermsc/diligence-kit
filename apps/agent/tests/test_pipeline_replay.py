@@ -118,6 +118,41 @@ async def test_the_memorandum_prints_the_figure_the_rule_chose(pipeline):
     assert "£4.1M" not in revenue and "£3.8M" not in revenue
 
 
+async def test_the_memorandum_reports_the_disagreement_it_resolved(pipeline, monkeypatch):
+    """The test above proves the memo prints the right number. This one proves
+    it says the other two existed.
+
+    A memorandum that states £3.2M and stops is indistinguishable from one
+    produced by a pipeline that never saw the deck or the model, which is the
+    difference this product is sold on. The document that reaches an investment
+    committee has to carry the disagreement, not just survive it.
+    """
+    import io
+
+    import docx
+
+    captured = {}
+
+    async def _capture(docx_bytes):
+        captured["docx"] = docx_bytes
+        return b"%PDF-1.4 stub"
+
+    monkeypatch.setattr("src.domain.analyze.use_cases.convert_docx_to_pdf", _capture)
+
+    _, _, merged, _ = await run(pipeline)
+
+    document = docx.Document(io.BytesIO(captured["docx"]))
+    text = "\n".join(p.text for p in document.paragraphs)
+
+    conflict = next(c for c in merged.conflicts if c.field == "annual_revenue_fy2024")
+    assert conflict.preferred_value in text
+    for rejected in ("£4.1M", "£3.8M"):
+        assert rejected in text, (
+            f"the dataroom states {rejected} and the memorandum never mentions it"
+        )
+    assert conflict.resolution_basis in text, "the memo states a figure without the rule behind it"
+
+
 async def test_facts_keep_the_document_they_came_from(pipeline):
     _, _, merged, _ = await run(pipeline)
 
