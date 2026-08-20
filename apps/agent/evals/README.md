@@ -57,6 +57,39 @@ know; the original code comment named ligatures first among the things to fix.
 Non-breaking spaces were likewise already handled: Python's `\s` matches
 U+00A0 and U+202F, checked rather than assumed.
 
+## A second arm: a real reader, not a modelled one
+
+The result above has a flaw worth naming. `transcribe()` derives its text *from*
+the text layer, so its word order always matches the layer by construction. That
+flatters exact containment, because the one thing it can never disagree about is
+the sequence.
+
+So the same question was put to a reader that owes the layer nothing: render the
+page to an image and OCR it with tesseract (`--ocr`). 161 sentences over 24 pages
+of 8 filings.
+
+| OCR fidelity to the layer | verified | failed | pass |
+|---|---|---|---|
+| ≥ 0.97 (faithful) | 92 | 10 | **90.2%** |
+| 0.85–0.97 (lossy) | 13 | 18 | 41.9% |
+| < 0.85 (poor) | 2 | 26 | 7.1% |
+
+Pass rate tracks the **reader's** fidelity, not the verifier — which is
+OHR-Bench's finding restated on this pipeline. Of the 54 failures:
+
+- **39 contained a word that appears nowhere in the document** — `ofthe`,
+  `eachofthe`, `2020.~`. Tesseract merged or invented them. Rejecting those is
+  correct; they are not verbatim quotes.
+- **15 had every word present but in a different sequence.** OCR read a
+  multi-column or tabular page in a different order than the text layer stores
+  it. This is the real limit of exact containment, and it is not fixable by
+  normalising: matching a reordered sentence means bag-of-words, which would
+  also accept a reordered *invention*.
+
+Tesseract is a pessimistic stand-in — a capable vision model transcribes far
+better and would not produce `ofthe` — so read this as a lower bound and read
+the bands rather than the 66.5% headline.
+
 ## The check still discriminates
 
 A normalisation loose enough to fix a metric can also break it, so the same
@@ -76,13 +109,19 @@ stops being visible. Hence exact containment, after normalising.
 
 ## What this does not cover
 
-- **No scanned document appeared in the sample.** All 22 had text layers, so
-  nothing here exercised the `unverifiable` path — `verify()` returning `None`
+- **No scanned document appeared — in 41 filings, not just the 22.** A further
+  19 PDFs were fetched from EDGAR specifically looking for scans, biased towards
+  2001–2008, and every one carried a text layer. Filed annual reports are
+  born-digital; a private dataroom, full of photographed board minutes and
+  signed contracts, is where scans actually live. So nothing here exercised the
+  `unverifiable` path — `verify()` returning `None`
   rather than `False`, so a scan never reads as fabrication. That case is
   covered instead by a unit test that renders a page of figures to pixels and
   keeps only the image, which is the closest thing to a scan we can commit.
-- **No model was involved**, so the reader model above stands in for one. It is
-  conservative, but it is an assumption.
+- **No model was involved.** The first arm assumes a reader; the second uses
+  tesseract, which is a worse reader than a vision model, not the same one.
+  Neither tells you how accurately a model reads a document — only whether the
+  verifier accepts a faithful transcription.
 - **n = 2,640 sentences from 22 documents, all US annual reports.** Enough to
   find a defect present in every document; not enough to put a percentage on a
   dataroom of contracts, board minutes and spreadsheets.
@@ -92,7 +131,8 @@ stops being visible. Hence exact containment, after normalising.
 ```bash
 cd apps/agent
 python -m evals.grounding_study --fetch   # ~22 filings, ~160 MB, into evals/corpus/
-python -m evals.grounding_study
+python -m evals.grounding_study           # modelled reader
+python -m evals.grounding_study --ocr     # real reader; needs tesseract
 ```
 
 The corpus is not committed — it is third-party documents, and the finding is

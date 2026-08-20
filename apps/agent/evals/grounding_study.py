@@ -49,6 +49,9 @@ for k, v in {
 }.items():
     os.environ.setdefault(k, v)
 
+import fitz  # noqa: E402
+
+from src.data.analyze import grounding as _gr  # noqa: E402
 from src.data.analyze.grounding import pdf_text, verify  # noqa: E402
 
 CORPUS = pathlib.Path(__file__).resolve().parent / "corpus"
@@ -161,11 +164,74 @@ def measure():
     return 0
 
 
+def ocr_arm(per_doc_pages=3, docs=8):
+    """The same question, with a real reader instead of a modelled one.
+
+    `measure()` transcribes the page from the text layer, so its word order
+    always matches the layer by construction. That flatters exact containment.
+    Tesseract reads the rendered image and owes the layer nothing — including
+    its reading order on a multi-column or tabular page.
+
+    OCR is a pessimistic stand-in: it merges words ("ofthe") in ways a capable
+    vision model does not, so treat this as a lower bound and read the fidelity
+    bands, not the headline.
+    """
+    import difflib
+
+    random.seed(SEED)
+    bands, mangled, ordering = {}, 0, 0
+    for path in sorted(CORPUS.glob("*.pdf"))[:docs]:
+        with fitz.open(path) as doc:
+            layer_all = "\n".join(pg.get_text() for pg in doc)
+            layer_words = set(_gr._normalize(layer_all).split())
+            prose = [i for i in range(len(doc)) if len(doc[i].get_text()) > 1500]
+            for i in random.sample(prose, min(per_doc_pages, len(prose))) if prose else []:
+                page = doc[i]
+                layer = page.get_text()
+                try:
+                    read = page.get_text(textpage=page.get_textpage_ocr(flags=0, dpi=200, full=True))
+                except Exception as e:
+                    print(f"  OCR unavailable ({e}); install tesseract to run this arm")
+                    return 1
+                fidelity = difflib.SequenceMatcher(
+                    None, " ".join(layer.split()), " ".join(read.split()), autojunk=False
+                ).ratio()
+                band = (">=0.97 faithful" if fidelity >= 0.97
+                        else "0.85-0.97 lossy" if fidelity >= 0.85 else "<0.85 poor")
+                tally = bands.setdefault(band, [0, 0])
+                for sentence in [x for x in _SENTENCE.split(read) if 60 <= len(x) <= 240][:8]:
+                    if verify(sentence, layer_all):
+                        tally[0] += 1
+                        continue
+                    tally[1] += 1
+                    words = [w for w in _gr._normalize(sentence).split() if len(w) > 2]
+                    if all(w in layer_words for w in words):
+                        ordering += 1      # every word is there; the sequence is not
+                    else:
+                        mangled += 1       # OCR produced a word the document does not contain
+
+    print(f"{'OCR fidelity':20s} {'verified':>9s} {'failed':>7s} {'pass':>8s}")
+    for band in (">=0.97 faithful", "0.85-0.97 lossy", "<0.85 poor"):
+        if band in bands:
+            ok, bad = bands[band]
+            print(f"{band:20s} {ok:9d} {bad:7d} {ok / (ok + bad):7.1%}")
+    ok = sum(v[0] for v in bands.values())
+    bad = sum(v[1] for v in bands.values())
+    if not ok + bad:
+        print("No corpus. Run with --fetch first.")
+        return 1
+    print(f"\ntotal {ok + bad} sentences, {ok} verified ({ok / (ok + bad):.1%})")
+    print(f"  OCR produced a word the document does not contain : {mangled}")
+    print(f"  every word present, sequence differs (reading order): {ordering}")
+    return 0
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--fetch", action="store_true", help="download the corpus from SEC EDGAR first")
+    ap.add_argument("--ocr", action="store_true", help="read the pages with tesseract instead of modelling the reader")
     args = ap.parse_args()
     if args.fetch:
         print(f"fetching into {CORPUS} …")
         print(f"got {fetch()} filings\n")
-    raise SystemExit(measure())
+    raise SystemExit(ocr_arm() if args.ocr else measure())
