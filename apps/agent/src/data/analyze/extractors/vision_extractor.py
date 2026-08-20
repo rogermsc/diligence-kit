@@ -6,6 +6,7 @@ import subprocess
 
 import fitz  # pymupdf
 
+from src.core import soffice
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -38,7 +39,7 @@ def _convert_to_pdf(file_path: str) -> str:
     # non-writable HOME, so LO otherwise fails to create its user installation.
     lo_profile = os.path.join(output_dir, "lo_profile")
     result = subprocess.run(
-        ["libreoffice", f"-env:UserInstallation=file://{lo_profile}",
+        [soffice.binary(), f"-env:UserInstallation=file://{lo_profile}",
          "--headless", "--convert-to", "pdf", file_path, "--outdir", output_dir],
         capture_output=True,
         timeout=60,

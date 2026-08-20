@@ -2,13 +2,13 @@
 
 import asyncio
 import os
-import shutil
 import tempfile
 from datetime import date
 from io import BytesIO
 
 from docxtpl import DocxTemplate
 
+from src.core import soffice
 from src.core.logging import get_logger
 from src.domain.analyze.entities import OnePager
 
@@ -157,7 +157,7 @@ async def convert_docx_to_pdf(docx_bytes: bytes) -> bytes:
         # aborts. A per-call dir also avoids profile-lock contention between
         # concurrent conversions.
         lo_profile = os.path.join(temp_dir, "lo_profile")
-        cmd = "soffice" if shutil.which("soffice") else "libreoffice"
+        cmd = soffice.binary()
         process = await asyncio.create_subprocess_exec(
             cmd, f"-env:UserInstallation=file://{lo_profile}",
             "--headless", "--convert-to", "pdf",
