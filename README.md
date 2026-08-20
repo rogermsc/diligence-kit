@@ -20,8 +20,10 @@
 Upload a company's dataroom and Diligence Kit classifies the documents, extracts facts from each one,
 reconciles the contradictions between them, and produces two kinds of deliverable:
 
-- **A one-pager** — an investment memorandum with an executive summary, financial highlights, and a
-  weighted 8-category investment-readiness scorecard.
+- **A one-pager** — an investment memorandum with an executive summary, financial highlights, a
+  weighted 8-category investment-readiness scorecard, and a *where the documents disagree* section
+  naming every figure two documents stated differently, which value was used, and the rule that
+  chose it.
 - **Four domain reports** — operational, commercial, financial, and cap-table & legal review.
 
 Both are rendered into DOCX from templates you control, then converted to PDF.

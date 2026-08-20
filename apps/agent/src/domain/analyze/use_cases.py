@@ -105,7 +105,8 @@ class AnalyzeUseCase:
             # Step 7: Render DOCX and convert to PDF
             logger.info("Step 7: Rendering DOCX and converting to PDF")
             docx_bytes = await asyncio.to_thread(
-                render_docx, one_pager, input.company_name, input.automation_id
+                render_docx, one_pager, input.company_name, input.automation_id,
+                merged.conflicts,
             )
             pdf_bytes = await convert_docx_to_pdf(docx_bytes)
 

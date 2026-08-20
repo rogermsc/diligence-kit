@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import re
 import tempfile
 from datetime import date
 from io import BytesIO
@@ -10,7 +11,7 @@ from docxtpl import DocxTemplate
 
 from src.core import soffice
 from src.core.logging import get_logger
-from src.domain.analyze.entities import OnePager
+from src.domain.analyze.entities import Conflict, OnePager
 
 logger = get_logger(__name__)
 
@@ -32,7 +33,75 @@ CATEGORY_KEY_MAP = {
 }
 
 
-def _build_render_context(one_pager: OnePager, company_name: str, automation_id: str) -> dict:
+# Printed as-is on the memorandum, so a field name has to read like one.
+_ACRONYMS = {"ebitda", "arr", "ltv", "cac", "esg", "hq", "kpi"}
+_PERIOD = re.compile(r"^fy(\d{2,4})$", re.IGNORECASE)
+
+
+def _field_label(field: str) -> str:
+    words = []
+    for word in (field or "").split("_"):
+        period = _PERIOD.match(word)
+        if period:
+            words.append(f"FY{period.group(1)}")
+        elif word.lower() in _ACRONYMS:
+            words.append(word.upper())
+        else:
+            words.append(word)
+    label = " ".join(words)
+    return label[:1].upper() + label[1:]
+
+
+def reconciliation_lines(conflicts: list[Conflict]) -> list[str]:
+    """Where the documents disagreed, what was chosen, and under which rule.
+
+    This is the product's claim, and until now it was the one thing the
+    memorandum did not say. Conflicts reached synthesis as prompt context and
+    came back out as whatever prose the model chose to write: the reader saw
+    £3.2M with no indication that two other documents in the same dataroom said
+    £4.1M and £3.8M, or that an audited actual is why this one won.
+
+    Built from the adjudicated conflicts, not asked of a model — the same rule
+    that decided the figure writes the sentence explaining it, so the memo
+    cannot describe a decision the pipeline did not make.
+
+    One string per rendered line; the template joins them with breaks.
+    """
+    if not conflicts:
+        # Not "the documents agreed" — with a single document there is nothing
+        # to agree with. Say only what was actually established.
+        return ["No figure was stated differently by two documents."]
+
+    lines = []
+    for c in conflicts:
+        label = _field_label(c.field)
+        rejected = [
+            v for v in c.values
+            if not c.preferred_value or not v.startswith(c.preferred_value)
+        ]
+
+        if c.preferred_value:
+            source = f" — {c.preferred_source}" if c.preferred_source else ""
+            lines.append(f"{label}: {c.preferred_value}{source}")
+        else:
+            lines.append(f"{label}: not settled by the dataroom")
+
+        if rejected:
+            spread = f" [{c.magnitude}]" if c.magnitude else ""
+            verb = "also stated" if not c.preferred_value else "not used"
+            lines.append(f"    {verb}: {'; '.join(rejected)}{spread}")
+
+        if c.rationale:
+            basis = f"{c.resolution_basis} — " if c.resolution_basis else ""
+            lines.append(f"    {basis}{c.rationale}")
+        elif not c.preferred_value:
+            lines.append("    no rule separated these; every value above stands unreconciled.")
+
+    return lines
+
+
+def _build_render_context(one_pager: OnePager, company_name: str, automation_id: str,
+                          conflicts: list[Conflict]) -> dict:
     """Map OnePager entity to the flat dict expected by the DOCX template."""
     ctx = {
         # Metadata
@@ -97,6 +166,9 @@ def _build_render_context(one_pager: OnePager, company_name: str, automation_id:
         "summary_transaction_value": one_pager.transaction_structure.value,
         "summary_primary_risk_areas": one_pager.summary_highlights.primary_risk_areas,
         "summary_key_strengths": one_pager.summary_highlights.key_strengths,
+
+        # Where the documents disagreed. Deterministic, never the model's prose.
+        "reconciliation": reconciliation_lines(conflicts),
     }
 
     # Scorecard per-category fields: score_*, weighted_*, issues_*
@@ -112,9 +184,15 @@ def _build_render_context(one_pager: OnePager, company_name: str, automation_id:
     return ctx
 
 
-def render_docx(one_pager: OnePager, company_name: str, automation_id: str) -> bytes:
-    """Render OnePager into a branded DOCX using the template. Returns bytes."""
-    ctx = _build_render_context(one_pager, company_name, automation_id)
+def render_docx(one_pager: OnePager, company_name: str, automation_id: str,
+                conflicts: list[Conflict]) -> bytes:
+    """Render OnePager into a branded DOCX using the template. Returns bytes.
+
+    `conflicts` is required rather than defaulted. A default would let a caller
+    that forgot them publish a memorandum stating no figure was disputed, which
+    is the one sentence here that must never be produced by omission.
+    """
+    ctx = _build_render_context(one_pager, company_name, automation_id, conflicts)
 
     template = DocxTemplate(TEMPLATE_PATH)
     template.render(ctx)
