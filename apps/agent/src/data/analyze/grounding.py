@@ -133,6 +133,10 @@ def _normalize(s: str) -> str:
     that would accept a reformatted number it also accepts £3.8M as evidence
     for £3.2M.
     """
+    # ponytail: the document side is re-normalised per fact — 19 ms against a
+    # 350k-character annual report, so 0.7 s for a 40-fact document, against a
+    # pipeline that spends seconds per LLM call. Normalise once per document and
+    # pass it down if that ever stops being true.
     s = unicodedata.normalize("NFKC", s).replace(_SOFT_HYPHEN, "")
     s = _LINE_HYPHEN.sub("", s)
     return _WHITESPACE.sub(" ", s).strip().casefold()
