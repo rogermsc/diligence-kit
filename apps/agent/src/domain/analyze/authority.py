@@ -56,16 +56,7 @@ _MONEY = re.compile(
 _SCALE = {"k": Decimal(1_000), "m": Decimal(1_000_000), "b": Decimal(1_000_000_000)}
 
 
-def parse_amount(value: str) -> Optional[Decimal]:
-    """The first number in a string, scaled by any K/M/B suffix.
-
-    Deliberately small. It exists to say how far apart two figures are, not to
-    be a currency library — if it cannot read something, the caller drops the
-    magnitude line rather than guessing.
-    """
-    match = _MONEY.search(value or "")
-    if not match:
-        return None
+def _amount_of(match: re.Match) -> Optional[Decimal]:
     try:
         amount = Decimal(match.group("num").replace(",", ""))
     except InvalidOperation:
@@ -77,6 +68,28 @@ def parse_amount(value: str) -> Optional[Decimal]:
     if match.group("neg"):
         amount = -amount
     return amount
+
+
+def parse_amount(value: str) -> Optional[Decimal]:
+    """The first number in a string, scaled by any K/M/B suffix.
+
+    Deliberately small. It exists to say how far apart two figures are, not to
+    be a currency library — if it cannot read something, the caller drops the
+    magnitude line rather than guessing.
+    """
+    match = _MONEY.search(value or "")
+    return _amount_of(match) if match else None
+
+
+def amounts_in(text: str) -> list[Decimal]:
+    """Every number in a string, scaled the same way `parse_amount` scales one.
+
+    `parse_amount` reads a value — one figure that happens to sit in a string.
+    This reads a sentence, which is what a rendered memo line is: "£3.2M (FY2024
+    audited actual)" carries the figure and the year, and a caller asking
+    "is the adjudicated winner in here?" needs to see both and pick.
+    """
+    return [a for m in _MONEY.finditer(text or "") if (a := _amount_of(m)) is not None]
 
 
 _SYMBOL = re.compile(r"[£$€]")

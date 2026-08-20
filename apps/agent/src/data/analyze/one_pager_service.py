@@ -5,6 +5,7 @@ from datetime import date
 from src.core.llm import complete_json
 from src.core.logging import get_logger
 from src.core.prompts.one_pager import ONE_PAGER_SYSTEM_PROMPT, ONE_PAGER_USER_PROMPT
+from src.domain.analyze.authority import amounts_in, parse_amount
 from src.domain.analyze.entities import (
     BusinessMetrics,
     CompanyOverview,
@@ -38,6 +39,63 @@ CATEGORY_WEIGHTS = {
     "Market Positioning": 0.10,
     "ESG & Risk Factors": 0.05,
 }
+
+
+# The five headline fields, keyed by the fact field that feeds each. A period
+# suffix is stripped first, so annual_revenue_fy2024 lands on annual_revenue.
+_HEADLINE_FIELDS = {
+    "annual_revenue",
+    "ebitda",
+    "net_income",
+    "total_assets",
+    "employees",
+}
+
+_PERIOD_SUFFIX = re.compile(r"_fy\d{2,4}$", re.IGNORECASE)
+
+
+def _check_adjudicated_winners(highlights: FinancialHighlights, conflicts) -> None:
+    """Did the memo print the figure the rule chose, or one it rejected?
+
+    Everything upstream of this is careful: fact_merge settles a disagreement by
+    a stated rule, and the winner reaches synthesis as `-> USE £3.2M` with the
+    reason attached. Then a language model writes the headline, and nothing
+    checked what it wrote. A pipeline can therefore adjudicate correctly, log
+    it, persist it, render a conflict view showing £3.2M as the winner — and
+    print £4.1M on the investment memorandum.
+
+    Only the unambiguous failure is reported: the line carries a value the rule
+    rejected and does not carry the one it chose. A line that omits every
+    candidate is a different question (a missing figure, not a wrong one), and a
+    line carrying the winner alongside a rejected value is usually the memo
+    doing its job — "£3.2M audited, against £4.1M in the deck" is the finding.
+    """
+    for c in conflicts:
+        field = _PERIOD_SUFFIX.sub("", c.field or "")
+        if field not in _HEADLINE_FIELDS or not c.preferred_value:
+            continue
+
+        line = getattr(highlights, field, "") or ""
+        printed = amounts_in(line)
+        if not printed:
+            continue
+
+        winner = parse_amount(c.preferred_value)
+        if winner is None or winner in printed:
+            continue
+
+        rejected = [
+            v for v in c.values
+            if (a := parse_amount(v)) is not None and a != winner and a in printed
+        ]
+        if rejected:
+            logger.error(
+                f"One-pager '{field}' reads '{line}', which carries a value the "
+                f"rule rejected ({', '.join(rejected)}) and not the one it chose "
+                f"({c.preferred_value} — {c.resolution_basis}: {c.rationale}). "
+                f"The reconciliation was correct and the memorandum does not "
+                f"reflect it."
+            )
 
 
 def _describe_conflict(c) -> str:
@@ -112,9 +170,9 @@ class OnePagerService:
             "one_pager", user_prompt, system_prompt, volatile=(today,)
         )
 
-        return self._parse_response(raw_text)
+        return self._parse_response(raw_text, merged.conflicts)
 
-    def _parse_response(self, raw_text: str) -> OnePager:
+    def _parse_response(self, raw_text: str, conflicts=()) -> OnePager:
         if not raw_text:
             raise RuntimeError("Empty response from one-pager GPT call")
 
@@ -170,18 +228,20 @@ class OnePagerService:
         overall_score = f"{overall:.1f}/5.0"
 
         fh = data["financial_highlights"]
+        financial_highlights = FinancialHighlights(
+            annual_revenue=fh["annual_revenue"],
+            ebitda=fh["ebitda"],
+            net_income=fh["net_income"],
+            total_assets=fh["total_assets"],
+            employees=fh["employees"],
+            projections=fh.get("projections", ""),
+        )
+        _check_adjudicated_winners(financial_highlights, conflicts)
 
         return OnePager(
             executive_summary=data["executive_summary"],
             company_overview=CompanyOverview(**data["company_overview"]),
-            financial_highlights=FinancialHighlights(
-                annual_revenue=fh["annual_revenue"],
-                ebitda=fh["ebitda"],
-                net_income=fh["net_income"],
-                total_assets=fh["total_assets"],
-                employees=fh["employees"],
-                projections=fh.get("projections", ""),
-            ),
+            financial_highlights=financial_highlights,
             business_metrics=BusinessMetrics(**data["business_metrics"]),
             scorecard=scorecard,
             overall_score=overall_score,

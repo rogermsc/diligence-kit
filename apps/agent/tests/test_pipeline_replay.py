@@ -99,6 +99,25 @@ async def test_the_planted_revenue_disagreement_is_caught(pipeline):
     assert conflict.magnitude == "28% spread, £3.2M to £4.1M"
 
 
+async def test_the_memorandum_prints_the_figure_the_rule_chose(pipeline):
+    """The last hop, and the one nothing covered.
+
+    Adjudication reaches synthesis as advisory prompt text and a model writes
+    the headline. Every test above can pass — the disagreement found, the
+    audited actual chosen, the reason recorded, the conflict view correct —
+    while the memorandum itself prints the pitch deck's number.
+    """
+    _, _, merged, one_pager = await run(pipeline)
+
+    conflict = next(c for c in merged.conflicts if c.field == "annual_revenue_fy2024")
+    revenue = one_pager.financial_highlights.annual_revenue
+
+    assert conflict.preferred_value in revenue, (
+        f"the rule chose {conflict.preferred_value}; the memorandum reads {revenue!r}"
+    )
+    assert "£4.1M" not in revenue and "£3.8M" not in revenue
+
+
 async def test_facts_keep_the_document_they_came_from(pipeline):
     _, _, merged, _ = await run(pipeline)
 

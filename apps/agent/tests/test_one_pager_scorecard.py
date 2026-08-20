@@ -7,7 +7,12 @@ readout. These cover the ways it can be quietly wrong.
 
 import pytest
 
-from src.data.analyze.one_pager_service import CATEGORY_WEIGHTS, OnePagerService
+from src.data.analyze.one_pager_service import (
+    CATEGORY_WEIGHTS,
+    OnePagerService,
+    _check_adjudicated_winners,
+)
+from src.domain.analyze.entities import Conflict, FinancialHighlights
 
 BLANK_SECTIONS = {
     "executive_summary": "",
@@ -124,3 +129,67 @@ def test_per_category_weighted_scores_are_reported():
     assert len(result.scorecard) == len(CATEGORY_WEIGHTS)
     assert all(c.weighted_score for c in result.scorecard)
     assert result.scorecard[0].score == "4.0/5"
+
+
+# --- the memorandum must print the figure the rule chose ---------------------
+#
+# Everything upstream settles the disagreement correctly and hands synthesis
+# "-> USE £3.2M" as prompt text. A model then writes the headline. Nothing
+# checked what it wrote, so the pipeline could adjudicate £3.2M, log it, persist
+# it, render a conflict view showing it — and print £4.1M on the memorandum.
+
+def revenue_conflict(preferred="£3.2M"):
+    return Conflict(
+        field="annual_revenue_fy2024",
+        values=["£4.1M (deck)", "£3.8M (model)", "£3.2M (audited)"],
+        preferred_value=preferred,
+        preferred_source="04_audited_accounts.pdf",
+        resolution_basis="source_type",
+        rationale="actual beats pro_forma",
+        confidence=1.0,
+        magnitude="28% spread, £3.2M to £4.1M",
+    )
+
+
+def highlights(annual_revenue):
+    return FinancialHighlights(
+        annual_revenue=annual_revenue, ebitda="", net_income="",
+        total_assets="", employees="", projections="",
+    )
+
+
+def test_printing_a_rejected_figure_is_reported(caplog):
+    _check_adjudicated_winners(highlights("£4.1M (FY2024)"), [revenue_conflict()])
+
+    assert "annual_revenue" in caplog.text
+    assert "£3.2M" in caplog.text
+
+
+def test_printing_the_chosen_figure_is_silent(caplog):
+    _check_adjudicated_winners(highlights("£3.2M (FY2024 audited actual)"), [revenue_conflict()])
+
+    assert caplog.text == ""
+
+
+def test_the_same_figure_written_differently_is_not_a_mismatch(caplog):
+    # 3,200,000 is £3.2M. Comparing rendered strings would call this a failure.
+    _check_adjudicated_winners(highlights("3,200,000 (FY2024)"), [revenue_conflict()])
+
+    assert caplog.text == ""
+
+
+def test_naming_the_rejected_figure_alongside_the_winner_is_the_point(caplog):
+    # "£3.2M audited, against £4.1M in the deck" is the finding, not a defect.
+    _check_adjudicated_winners(
+        highlights("£3.2M audited, against £4.1M in the deck"), [revenue_conflict()]
+    )
+
+    assert caplog.text == ""
+
+
+def test_a_line_with_no_figure_at_all_is_a_different_question(caplog):
+    _check_adjudicated_winners(
+        highlights("No audited/actual financials in dataroom"), [revenue_conflict()]
+    )
+
+    assert caplog.text == ""
