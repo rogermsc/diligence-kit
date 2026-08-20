@@ -81,7 +81,37 @@ class ConflictResolutionService:
 
         for c in conflicts:
             resolution = resolutions.get(c.field)
-            if resolution and not resolution.get("is_real_conflict", True):
+            suppressed = bool(resolution) and not resolution.get("is_real_conflict", True)
+
+            if suppressed and c.magnitude and c.resolution_basis == "source_type":
+                # The one question put to the model is whether two values are
+                # the same figure written differently. Two conditions together
+                # make that answer wrong rather than debatable: a magnitude
+                # exists only when the parsed amounts differ (magnitude_of
+                # returns "" when low == high), and a source_type basis means
+                # one is an actual and the other a pro-forma or a projection.
+                # A forecast and an audited result are not one figure formatted
+                # two ways, whatever they round to.
+                #
+                # Left unguarded this deletes the finding the product exists to
+                # produce: a 28% spread across three documents, settled at
+                # confidence 1.0 by a stated rule, discarded by the one call
+                # that was demoted for exactly this reason.
+                #
+                # Deliberately narrow. A basis-of-measurement difference — 52 at
+                # year end against 49 on average — is settled on document
+                # authority, not source_type, and stays the model's call, which
+                # is what test_a_difference_of_basis_is_not_reported_as_a_
+                # contradiction asks for.
+                logger.warning(
+                    f"Ignoring is_real_conflict=false for '{c.field}': the values "
+                    f"differ by {c.magnitude} and disagree on basis of preparation, "
+                    f"so they are not the same figure written differently. "
+                    f"Reason given: {resolution.get('reason', '')}"
+                )
+                suppressed = False
+
+            if suppressed:
                 logger.info(f"Conflict resolved (false positive): '{c.field}' — {resolution.get('reason', '')}")
             else:
                 # The model's only contribution is whether this is a real

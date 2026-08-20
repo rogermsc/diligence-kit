@@ -8,6 +8,8 @@ test asserted that a hardcoded string survived a round trip through a hash.
 These run the actual rules. No LLM, no fixtures, milliseconds.
 """
 
+import asyncio
+
 import pytest
 
 from src.domain.analyze.authority import authority_of, magnitude_of, parse_amount
@@ -140,3 +142,74 @@ class TestMagnitude:
 
     def test_identical_amounts_written_differently_produce_no_line(self):
         assert magnitude_of(["£3.2M", "3,200,000"]) == ""
+
+
+class TestTheModelCannotDeleteASettledConflict:
+    """The one call left to a model here answers one question: are these the
+    same figure written differently? A numeric spread is deterministic proof
+    they are not, and the answer is then wrong rather than debatable.
+
+    Without this, `is_real_conflict: false` deletes the finding outright — the
+    three-way revenue disagreement the README is built around, settled by a
+    stated rule at confidence 1.0, discarded by the call that was demoted for
+    exactly this reason.
+    """
+
+    @staticmethod
+    def _resolve(conflicts, monkeypatch, *, is_real):
+        import json as _json
+
+        from src.data.analyze import conflict_resolution_service as mod
+
+        async def fake(_purpose, _prompt):
+            return _json.dumps({"resolutions": [
+                {"field": c.field, "is_real_conflict": is_real, "reason": "same figure"}
+                for c in conflicts
+            ]})
+
+        monkeypatch.setattr(mod, "complete_json", fake)
+        return asyncio.run(mod.ConflictResolutionService().resolve(conflicts))
+
+    def test_a_numeric_disagreement_survives_the_model_calling_it_a_duplicate(self, monkeypatch):
+        c = conflict_over(
+            fact("£4.1M", "01_pitch_deck.pdf", source_type="pro_forma"),
+            fact("£3.2M", "04_audited_accounts.pdf", source_type="actual", date="2024-12-31"),
+        )
+        assert c.magnitude, "precondition: the amounts differ, so a magnitude exists"
+
+        kept = self._resolve([c], monkeypatch, is_real=False)
+
+        assert [k.field for k in kept] == ["annual_revenue_fy2024"]
+        assert kept[0].preferred_value == "£3.2M"
+
+    def test_a_formatting_variant_is_still_suppressed(self):
+        # The guard must not cost the model the judgement it is actually good
+        # at. Identical amounts produce no magnitude, so nothing protects them.
+        c = conflict_over(
+            fact("£3.2M", "04_audited_accounts.pdf", source_type="actual"),
+            fact("3,200,000", "05_summary.pdf", source_type="actual"),
+        )
+        assert c is None or not c.magnitude
+
+    def test_a_basis_of_measurement_difference_is_still_the_models_call(self, monkeypatch):
+        # 52 at year end against 49 on average is settled on document authority,
+        # not on basis of preparation. Both are true, and the guard deliberately
+        # does not reach it.
+        c = conflict_over(
+            fact("52", "01_pitch_deck.pdf", field="employees"),
+            fact("49", "04_audited_accounts.pdf", field="employees", date="2024-12-31"),
+            field="employees",
+        )
+        assert c.magnitude and c.resolution_basis != "source_type"
+
+        assert self._resolve([c], monkeypatch, is_real=False) == []
+
+    def test_a_non_numeric_disagreement_is_still_the_models_call(self, monkeypatch):
+        c = conflict_over(
+            fact("London", "01_pitch_deck.pdf", field="headquarters"),
+            fact("London, UK", "04_audited_accounts.pdf", field="headquarters"),
+            field="headquarters",
+        )
+        assert c is not None and not c.magnitude
+
+        assert self._resolve([c], monkeypatch, is_real=False) == []
