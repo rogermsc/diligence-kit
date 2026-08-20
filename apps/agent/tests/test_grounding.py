@@ -154,3 +154,30 @@ class TestARealPdfIsNotTheOneWeGenerated:
         # full of ranges and negative figures.
         assert grounding.verify("2023-2024", "for 2023-2024 the figure") is True
         assert grounding.verify("20232024", "for 2023-2024 the figure") is False
+
+
+def test_a_page_full_of_text_with_no_text_layer_is_unverifiable():
+    """The safety-critical case, and the one the real-filing study never hit.
+
+    All 22 SEC reports in evals/corpus carried a text layer, so nothing there
+    exercised a scan. The existing blank-page test does not either: it proves
+    an empty PDF has no text, not that a page *covered in words* can still have
+    none to extract.
+
+    This renders a real page to pixels and keeps only the image. A reader sees a
+    full page; pdf_text sees nothing. Every fact from it must come back None —
+    unverifiable — because False here would report a correctly quoted fact as
+    fabricated, on the documents most likely to be scanned in the first place.
+    """
+    with fitz.open() as src:
+        page = src.new_page()
+        page.insert_text((72, 100), "Turnover for the year was £3.2M", fontsize=12)
+        raster = fitz.open()
+        out = raster.new_page(width=page.rect.width, height=page.rect.height)
+        out.insert_image(out.rect, pixmap=page.get_pixmap(dpi=150))
+        scanned = base64.b64encode(raster.tobytes()).decode()
+        raster.close()
+
+    assert grounding.source_text(doc(pdf_data=scanned)) is None
+    # and therefore, at the point it matters:
+    assert grounding.verify("Turnover for the year was £3.2M", None) is None
