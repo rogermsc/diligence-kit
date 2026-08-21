@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest"
 import type { Analysis, Fact } from "../models/analysis"
 import { buildConflictCases, corroboratedFields, distinctFacts } from "./conflicts"
 import { buildEvidenceIndex, locateValueInQuote } from "./evidence"
+import { summariseVerification, verificationNote } from "./verification"
 import { applyWeights, buildScorecard, parseScore } from "./scorecard"
 
 /**
@@ -271,5 +272,124 @@ describe("quote highlighting", () => {
     // A near-miss highlight would assert a provenance the document does not
     // support.
     expect(locateValueInQuote("£3.2M", "Revenue was 3.2 million")).toBeNull()
+  })
+})
+
+describe("verification is counted in three states, never two", () => {
+  /**
+   * `quote_verified` is deliberately tri-state in the agent: `null` means there
+   * was no source text to check against — a scan, or a re-run carrying only a
+   * file id — which is not the same answer as `false`. Anything here that
+   * treats `null` as either verified or failed spends that distinction.
+   */
+  const dataroom = (facts: Fact[]): Analysis => ({
+    ...analysis,
+    facts: { annual_revenue_fy2024: facts },
+  })
+
+  it("never counts an unverifiable fact as verified", () => {
+    const summary = summariseVerification(
+      dataroom([
+        fact({ value: "£3.2M", quote_verified: true }),
+        fact({ value: "£3.8M", quote_verified: null }),
+      ]),
+    )
+
+    expect(summary.verified).toBe(1)
+    expect(summary.unchecked).toBe(1)
+    expect(summary.notFound).toBe(0)
+  })
+
+  it("never counts an unverifiable fact as a failed check either", () => {
+    // The other direction, and the more damaging one: a scan reported as a
+    // quote that is not in its document reads as fabrication.
+    const summary = summariseVerification(
+      dataroom([fact({ value: "£3.2M", quote_verified: null })]),
+    )
+
+    expect(summary.notFound).toBe(0)
+    expect(summary.unchecked).toBe(1)
+  })
+
+  it("keeps a fact with no quote out of the unverifiable count", () => {
+    // Nothing was checked, but nothing was uncheckable — the model simply did
+    // not return a quote, which is a different failure with a different fix.
+    const summary = summariseVerification(
+      dataroom([
+        fact({ value: "£3.2M", quote: "", grounding: "unquoted", quote_verified: false }),
+        fact({ value: "£3.8M", quote_verified: null }),
+      ]),
+    )
+
+    expect(summary.unquoted).toBe(1)
+    expect(summary.unchecked).toBe(1)
+    expect(summary.notFound).toBe(0)
+    expect(summary.quoted).toBe(1)
+  })
+
+  it("adds up: every fact lands in exactly one bucket", () => {
+    const summary = summariseVerification(
+      dataroom([
+        fact({ value: "a", quote_verified: true }),
+        fact({ value: "b", quote_verified: false }),
+        fact({ value: "c", quote_verified: null }),
+        fact({ value: "d", quote: "", grounding: "unquoted", quote_verified: false }),
+      ]),
+    )
+
+    expect(summary.total).toBe(4)
+    expect(summary.verified + summary.notFound + summary.unchecked).toBe(
+      summary.quoted,
+    )
+    expect(summary.quoted + summary.unquoted).toBe(summary.total)
+  })
+
+  it("counts every fact in the dataroom, not just the contested ones", () => {
+    // The screen showed verification only inside conflict cards, so the
+    // majority of facts — the ones no document disputed — had no verification
+    // state on any surface.
+    const summary = summariseVerification(analysis)
+    const contested = new Set(analysis.conflicts.map((c) => c.field))
+    const uncontested = Object.entries(analysis.facts)
+      .filter(([field]) => !contested.has(field))
+      .flatMap(([, facts]) => facts)
+
+    expect(uncontested.length).toBeGreaterThan(0)
+    expect(summary.total).toBe(Object.values(analysis.facts).flat().length)
+    expect(summary.total).toBeGreaterThan(
+      Object.entries(analysis.facts)
+        .filter(([field]) => contested.has(field))
+        .flatMap(([, facts]) => facts).length,
+    )
+  })
+})
+
+describe("what the reader is told about one fact's check", () => {
+  it("gives the unverifiable state its own answer, not silence and not blame", () => {
+    const unchecked = verificationNote(null)
+
+    expect(unchecked.text).not.toBe(verificationNote(true).text)
+    expect(unchecked.text).not.toBe(verificationNote(false).text)
+    // Blaming the document for a check that never ran is the worse error of
+    // the two: it reads as fabrication.
+    expect(unchecked.tone).toBe("neutral")
+    expect(unchecked.text).not.toMatch(/not found/i)
+  })
+
+  it("states the verified case out loud, so absence never carries meaning", () => {
+    // Printing nothing on success taught the reader that a bare quote is fine,
+    // which is exactly what an unchecked quote also looked like.
+    expect(verificationNote(true).text).not.toBe("")
+  })
+
+  it("does not claim the document is unreadable, which is only one of the two causes", () => {
+    // The other is a re-run carrying only a file id, where the document is
+    // perfectly readable and simply was not to hand.
+    expect(verificationNote(null).text).not.toMatch(/no readable text/i)
+  })
+
+  it("marks only the failed check as a problem", () => {
+    expect(verificationNote(false).tone).toBe("conflict")
+    expect(verificationNote(true).tone).toBe("neutral")
   })
 })

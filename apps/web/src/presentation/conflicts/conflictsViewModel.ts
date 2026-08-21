@@ -9,6 +9,10 @@ import {
   corroboratedFields,
   type ConflictCase,
 } from "@/domain/analysis/usecases/conflicts"
+import {
+  summariseVerification,
+  type VerificationSummary,
+} from "@/domain/analysis/usecases/verification"
 
 export interface ConflictsViewState {
   loading: boolean
@@ -18,6 +22,8 @@ export interface ConflictsViewState {
   unavailable: boolean
   cases: ConflictCase[]
   corroborated: string[]
+  /** Null until the analysis loads; counted over every fact, not just contested ones. */
+  verification: VerificationSummary | null
   analysis: Analysis | null
   reload: () => void
 }
@@ -62,6 +68,7 @@ export function useConflictsViewModel(
     analysis,
     cases: analysis ? buildConflictCases(analysis) : [],
     corroborated: analysis ? corroboratedFields(analysis) : [],
+    verification: analysis ? summariseVerification(analysis) : null,
     reload: load,
   }
 }

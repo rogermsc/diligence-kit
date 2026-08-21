@@ -6,6 +6,7 @@ import type {
   ConflictValue,
 } from "@/domain/analysis/usecases/conflicts"
 import { locateValueInQuote } from "@/domain/analysis/usecases/evidence"
+import { verificationNote } from "@/domain/analysis/usecases/verification"
 import { cn } from "@/lib/utils"
 
 const PROVENANCE: Record<string, { variant: "actual" | "pro-forma" | "projection" | "unknown"; label: string }> = {
@@ -38,6 +39,31 @@ function Quote({ value, quote }: { value: string; quote: string }) {
     </>
   )
 }
+
+/**
+ * All three states, always stated. Never absence.
+ *
+ * This used to warn on `false` and print nothing otherwise, which gave `true`
+ * and `null` the same appearance — so a quote from a scan, which nobody could
+ * check, looked exactly like one checked and found. The agent keeps those
+ * apart on purpose (`verify()` returns `None`, never `False`, when there is no
+ * text to read); silence here spent that distinction in the flattering
+ * direction.
+ */
+function VerificationNote({ verified }: { verified: boolean | null }) {
+  const note = verificationNote(verified)
+  return (
+    <span
+      className={cn(
+        "mt-1 block",
+        note.tone === "conflict" ? "text-conflict" : "text-muted-foreground",
+      )}
+    >
+      {note.text}
+    </span>
+  )
+}
+
 
 function ValueColumn({ value, resolved }: { value: ConflictValue; resolved: boolean }) {
   const provenance = PROVENANCE[value.sourceType] ?? PROVENANCE[""]
@@ -76,11 +102,7 @@ function ValueColumn({ value, resolved }: { value: ConflictValue; resolved: bool
       {value.quote && (
         <blockquote className="rounded-sm bg-muted/60 p-2 font-mono text-xs leading-relaxed text-foreground/90">
           <Quote value={value.value} quote={value.quote} />
-          {value.quoteVerified === false && (
-            <span className="mt-1 block text-conflict">
-              not found in the source document
-            </span>
-          )}
+          <VerificationNote verified={value.quoteVerified} />
         </blockquote>
       )}
 

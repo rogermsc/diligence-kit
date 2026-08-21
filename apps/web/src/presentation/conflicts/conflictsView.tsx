@@ -5,8 +5,50 @@ import { AlertCircle, ArrowLeft, CheckCircle2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import type { VerificationSummary } from "@/domain/analysis/usecases/verification"
 import { useConflictsViewModel } from "./conflictsViewModel"
 import { ConflictCase } from "./conflictCase"
+
+/**
+ * What was checked across the whole dataroom, not just the contested figures.
+ *
+ * Most facts never conflict, so everything below this line describes a
+ * minority of the evidence. Without a total, a page showing two verified
+ * quotes reads as a verified dataroom.
+ *
+ * The unchecked count is stated even at zero. It is the number that says
+ * whether any of this rests on a document nobody could read, and a figure that
+ * only appears when it is bad teaches a reader that its absence means nothing.
+ */
+function VerificationLine({ summary }: { summary: VerificationSummary }) {
+  if (summary.total === 0) return null
+
+  return (
+    <p className="mb-6 rounded-md border border-border bg-muted/30 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+      <span data-numeric>{summary.verified}</span> of{" "}
+      <span data-numeric>{summary.quoted}</span> quoted facts were found in the
+      document they cite.{" "}
+      {summary.notFound > 0 && (
+        <>
+          <span className="text-conflict" data-numeric>
+            {summary.notFound}
+          </span>{" "}
+          were not.{" "}
+        </>
+      )}
+      <span data-numeric>{summary.unchecked}</span>{" "}
+      {summary.unchecked === 1 ? "was" : "were"} unverifiable — no source text
+      to check against.{" "}
+      {summary.unquoted > 0 && (
+        <>
+          <span data-numeric>{summary.unquoted}</span>{" "}
+          {summary.unquoted === 1 ? "fact" : "facts"} came back without a quote
+          and could not be checked at all.
+        </>
+      )}
+    </p>
+  )
+}
 
 interface Props {
   companyId: string
@@ -19,7 +61,7 @@ export function ConflictsView({
   triageAutomationId,
   companyName,
 }: Props) {
-  const { loading, error, unavailable, cases, corroborated } =
+  const { loading, error, unavailable, cases, corroborated, verification } =
     useConflictsViewModel(triageAutomationId)
 
   return (
@@ -77,6 +119,10 @@ export function ConflictsView({
             Re-running it will produce the full evidence trail.
           </p>
         </div>
+      )}
+
+      {!loading && !error && !unavailable && verification && (
+        <VerificationLine summary={verification} />
       )}
 
       {!loading && !error && !unavailable && cases.length === 0 && (
