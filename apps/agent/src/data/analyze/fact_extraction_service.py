@@ -14,6 +14,7 @@ from src.core.prompts.fact_extraction import (
     INFORMATION_TYPES as DEFAULT_INFORMATION_TYPES,
 )
 from src.data.analyze import grounding
+from src.domain.analyze import cells
 from src.domain.analyze.entities import DocumentFacts, Fact, PreparedDocument
 
 logger = get_logger(__name__)
@@ -248,6 +249,22 @@ class FactExtractionService:
                 f"{doc.file_name}: {len(ambiguous)} financial facts state no unit — "
                 f"{', '.join(f'{f.field}={f.value.strip()}' for f in ambiguous[:3])}"
                 f"{' …' if len(ambiguous) > 3 else ''}"
+            )
+
+        # A spreadsheet fact cites a cell, and quote verification cannot check
+        # one: the sheet is a single blob of text, so a quote lifted from row 5
+        # verifies against a fact that cites row 12. The value is on the sheet
+        # either way. This is the one place that difference is visible, and the
+        # last version of this bug — facts citing the wrong sheet outright —
+        # reached main and was caught by a test rather than by the pipeline.
+        misplaced = [f for f in facts
+                     if cells.cites_its_own_row(f.value, f.quote, f.page, text or "") is False]
+        if misplaced:
+            logger.warning(
+                f"{doc.file_name}: {len(misplaced)} facts cite a row that does not "
+                f"hold them — "
+                f"{', '.join(f'{f.field}@{f.page}' for f in misplaced[:3])}"
+                f"{' …' if len(misplaced) > 3 else ''}"
             )
 
         if text is None:

@@ -206,6 +206,40 @@ async def test_no_fact_cites_a_sheet_it_did_not_come_from(pipeline):
     ]
 
 
+async def test_every_spreadsheet_fact_cites_a_row_that_holds_it(pipeline):
+    """The Excel counterpart of quote verification, on the real dataroom.
+
+    `verify()` cannot do this one: a sheet arrives as one blob of text, so a
+    quote lifted from row 5 verifies against a fact citing row 12. Both cite
+    the sheet, both quote something real, and only one is provenance.
+    """
+    from src.data.analyze.extractors.excel_extractor import extract_sheets
+    from src.domain.analyze import cells
+
+    _, _, merged, _ = await run(pipeline)
+    facts = [f for fs in merged.facts.values() for f in fs if "xlsx" in f.source]
+    assert facts, "the demo dataroom has two workbooks; this should not be empty"
+
+    grids = {}
+    for path in DATAROOM.iterdir():
+        if path.suffix == ".xlsx":
+            for sheet, grid in extract_sheets(str(path)):
+                grids[f"{path.name} ({sheet})"] = grid
+
+    wrong = [
+        f"{f.source} {f.field}@{f.page}"
+        for f in facts
+        if cells.cites_its_own_row(f.value, f.quote, f.page, grids.get(f.source, "")) is False
+    ]
+    assert wrong == [], f"these cite a row that does not hold them: {wrong}"
+
+    unanswerable = [f for f in facts if f.page and "!" not in f.page]
+    assert unanswerable == [], (
+        f"every spreadsheet fact should cite a cell, not just a sheet: "
+        f"{[(f.field, f.page) for f in unanswerable]}"
+    )
+
+
 async def test_the_scorecard_survives_the_pipeline(pipeline):
     """The one-pager is now a return value, not just a rendered PDF.
 

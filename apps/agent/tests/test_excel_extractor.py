@@ -84,3 +84,49 @@ def test_the_demo_workbook_still_renders_every_figure():
     assert "Revenue (GBP),1950000" in summary
     assert "Headcount,31,52,78,104" in summary
     assert "[sheet: Summary] columns: A,B,C,D,E" in summary
+
+
+def test_a_cell_containing_a_comma_does_not_shift_every_column_after_it(book):
+    """A citation is only worth as much as the grid it is read against.
+
+    Sheets are rendered one row per line, cells joined with commas — so a cell
+    that itself contains a comma ("Board: 2 founder, 1 investor") became three
+    cells, and every column after it moved one letter to the left. The demo
+    workbook has one. A real financial model, whose row labels read "Cost of
+    revenue, net" and whose text cells hold "1,234", has them everywhere.
+
+    Nothing catches this downstream: the value is still somewhere on the sheet,
+    so the quote verifies, and the cell reference is wrong in a way that looks
+    exactly like a correct one.
+    """
+    path = book({"Terms": [
+        ["Board", "2 founder, 1 investor", "approved"],
+        ["Instrument", "Seed Preferred", "signed"],
+    ]})
+    grid = dict(extract_sheets(path))["Terms"]
+    rows = {line.split(",", 1)[0]: line for line in grid.splitlines()[1:]}
+
+    assert cell(grid, "C1") == "approved", (
+        f"column C of row 1 should hold what column C holds in the sheet; "
+        f"the row renders as {rows['1']!r}"
+    )
+    assert cell(grid, "B1") == "2 founder, 1 investor"
+    # The row below has no comma and must be unaffected either way.
+    assert cell(grid, "C2") == "signed"
+
+
+def cell(grid: str, reference: str) -> str:
+    """Read one cell back out of a rendered sheet, the way a reader would."""
+    import csv
+    import io
+
+    column = "".join(c for c in reference if c.isalpha())
+    row = "".join(c for c in reference if c.isdigit())
+    index = 0
+    for letter in column:
+        index = index * 26 + (ord(letter.upper()) - ord("A") + 1)
+
+    for parsed in csv.reader(io.StringIO(grid)):
+        if parsed and parsed[0] == row:
+            return parsed[index] if index < len(parsed) else ""
+    return ""
