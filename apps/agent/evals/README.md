@@ -180,6 +180,10 @@ by another would then look like a thousand-fold disagreement instead of
 agreement — and the memo would print an ambiguous figure. Extraction now logs a
 warning naming those facts. Not a refusal: 4 of 57 is too thin a base for one.
 
+That warning earned its keep almost immediately — see the fifth arm, where the
+same defect turned out to affect 35 figures once prior-period columns started
+coming back, and where the prompt fix that followed took it to zero.
+
 ### The harness was wrong five times; the model was wrong none
 
 Worth recording, because it is the whole lesson of this directory. Before the
@@ -190,6 +194,80 @@ nearest the number, keeping only the first filed value for a period when
 restatements mean there are several, and — worst — fuzzy-matching company names,
 which mapped Golden Telecom to Genesco and Redfin to Redwire. Every one would
 have been published as "the model got it wrong".
+
+## A fifth arm: what the model did NOT extract
+
+Everything above scores figures the model returned. That is precision, and
+precision alone is satisfied by a model that reports one correct figure and
+stops — which is close to what was happening.
+
+Recall needs an answer key, and one we write ourselves is worth little. This key
+is built from two sources that owe us nothing, and a figure only enters it when
+both agree: the filer's XBRL says this value is *<concept>* for *<period>*, and
+that value, formatted as a page prints it, occurs in the text the model was
+given. So every miss is a number printed on a page the model read, whose meaning
+the filer certified, which the model did not return.
+
+Three rules keep the key honest, each of them added after it produced a wrong
+accusation:
+
+- **Only renderings carrying a thousands separator.** "49" occurs on any page
+  with a page number; "245,122" does not occur by accident.
+- **Only a period the page itself names.** S&P Global's XBRL still retains a
+  2013 revenue of 4,702, and the pre-tax income on its 2022 income statement is
+  also 4,702. Without this rule the key demanded a figure that is not on the
+  page under any reading.
+- **One question per concept and period, not per filed value.** A statement
+  prints both a consolidated and an attributable net income, and a restatement
+  files the same period twice. Reporting either is reporting the figure;
+  demanding both counted correct readings as misses.
+
+### The result: 81%, and every miss the same shape
+
+**47 of 58** figures extracted. All eleven misses were prior-period columns, and
+none was a current period. CarGurus prints this:
+
+```
+Year Ended December 31,      2024       2023       2022
+Total revenue             894,384    914,242  1,655,035
+```
+
+and the model returned **one** fact from it. Manhattan Associates' balance sheet
+prints `Total assets  $ 673,353  $ 570,178`; only the first was extracted.
+Redfin's year-over-year table prints FY2021 beside FY2020; only FY2021 came
+back. Meanwhile five of the nine companies had every column extracted, so this
+is not a model that cannot read a second column — it is one that often does not.
+
+The prompt already asked for this, in a paragraph outside the numbered rules:
+*"If comparative figures exist … extract EACH period as a separate fact."* It
+now says so with the failing shape drawn out as a worked example.
+
+**Re-measured on the same 58 figures: 58 of 58. Nothing regressed.**
+
+### The side effect, and the second fix
+
+Extracting prior-period columns made a known defect much worse. A statement
+states its scale once, in a header — so the figures further from that header
+came back bare: **35 financial facts with no unit**, against 4 before. The
+warning shipped for eGain's `$ 98,011` was suddenly firing across a third of
+the corpus, which is what a warning is for.
+
+A second rule now tells the model to carry the table's scale into every figure
+it takes from that table. **35 → 0.** And because a figure with no scale cannot
+be scored at all, the accuracy arm's checkable base rose with it: 43 figures
+before, **66 after — all 66 matching XBRL, none incorrect.**
+
+### The harness was wrong three more times
+
+Same lesson as the fourth arm, so it is worth keeping the tally honest. Before
+these numbers settled, this harness reported as model errors: four eGain figures
+it could not parse because they state no unit (all four had been extracted);
+three figures whose concept is `ProfitLoss` rather than `NetIncomeLoss`, one of
+which `NetIncomeLoss` does not retain at all; and three correct S&P Global
+figures scored against a "nearest filed" value from 2007. **Across five arms the
+count now stands at eight harness defects to zero model fabrications** — when a
+measurement says the system under test is wrong, suspect the measurement first.
+It is newer, less exercised, and nobody has ever run it.
 
 ## The check still discriminates
 
@@ -219,9 +297,11 @@ stops being visible. Hence exact containment, after normalising.
   rather than `False`, so a scan never reads as fabrication. That case is
   covered instead by a unit test that renders a page of figures to pixels and
   keeps only the image, which is the closest thing to a scan we can commit.
-- **Nothing here measures what the model *missed*.** The fourth arm scores the
-  figures it produced, not the ones it should have produced and did not. Recall
-  needs a document-by-document answer key; this measures precision only.
+- **Recall is measured only for three headline concepts.** The fifth arm asks
+  whether revenue, net income and total assets were returned for every period
+  the page prints. It says nothing about the other twenty information types —
+  a customer count or a key person has no XBRL to check it against, and no
+  cheap key exists for them.
 - **The live arm is one model, one prompt, four documents, one run.** 87 facts
   is enough to find a failure mode present in every document; it is not a
   precision figure, and no percentage from it belongs in the README.
@@ -239,6 +319,7 @@ python -m evals.grounding_study --ocr     # real reader; needs tesseract
 
 python -m evals.accuracy_study --extract  # costs money: one model call per filing
 python -m evals.accuracy_study            # score against the filers' XBRL
+python -m evals.recall_study              # score what was NOT extracted
 ```
 
 The corpus is not committed — it is third-party documents, and the finding is

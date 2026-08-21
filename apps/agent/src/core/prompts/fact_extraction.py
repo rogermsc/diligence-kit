@@ -88,14 +88,29 @@ Extract facts ONLY for these fields. Do NOT invent new field names.
 ### Financial Period Convention
 For financial fields (annual_revenue, ebitda, net_income, total_assets), \
 append the period as a suffix: annual_revenue_fy2024, ebitda_h1_2025, net_income_fy2023.
-If comparative figures exist (e.g. current year vs prior year), extract EACH period as a separate fact.
 If the period is unclear, use the base field name without a suffix.
+
+**Extract EVERY period the document prints, not only the most recent.** A \
+comparative statement puts several years in one row:
+
+    Year Ended December 31,      2024       2023       2022
+    Total revenue             894,384    914,242  1,655,035
+
+That single row is THREE facts — annual_revenue_fy2024, annual_revenue_fy2023 \
+and annual_revenue_fy2022. The same applies to the two columns of a balance \
+sheet and to a prior-year column inside a note. Returning only the leftmost \
+figure throws away the comparison, which is usually why the statement is being \
+read at all.
 
 ### Rules
 1. Extract ONLY facts that match the fields above. Skip irrelevant details.
 2. Each fact MUST include a verbatim quote from the document as evidence.
 3. Include the page number (for PDFs/docs) or sheet name + row (for spreadsheets).
 4. If a value has a unit or currency, include it (e.g. "£3,005,013" not "3005013").
+4b. A financial statement states its scale ONCE, in a column header or caption \
+("(in thousands)", "$ in millions"). Carry that scale into EVERY figure you take \
+from that table: "$98,011 thousand", never a bare "$98,011". A figure that \
+arrives without its scale is read a thousand times too small further down.
 5. For multi-value fields (key_person, shareholder, risk_factor, product, \
 certification, legal_issue, patent_trademark), extract one fact per item.
 6. Do NOT invent or infer facts not explicitly stated in the document.
