@@ -1,3 +1,5 @@
+import csv
+import io
 import os
 from typing import List, Tuple
 
@@ -40,7 +42,16 @@ def _to_grid(df: pd.DataFrame, sheet_name: str) -> str:
     means the same thing here and in Excel.
     """
     letters = _column_letters(len(df.columns))
-    lines = [f"[sheet: {sheet_name}] columns: {','.join(letters)}"]
+    buffer = io.StringIO()
+    # Quoted, not joined. A cell may itself contain a comma — "Board: 2 founder,
+    # 1 investor" is one cell, and the demo workbook has one — and joining on
+    # commas turned it into three, moving every column after it one letter to
+    # the left. Nothing downstream could catch that: the value is still
+    # somewhere on the sheet, so the quote verifies, and the cell reference is
+    # wrong in a way indistinguishable from a right one.
+    writer = csv.writer(buffer, lineterminator="\n")
+
+    buffer.write(f"[sheet: {sheet_name}] columns: {','.join(letters)}\n")
 
     for position, (_, row) in enumerate(df.iterrows(), start=1):
         cells = ["" if pd.isna(value) else str(value) for value in row]
@@ -50,9 +61,9 @@ def _to_grid(df: pd.DataFrame, sheet_name: str) -> str:
             cells.pop()
         if not cells:
             continue
-        lines.append(f"{position}," + ",".join(cells))
+        writer.writerow([position, *cells])
 
-    return "\n".join(lines)
+    return buffer.getvalue().rstrip("\n")
 
 
 def extract_sheets(file_path: str) -> List[Tuple[str, str]]:
