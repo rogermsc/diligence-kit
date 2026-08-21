@@ -69,7 +69,13 @@ CONCEPTS = {
     "annual_revenue": ["RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues",
                        "RevenueFromContractWithCustomerIncludingAssessedTax",
                        "RevenuesNetOfInterestExpense"],
-    "net_income": ["NetIncomeLoss"],
+    # Both readings, because a consolidated statement prints both rows and
+    # either is a defensible answer to "net income". NetIncomeLoss is the
+    # parent-only figure; ProfitLoss includes the noncontrolling interest.
+    # Scoring only the first called three correct transcriptions wrong —
+    # CarGurus' "Consolidated net income" row, and an Axcelis year that
+    # NetIncomeLoss does not retain at all.
+    "net_income": ["NetIncomeLoss", "ProfitLoss"],
     "total_assets": ["Assets"],
 }
 
@@ -94,7 +100,10 @@ def amount(value: str, quote: str = ""):
     match = _NUMBER.search(value or "")
     if not match:
         return None
-    number = float(match.group("num").replace(",", ""))
+    digits = match.group("num").replace(",", "")
+    if not digits.lstrip("-"):
+        return None      # a lone separator, e.g. a value of "$, in thousands"
+    number = float(digits)
     if match.group("neg"):
         number = -number
     for text in (value[match.end():], quote):
@@ -201,10 +210,20 @@ def score():
             if not reported:
                 rows.append((doc["company"], fact["field"], fact["value"], "no XBRL for concept"))
                 continue
+            # A figure whose period XBRL does not retain cannot be scored, and
+            # calling it a mismatch is an accusation the data cannot support.
+            # S&P Global's revenue stops at 2017 under every concept queried
+            # here; three correct figures off a 2022 income statement were
+            # reported as wrong, against a "nearest filed" from 2007.
+            year = re.search(r"fy(\d{4})", fact["field"])
+            if year and not any(end[:4] == year.group(1) for end in reported):
+                rows.append((doc["company"], fact["field"], fact["value"],
+                             "period not in XBRL"))
+                continue
+
             hits = [end for end, vals in reported.items()
                     for v in vals if v and abs(value - v) <= abs(v) * 0.005]
             if hits:
-                year = re.search(r"fy(\d{4})", fact["field"])
                 right_year = not year or any(e[:4] == year.group(1) for e in hits)
                 rows.append((doc["company"], fact["field"], fact["value"],
                              "MATCH" if right_year else f"wrong year (filed {hits[0][:4]})"))
