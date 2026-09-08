@@ -12,7 +12,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Plus, Upload, FileArchive, X, CheckCircle, AlertTriangle, Info, Loader2 } from "lucide-react"
-import { useAutomationUpload } from "@/presentation/automations/useAutomationUpload"
+import {
+  useAutomationUpload,
+  ALLOWED_EXTENSIONS,
+  MAX_ZIP_COMPRESSED_SIZE,
+  MAX_ZIP_UNCOMPRESSED_SIZE,
+} from "@/presentation/automations/useAutomationUpload"
 
 interface ConfirmUploadResponse {
   automationId: string
@@ -160,9 +165,10 @@ export function AddAutomationModal({
       )}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Start Automation</DialogTitle>
+          <DialogTitle>Analyse a dataroom</DialogTitle>
           <DialogDescription>
-            Upload a ZIP file containing your documents for automation processing.
+            Upload the dataroom as a ZIP. Every document is classified, then read
+            for facts, and the figures they state differently are reconciled.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -181,8 +187,12 @@ export function AddAutomationModal({
                   <p className="text-sm text-muted-foreground mb-1">
                     Click to select a ZIP file
                   </p>
+                  {/* Stated before the upload, not after it fails. Both limits
+                      were enforced in useAutomationUpload and appeared nowhere
+                      in the interface. */}
                   <p className="text-xs text-muted-foreground">
-                    Only ZIP files are supported
+                    Up to {MAX_ZIP_COMPRESSED_SIZE / 1024 / 1024} MB zipped,{" "}
+                    {MAX_ZIP_UNCOMPRESSED_SIZE / 1024 / 1024} MB unpacked
                   </p>
                 </div>
               ) : (
@@ -211,10 +221,10 @@ export function AddAutomationModal({
 
                   {/* File Analysis Results */}
                   {fileAnalysis && (
-                    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="mt-3 p-3 bg-muted/40/50 rounded-lg border border-border">
                       <div className="flex items-center space-x-2 mb-2">
                         <Info className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <span className="text-sm font-medium text-foreground">
                           File Analysis Complete
                         </span>
                       </div>
@@ -222,28 +232,28 @@ export function AddAutomationModal({
                       <div className="space-y-2 text-xs">
                         <div className="flex items-center space-x-2">
                           <CheckCircle className="h-3 w-3 text-gray-600 dark:text-gray-400" />
-                          <span className="text-gray-800 dark:text-gray-200">
+                          <span className="text-foreground">
                             {fileAnalysis.allowedFiles.length} files will be uploaded
                           </span>
                         </div>
 
                         {fileAnalysis.removedFiles.length > 0 && (
                           <div className="flex items-center space-x-2">
-                            <AlertTriangle className="h-3 w-3 text-yellow-600 dark:text-yellow-500" />
-                            <span className="text-gray-800 dark:text-gray-200">
+                            <AlertTriangle className="h-3 w-3 text-conflict" />
+                            <span className="text-foreground">
                               {fileAnalysis.removedFiles.length} files will be skipped (invalid extensions)
                             </span>
                           </div>
                         )}
 
-                        <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
-                          <p className="text-gray-700 dark:text-gray-300 font-medium mb-1">
-                            Allowed extensions: pdf, csv, xls, xlsx, doc, docx, txt
+                        <div className="mt-2 pt-2 border-t border-border">
+                          <p className="text-muted-foreground font-medium mb-1">
+                            Accepted: {ALLOWED_EXTENSIONS.join(", ")}
                           </p>
 
                           {fileAnalysis.removedFiles.length > 0 && (
                             <details className="mt-2">
-                              <summary className="cursor-pointer text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
+                              <summary className="cursor-pointer text-muted-foreground hover:text-gray-900 dark:hover:text-gray-100">
                                 View skipped files ({fileAnalysis.removedFiles.length})
                               </summary>
                               <div className="mt-1 pl-4 space-y-1 max-h-20 overflow-y-auto">

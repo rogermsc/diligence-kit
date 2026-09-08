@@ -1,6 +1,10 @@
 import { z } from "zod"
 
+// Every value the Postgres enum can hold. NOT_STARTED is the column default,
+// so leaving it out meant a freshly created automation failed this app's own
+// response validation.
 export const AutomationStatusSchema = z.enum([
+    "NOT_STARTED",
     "PENDING",
     "PROCESSING",
     "COMPLETED",
@@ -135,6 +139,8 @@ export const AutomationResponseSchema = z.object({
     id: z.string().uuid(),
     companyId: z.string(),
     status: AutomationStatusSchema,
+    // Why a FAILED run failed. Null on every run that has not.
+    failureReason: z.string().nullable().optional(),
     stage: z.string(),
     documents: z.array(DocumentSchema),
     output_documents: z.array(ResultSchema),

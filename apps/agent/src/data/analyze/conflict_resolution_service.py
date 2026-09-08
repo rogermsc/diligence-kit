@@ -1,9 +1,9 @@
 import json
-from typing import List
+from typing import List, Tuple
 
 from src.core.llm import complete_json
 from src.core.logging import get_logger
-from src.domain.analyze.entities import Conflict
+from src.domain.analyze.entities import Conflict, SuppressedConflict
 
 logger = get_logger(__name__)
 
@@ -53,10 +53,17 @@ class ConflictResolutionService:
     this does.
     """
 
-    async def resolve(self, conflicts: List[Conflict]) -> List[Conflict]:
-        """Filter out false-positive conflicts using GPT."""
+    async def resolve(
+        self, conflicts: List[Conflict]
+    ) -> Tuple[List[Conflict], List[SuppressedConflict]]:
+        """Split flagged conflicts into the real ones and the dismissed ones.
+
+        Both halves are returned. A dismissal used to be a log line, which made
+        "nothing disagreed" and "a disagreement was raised and waved away"
+        indistinguishable to everything downstream.
+        """
         if not conflicts:
-            return []
+            return [], []
 
         conflicts_text = ""
         for c in conflicts:
@@ -77,6 +84,7 @@ class ConflictResolutionService:
             return conflicts
 
         real_conflicts = []
+        suppressed_conflicts: List[SuppressedConflict] = []
         resolutions = {r["field"]: r for r in data.get("resolutions", [])}
 
         for c in conflicts:
@@ -112,7 +120,11 @@ class ConflictResolutionService:
                 suppressed = False
 
             if suppressed:
-                logger.info(f"Conflict resolved (false positive): '{c.field}' — {resolution.get('reason', '')}")
+                reason = resolution.get("reason", "")
+                logger.info(f"Conflict resolved (false positive): '{c.field}' — {reason}")
+                suppressed_conflicts.append(
+                    SuppressedConflict(conflict=c, reason=reason)
+                )
             else:
                 # The model's only contribution is whether this is a real
                 # disagreement. preferred_value and the rest were settled
@@ -120,4 +132,4 @@ class ConflictResolutionService:
                 real_conflicts.append(c)
 
         logger.info(f"Conflict resolution: {len(conflicts)} candidates → {len(real_conflicts)} real conflicts")
-        return real_conflicts
+        return real_conflicts, suppressed_conflicts

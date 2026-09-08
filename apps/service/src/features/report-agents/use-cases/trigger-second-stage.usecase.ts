@@ -74,11 +74,30 @@ export class TriggerSecondStageUseCase implements Usecase<
                 completedTriageAutomation.id,
             )
 
-        const isDiligenceAutomationsAlreadyExist =
-            existingDiligenceAutomations.length > 0
+        // Gate on whether they succeeded, not on whether they exist.
+        //
+        // Existence was the wrong question: the four rows are written as
+        // PROCESSING before the agent is called, so a dispatch that failed left
+        // them behind and made stage 2 permanently unrepeatable — a one-shot
+        // with no recovery path anywhere in the product. Rows that are still
+        // running, or that finished, are still a reason to refuse; rows that
+        // all failed are not.
+        const recoverable = existingDiligenceAutomations.every(
+            (automation) => automation.status === AutomationStatus.FAILED,
+        )
 
-        if (isDiligenceAutomationsAlreadyExist) {
+        if (existingDiligenceAutomations.length > 0 && !recoverable) {
             throw new DiligenceAutomationsAlreadyExistError()
+        }
+
+        if (existingDiligenceAutomations.length > 0) {
+            this.logger.log(
+                `Retrying stage 2 for triage ${completedTriageAutomation.id}: ` +
+                    `${existingDiligenceAutomations.length} previous run(s) all failed.`,
+            )
+            await this.automationRepository.deleteMany(
+                existingDiligenceAutomations.map((a) => a.id),
+            )
         }
 
         try {
@@ -146,9 +165,9 @@ export class TriggerSecondStageUseCase implements Usecase<
                     Object.values(createdAutomationIds)
                         .filter(Boolean)
                         .map((id) =>
-                            this.automationRepository.updateStatus(
+                            this.automationRepository.markFailed(
                                 id,
-                                AutomationStatus.FAILED,
+                                `Stage 2 could not be started: ${(agentError as Error)?.message ?? agentError}`,
                             ),
                         ),
                 )

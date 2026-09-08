@@ -75,77 +75,9 @@ export class PayloadValidator {
         }
     }
 
-    /**
-     * Validates payload and returns a result object instead of throwing
-     * @param data - The data to validate
-     * @param schema - The Zod schema to validate against
-     * @param context - Optional context for logging
-     * @returns Object with success flag and either data or error
-     */
-    static validateSafe<T>(
-        data: unknown,
-        schema: ZodSchema<T>,
-        context?: string,
-    ):
-        | { success: true; data: T }
-        | { success: false; error: ValidationError<"VALIDATION_ERROR"> } {
-        try {
-            const validatedData = this.validate(data, schema, context)
-            return { success: true, data: validatedData }
-        } catch (error) {
-            if (error instanceof ValidationError) {
-                return { success: false, error }
-            }
-
-            // Convert unexpected errors to ValidationError
-            const validationError = new ValidationError({
-                message: `Unexpected validation error${context ? ` for ${context}` : ""}`,
-                code: 500,
-                type: "VALIDATION_ERROR" as const,
-                errors: [
-                    {
-                        code: "unexpected_error",
-                        message: error.message || "Unknown error",
-                        field: "<unknown>",
-                    },
-                ],
-            })
-
-            return { success: false, error: validationError }
-        }
-    }
-
-    static validateOrThrow<T>(
-        data: unknown,
-        schema: ZodSchema<T>,
-        errorMessage?: string,
-    ): T {
-        try {
-            return schema.parse(data)
-        } catch (error) {
-            if (error instanceof ZodError) {
-                const fieldErrors = error.issues
-                    .map(
-                        (issue) =>
-                            `${issue.path.join(".") || "root"}: ${issue.message}`,
-                    )
-                    .join(", ")
-
-                throw new ValidationError({
-                    message:
-                        errorMessage || `Validation failed: ${fieldErrors}`,
-                    code: 400,
-                    type: "VALIDATION_ERROR" as const,
-                    errors: error.issues.map((issue) => ({
-                        code: issue.code,
-                        message: issue.message,
-                        field: issue.path.map(String).join(".") || "<root>",
-                    })),
-                })
-            }
-            throw error
-        }
-    }
+    // validateSafe and validateOrThrow lived here. Neither ever had a
+    // caller; validateWithErrorHandling is the one the two webhook
+    // controllers use, and it delegates to validate above.
 
     /**
      * Validates and handles errors with structured logging

@@ -24,7 +24,13 @@ alembic = "^1.18.0"
 greenlet = "^3.3.0"
 
 [tool.poetry.group.dev.dependencies]
+# The suite does not run without these two: pytest.ini sets asyncio_mode = auto,
+# and `make lint` invokes ruff against ruff.toml. Declaring only pytest meant
+# `poetry install` produced an environment that could not run the tests, and CI
+# passed only because it installs requirements-dev.txt separately.
 pytest = "^8.0.0"
+pytest-asyncio = "^1.2.0"
+ruff = "^0.14.0"
 
 [build-system]
 requires = ["poetry-core"]

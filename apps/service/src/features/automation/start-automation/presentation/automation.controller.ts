@@ -27,7 +27,7 @@ import { CreateAutomationUseCase } from "../use-case/create-automation.usecase"
 import { UploadDocumentUseCase } from "../use-case/upload-document.usecase"
 import { ConfirmUploadUseCase } from "../use-case/confirm-upload.usecase"
 import { GetCompanyByIdUseCase } from "../use-case/get-company-by-id.usecase"
-import { AutomationRepository } from "../domain/repository/automation-repository.interface"
+import { IAutomationRepository as AutomationRepository } from "@/shared/repository/automation-repository.interface"
 import { Tenancy } from "@/shared/tenancy/tenancy.decorator"
 import { RequestValidator } from "@/shared/validators/request-validator"
 import {

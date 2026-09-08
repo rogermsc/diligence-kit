@@ -242,8 +242,11 @@ class FactExtractionService:
         # another looks like a thousand-fold disagreement rather than agreement.
         # Measured on ten real filings: 4 of 57 headline figures, all from the
         # one filer whose statements put the unit in a column header.
-        ambiguous = [f for f in facts
-                     if self._is_financial_field(f.field) and _has_no_unit(f.value)]
+        for f in facts:
+            if self._is_financial_field(f.field):
+                f.unit_stated = not _has_no_unit(f.value)
+
+        ambiguous = [f for f in facts if f.unit_stated is False]
         if ambiguous:
             logger.warning(
                 f"{doc.file_name}: {len(ambiguous)} financial facts state no unit — "
@@ -257,8 +260,12 @@ class FactExtractionService:
         # either way. This is the one place that difference is visible, and the
         # last version of this bug — facts citing the wrong sheet outright —
         # reached main and was caught by a test rather than by the pipeline.
-        misplaced = [f for f in facts
-                     if cells.cites_its_own_row(f.value, f.quote, f.page, text or "") is False]
+        for f in facts:
+            f.cell_verified = cells.cites_its_own_row(
+                f.value, f.quote, f.page, text or ""
+            )
+
+        misplaced = [f for f in facts if f.cell_verified is False]
         if misplaced:
             logger.warning(
                 f"{doc.file_name}: {len(misplaced)} facts cite a row that does not "

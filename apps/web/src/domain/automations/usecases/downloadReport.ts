@@ -1,7 +1,8 @@
-import { AutomationRepository } from "../repositories/automationRepository";
+import type { AutomationRepositoryImpl } from "@/data/automations/automationRepositoryImpl";
+import { saveBlob } from "@/lib/saveBlob";
 
 export class DownloadReportUseCase {
-    constructor(private automationRepository: AutomationRepository) { }
+    constructor(private automationRepository: AutomationRepositoryImpl) { }
 
     async execute(automationId: string, fileName?: string): Promise<void> {
         try {
@@ -14,24 +15,7 @@ export class DownloadReportUseCase {
 
             // Extract filename or use default with proper extension (likely PDF)
             const defaultFileName = fileName || `report_${automationId}.pdf`;
-
-            // Create a URL for the blob
-            const url = window.URL.createObjectURL(blob);
-
-            // Create a temporary anchor element to trigger the download
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = defaultFileName;
-            link.style.display = 'none';
-
-            // Add to DOM, click, and remove
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            // Clean up the blob URL
-            window.URL.revokeObjectURL(url);
-
+            saveBlob(blob, defaultFileName);
             console.log("UseCase: Report download completed");
         } catch (error) {
             console.error("Failed to download report:", error);

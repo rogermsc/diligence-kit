@@ -35,9 +35,20 @@ Each financial fact includes a source_type: "actual", "pro_forma", or "projectio
 Clearly distinguish actual/audited figures from pro forma projections in the narrative. \
 Do NOT present pro forma figures as historical operating results.
 
-### Version Resolution
-When facts include version and date metadata, prefer the most recent version for \
-conflicting values. Flag material discrepancies between document versions.
+### Resolved Conflicts
+Where documents disagree, the conflict list states which value prevails, which \
+rule decided it, and how far apart the figures are. That decision is already \
+made — use the preferred value throughout, and do not re-adjudicate it. Recency \
+is not authority: an audited actual beats a forecast from a newer document, and \
+the stated rule has already accounted for that.
+
+Say in the narrative that the figures disagree, name the other values and their \
+basis, and say which one you are using. A report that silently states one number \
+has hidden the finding.
+
+A conflict marked unresolved has no preferred value on purpose — no rule \
+separated the documents. Report every value and say plainly that the dataroom \
+does not settle it. Do not pick one.
 
 ### No Fabricated Ranges
 NEVER synthesize a range (e.g. "X–Y") unless BOTH endpoints appear explicitly \

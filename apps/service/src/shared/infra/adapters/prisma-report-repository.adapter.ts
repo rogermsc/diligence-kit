@@ -1,14 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common"
 import { Report } from "@/shared/domain/entities/report.entity"
-import {
-    CreateReportData,
-    ReportRepository,
-} from "@/shared/repository/report-repository.interface"
+import { ReportRepository } from "@/shared/repository/report-repository.interface"
 import { DatabaseAccessError } from "@/shared/errors/db/data-base-error"
 import {
     ReportCreationFailedError,
     ReportUpdateFailedError,
-    ReportNotFoundError,
     ExpiredReportsCleanupFailedError,
 } from "@/shared/errors/report-errors"
 import { prisma } from "@/shared/infra/prisma"
@@ -20,50 +16,6 @@ import { AgentType } from "@/features/onePager-agent/agent/domain/agent-type"
 export class PrismaReportRepositoryAdapter implements ReportRepository {
     private readonly logger = new Logger(PrismaReportRepositoryAdapter.name)
 
-    async createOrUpdate(data: CreateReportData): Promise<Report> {
-        try {
-            // Buscar a automation para obter o companyId
-            const automation = await prisma.automation.findUnique({
-                where: { id: data.automationId },
-                select: { companyId: true },
-            })
-
-            if (!automation) {
-                throw new ReportCreationFailedError()
-            }
-
-            const report = await prisma.report.upsert({
-                where: {
-                    unique_automation_domain: {
-                        automationId: data.automationId,
-                        domain: data.domain,
-                    },
-                },
-                update: {
-                    reportUrl: data.reportUrl,
-                    status: "COMPLETED",
-                    updatedAt: new Date(),
-                },
-                create: {
-                    automationId: data.automationId,
-                    companyId: automation.companyId,
-                    domain: data.domain,
-                    reportUrl: data.reportUrl,
-                    status: "COMPLETED",
-                },
-            })
-
-            return ReportMapper.toDomain(report)
-        } catch (error) {
-            this.handleReportOperationError(
-                error,
-                data.automationId,
-                data.domain,
-                "create/update",
-            )
-        }
-    }
-
     async findByAutomationId(automationId: string): Promise<Report[]> {
         try {
             const reports = await prisma.report.findMany({
@@ -74,26 +26,6 @@ export class PrismaReportRepositoryAdapter implements ReportRepository {
             return ReportMapper.toDomainArray(reports)
         } catch (error) {
             this.handleReportFindError(error, automationId)
-        }
-    }
-
-    async findByAutomationIdAndDomain(
-        automationId: string,
-        domain: AgentType,
-    ): Promise<Report | null> {
-        try {
-            const report = await prisma.report.findUnique({
-                where: {
-                    unique_automation_domain: {
-                        automationId,
-                        domain,
-                    },
-                },
-            })
-
-            return report ? ReportMapper.toDomain(report) : null
-        } catch (error) {
-            this.handleReportFindError(error, automationId, domain)
         }
     }
 
@@ -113,28 +45,6 @@ export class PrismaReportRepositoryAdapter implements ReportRepository {
             return count >= 4 // All four agent types: OPERATIONAL, COMMERCIAL, FINANCIAL, CAP_TABLE_AND_LEGAL_REVIEW
         } catch (error) {
             this.handleReportFindError(error, automationId)
-        }
-    }
-
-    async deleteExpiredReports(daysOld: number = 7): Promise<number> {
-        try {
-            const expirationDate = new Date()
-            expirationDate.setDate(expirationDate.getDate() - daysOld)
-
-            const result = await prisma.report.deleteMany({
-                where: {
-                    createdAt: {
-                        lt: expirationDate,
-                    },
-                },
-            })
-
-            this.logger.log(
-                `Deleted ${result.count} expired reports older than ${daysOld} days`,
-            )
-            return result.count
-        } catch (error) {
-            this.handleExpiredReportsCleanupError(error, daysOld)
         }
     }
 

@@ -1,12 +1,16 @@
 "use client"
 
-import Link from "next/link"
-import { AlertCircle, ArrowLeft, CheckCircle2 } from "lucide-react"
+import { CheckCircle2 } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
-import type { VerificationSummary } from "@/domain/analysis/usecases/verification"
-import { useConflictsViewModel } from "./conflictsViewModel"
+import type { Analysis } from "@/domain/analysis/models/analysis"
+import {
+  buildConflictCases,
+  corroboratedFields,
+} from "@/domain/analysis/usecases/conflicts"
+import {
+  summariseVerification,
+  type VerificationSummary,
+} from "@/domain/analysis/usecases/verification"
 import { ConflictCase } from "./conflictCase"
 
 /**
@@ -51,29 +55,18 @@ function VerificationLine({ summary }: { summary: VerificationSummary }) {
 }
 
 interface Props {
-  companyId: string
-  triageAutomationId: string
-  companyName?: string
+  /** Already loaded by the run layout — one fetch feeds every screen. */
+  analysis: Analysis
 }
 
-export function ConflictsView({
-  companyId,
-  triageAutomationId,
-  companyName,
-}: Props) {
-  const { loading, error, unavailable, cases, corroborated, verification } =
-    useConflictsViewModel(triageAutomationId)
+export function ConflictsView({ analysis }: Props) {
+  const cases = buildConflictCases(analysis)
+  const corroborated = corroboratedFields(analysis)
+  const verification = summariseVerification(analysis)
+  const suppressed = analysis.suppressed_conflicts ?? []
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-8">
-      <Link
-        href={`/dashboard/company/${companyId}`}
-        className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" />
-        Back to {companyName ?? "company"}
-      </Link>
-
+    <div>
       <header className="mb-8">
         <h1 className="text-2xl">Contradictions</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
@@ -83,49 +76,10 @@ export function ConflictsView({
         </p>
       </header>
 
-      {loading && (
-        <div className="space-y-4">
-          {[0, 1].map((i) => (
-            <Skeleton key={i} className="h-64 w-full" />
-          ))}
-        </div>
-      )}
 
-      {!loading && error && (
-        <div className="rounded-md border border-border bg-card p-6">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-            <div>
-              <p className="text-sm">{error}</p>
-              <Button asChild variant="outline" size="sm" className="mt-3">
-                <Link href={`/dashboard/company/${companyId}`}>
-                  Back to the run
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <VerificationLine summary={verification} />
 
-      {!loading && !error && unavailable && (
-        // Not a failure. Runs that finished before the analysis was persisted
-        // still have their memorandum; there is just nothing structured to show.
-        <div className="rounded-md border border-dashed border-border p-6">
-          <p className="text-sm">
-            This run finished before the analysis was stored, so only the
-            rendered memorandum is available.
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Re-running it will produce the full evidence trail.
-          </p>
-        </div>
-      )}
-
-      {!loading && !error && !unavailable && verification && (
-        <VerificationLine summary={verification} />
-      )}
-
-      {!loading && !error && !unavailable && cases.length === 0 && (
+      {cases.length === 0 && (
         // A result, not an absence. "No contradictions found" on its own reads
         // as "we did not look".
         <div className="rounded-md border border-border bg-card p-6">
@@ -152,7 +106,7 @@ export function ConflictsView({
         </div>
       )}
 
-      {!loading && !error && cases.length > 0 && (
+      {cases.length > 0 && (
         <>
           <p className="mb-4 text-sm text-muted-foreground">
             <span data-numeric>{cases.length}</span>{" "}
@@ -176,6 +130,44 @@ export function ConflictsView({
             ))}
           </div>
         </>
+      )}
+
+      {/*
+        Raised and then dismissed. The merge flags a disagreement
+        deterministically and a model gets one say — is this the same figure
+        written two ways? When it says yes the conflict disappears, and that
+        used to leave no trace outside the agent's logs. A dataroom where
+        nothing disagreed is not the same as one where a disagreement was waved
+        away, and only the reader can judge whether the reason holds.
+      */}
+      {suppressed.length > 0 && (
+        <section className="mt-10 border-t border-border pt-6">
+          <h2 className="text-sm font-medium">
+            Raised, then dismissed{" "}
+            <span className="text-muted-foreground" data-numeric>
+              ({suppressed.length})
+            </span>
+          </h2>
+          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">
+            Flagged as a disagreement by the merge, then judged to be the same
+            figure written differently. The reason given is shown so you can
+            disagree with it.
+          </p>
+          <ul className="mt-4 space-y-3">
+            {suppressed.map(({ conflict, reason }) => (
+              <li
+                key={conflict.field}
+                className="rounded-md border border-border bg-muted/20 p-3"
+              >
+                <p className="font-mono text-xs">{conflict.field}</p>
+                <p className="mt-1 font-mono text-xs text-muted-foreground">
+                  {conflict.values.join("  ·  ")}
+                </p>
+                <p className="mt-2 text-xs leading-relaxed">{reason}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </div>
   )

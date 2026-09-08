@@ -56,7 +56,6 @@ services:
       LIAISON_AGENT_URL: http://liaison-agent:8000
       STORAGE_DRIVER: local
       STORAGE_LOCAL_ROOT: /data/storage
-      GCLOUD_STORAGE_BUCKET: local-bucket
       # The seed stages the demo dataroom and the completed analysis, both of
       # which live with the agent rather than in this image.
       DEMO_FIXTURES: /fixtures

@@ -36,6 +36,7 @@ export class ProcessCompletedReportUseCase implements ReportProcessor {
                         companyId: reportAutomation.companyId,
                         domain: payload.domain,
                         reportUrl: payload.reportUrl,
+                        analysis: payload.analysis,
                     },
                 })
 

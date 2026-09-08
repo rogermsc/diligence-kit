@@ -1,17 +1,11 @@
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { ChatRepositoryImpl } from '@/data/chat/chatRepositoryImpl';
-import { SendMessageUseCase } from '@/domain/chat/usecases/sendMessage';
-import { GetOrCreateSessionUseCase } from '@/domain/chat/usecases/getOrCreateSession';
-import { CreateNewSessionUseCase } from '@/domain/chat/usecases/createNewSession';
-import { GetMessageHistoryUseCase } from '@/domain/chat/usecases/getMessageHistory';
 import { ChatMessage } from '@/domain/chat/models/chat';
-
-interface CompanyInfo {
-  id: string;
-  name: string;
-}
+// One definition, in the provider that owns it. This file kept a second copy,
+// which is how the two drifted the moment the context gained a field.
+import type { CompanyInfo } from '@/components/chat/chat-company-context';
 
 export function useChatViewModel(companyContext?: CompanyInfo | null) {
   const [isOpen, setIsOpen] = useState(false);
@@ -21,21 +15,19 @@ export function useChatViewModel(companyContext?: CompanyInfo | null) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const repository = new ChatRepositoryImpl();
-  const sendMessageUseCase = new SendMessageUseCase(repository);
-  const getOrCreateSessionUseCase = new GetOrCreateSessionUseCase(repository);
-  const createNewSessionUseCase = new CreateNewSessionUseCase(repository);
-  const getMessageHistoryUseCase = new GetMessageHistoryUseCase(repository);
+  // Four use-case classes used to be constructed here on every render, each one
+  // a 10-line wrapper around a single repository call with no logic in it.
+  const repository = useMemo(() => new ChatRepositoryImpl(), []);
 
   const loadSession = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const sessionResponse = await getOrCreateSessionUseCase.execute();
+      const sessionResponse = await repository.getOrCreateSession();
       setSessionId(sessionResponse.session_id);
 
-      const historyResponse = await getMessageHistoryUseCase.execute(sessionResponse.session_id);
+      const historyResponse = await repository.getMessageHistory(sessionResponse.session_id);
       setMessages(historyResponse.messages);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load session';
@@ -43,7 +35,7 @@ export function useChatViewModel(companyContext?: CompanyInfo | null) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [repository]);
 
   const openChat = useCallback(async () => {
     setIsOpen(true);
@@ -61,7 +53,7 @@ export function useChatViewModel(companyContext?: CompanyInfo | null) {
       setLoading(true);
       setError(null);
       
-      const sessionResponse = await createNewSessionUseCase.execute();
+      const sessionResponse = await repository.createNewSession();
       setSessionId(sessionResponse.session_id);
       setMessages([]);
     } catch (err) {
@@ -86,10 +78,19 @@ export function useChatViewModel(companyContext?: CompanyInfo | null) {
       };
       setMessages(prev => [...prev, tempUserMessage]);
 
-      const response = await sendMessageUseCase.execute({
+      const response = await repository.sendMessage({
         message,
         session_id: sessionId || undefined,
-        company_context: companyContext ? { id: companyContext.id, name: companyContext.name } : undefined,
+        // The analysis as well as the name. The assistant could previously
+        // only be asked about the platform; with the adjudicated decisions in
+        // context it can answer "why £3.2M?" from the rule that chose it.
+        company_context: companyContext
+          ? {
+              id: companyContext.id,
+              name: companyContext.name,
+              ...(companyContext.analysisContext ?? {}),
+            }
+          : undefined,
       });
 
       setMessages(prev => {

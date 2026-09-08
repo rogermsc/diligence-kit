@@ -51,6 +51,20 @@ class Fact(BaseModel):
     # with no text layer. "Could not check" is not "failed the check".
     quote_verified: Optional[bool] = None
 
+    # Does the cited spreadsheet row actually hold this figure? Three states for
+    # the same reason as quote_verified: None means the question does not apply
+    # or could not be answered — a PDF page reference reaches this code too.
+    # See domain/analyze/cells.py. The row is the unit; the column is
+    # deliberately unchecked, because citing a row's label cell is reasonable.
+    cell_verified: Optional[bool] = None
+
+    # False when a financial figure states no scale, so "$ 98,011" cannot be
+    # told from ninety-eight thousand. None when the question does not apply —
+    # headcount is exempt. Carried rather than dropped: an unscaled figure can
+    # fabricate a thousand-fold conflict, and a reader has to be able to see
+    # that is what happened.
+    unit_stated: Optional[bool] = None
+
 
 class DocumentFacts(BaseModel):
     document_id: str
@@ -76,11 +90,28 @@ class Conflict(BaseModel):
     magnitude: str = ""  # e.g. "28% spread, £3.2M to £4.1M"; "" if unparseable
 
 
+class SuppressedConflict(BaseModel):
+    """A flagged disagreement the model judged was not a real one, and why.
+
+    fact_merge flags a contradiction deterministically; a model then gets one
+    say — is this the same figure written two ways? When it answers yes the
+    conflict is dropped, and that used to leave no trace anywhere but a log
+    line. A dataroom where a disagreement was raised and dismissed is not the
+    same as one where nothing disagreed, and a reader is entitled to the
+    difference.
+    """
+
+    conflict: Conflict
+    reason: str  # the model's stated reason for calling it a false positive
+
+
 class MergedFacts(BaseModel):
     facts: Dict[str, List[Fact]]  # field -> all facts (may have multiple sources)
     coverage: Dict[str, List[str]]  # info_type -> list of source file names
     missing: List[str]  # info types not covered by any document
     conflicts: List[Conflict]
+    # Raised, then dismissed. Never silently: see SuppressedConflict.
+    suppressed_conflicts: List[SuppressedConflict] = []
 
 
 # --- One-pager entities ---
@@ -165,3 +196,10 @@ class OnePager(BaseModel):
     critical_risk_factors: List[RiskFactor]
     key_success_factors: List[str]
     summary_highlights: SummaryHighlights
+
+    # Headline lines that print a figure the rule rejected and not the one it
+    # chose. This is the worst outcome the pipeline can produce — the
+    # reconciliation was right and the memorandum does not reflect it — and it
+    # used to exist only as a log line, so the PDF shipped and every caller
+    # reported success. Empty on a healthy run.
+    adjudication_mismatches: List[str] = []

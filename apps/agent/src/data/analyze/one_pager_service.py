@@ -1,11 +1,13 @@
 import json
 import re
 from datetime import date
+from typing import List
 
 from src.core.llm import complete_json
 from src.core.logging import get_logger
 from src.core.prompts.one_pager import ONE_PAGER_SYSTEM_PROMPT, ONE_PAGER_USER_PROMPT
 from src.domain.analyze.authority import amounts_in, parse_amount
+from src.domain.analyze.conflict_lines import describe_conflict
 from src.domain.analyze.entities import (
     BusinessMetrics,
     CompanyOverview,
@@ -51,10 +53,14 @@ _HEADLINE_FIELDS = {
     "employees",
 }
 
-_PERIOD_SUFFIX = re.compile(r"_fy\d{2,4}$", re.IGNORECASE)
+# fy2024, h1_2025, q3_2024 — every shape core/prompts/fact_extraction.py
+# teaches. The pattern used to match _fy#### alone, so a conflict on a
+# half-year or quarter figure never reached _HEADLINE_FIELDS and the memo
+# was never checked against the rule for it.
+_PERIOD_SUFFIX = re.compile(r"_(?:fy|h[12]|q[1-4])_?\d{2,4}$", re.IGNORECASE)
 
 
-def _check_adjudicated_winners(highlights: FinancialHighlights, conflicts) -> None:
+def _check_adjudicated_winners(highlights: FinancialHighlights, conflicts) -> List[str]:
     """Did the memo print the figure the rule chose, or one it rejected?
 
     Everything upstream of this is careful: fact_merge settles a disagreement by
@@ -70,6 +76,8 @@ def _check_adjudicated_winners(highlights: FinancialHighlights, conflicts) -> No
     line carrying the winner alongside a rejected value is usually the memo
     doing its job — "£3.2M audited, against £4.1M in the deck" is the finding.
     """
+    mismatches: List[str] = []
+
     for c in conflicts:
         field = _PERIOD_SUFFIX.sub("", c.field or "")
         if field not in _HEADLINE_FIELDS or not c.preferred_value:
@@ -89,34 +97,18 @@ def _check_adjudicated_winners(highlights: FinancialHighlights, conflicts) -> No
             if (a := parse_amount(v)) is not None and a != winner and a in printed
         ]
         if rejected:
-            logger.error(
-                f"One-pager '{field}' reads '{line}', which carries a value the "
-                f"rule rejected ({', '.join(rejected)}) and not the one it chose "
-                f"({c.preferred_value} — {c.resolution_basis}: {c.rationale}). "
-                f"The reconciliation was correct and the memorandum does not "
-                f"reflect it."
+            mismatch = (
+                f"'{field}' reads '{line}', which carries a value the rule "
+                f"rejected ({', '.join(rejected)}) and not the one it chose "
+                f"({c.preferred_value} — {c.resolution_basis}: {c.rationale})."
             )
+            logger.error(
+                f"One-pager {mismatch} The reconciliation was correct and the "
+                f"memorandum does not reflect it."
+            )
+            mismatches.append(mismatch)
 
-
-def _describe_conflict(c) -> str:
-    """One line per conflict, carrying the decision and the reason for it.
-
-    The rule that settled it is included on purpose. Synthesis is told not to
-    re-adjudicate, and the memo has to be able to say why a figure was chosen —
-    "the audited accounts are the only actual" is an argument, "the model
-    preferred it" is not.
-    """
-    line = f"- {c.field}: {c.values}"
-    if c.magnitude:
-        line += f" [{c.magnitude}]"
-    if c.preferred_value:
-        line += (
-            f" -> USE {c.preferred_value} (from {c.preferred_source}; "
-            f"{c.resolution_basis}: {c.rationale})"
-        )
-    elif c.resolution_basis == "unresolved":
-        line += " -> UNRESOLVED: no rule separated these. Report every value and say the dataroom does not settle it."
-    return line
+    return mismatches
 
 
 class OnePagerService:
@@ -148,7 +140,7 @@ class OnePagerService:
         covered = ", ".join(merged.coverage.keys()) if merged.coverage else "None"
         missing = ", ".join(merged.missing) if merged.missing else "None"
         conflicts = (
-            "\n".join(_describe_conflict(c) for c in merged.conflicts)
+            "\n".join(describe_conflict(c) for c in merged.conflicts)
             if merged.conflicts
             else "No unresolved conflicts."
         )
@@ -236,7 +228,9 @@ class OnePagerService:
             employees=fh["employees"],
             projections=fh.get("projections", ""),
         )
-        _check_adjudicated_winners(financial_highlights, conflicts)
+        adjudication_mismatches = _check_adjudicated_winners(
+            financial_highlights, conflicts
+        )
 
         return OnePager(
             executive_summary=data["executive_summary"],
@@ -252,6 +246,7 @@ class OnePagerService:
             critical_risk_factors=[RiskFactor(**r) for r in data["critical_risk_factors"]],
             key_success_factors=data["key_success_factors"],
             summary_highlights=SummaryHighlights(**data["summary_highlights"]),
+            adjudication_mismatches=adjudication_mismatches,
         )
 
     @staticmethod

@@ -100,19 +100,6 @@ class HttpClient {
     return this.handleResponse<T>(response);
   }
 
-  async put<T>(endpoint: string, data?: unknown, options?: RequestInit): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        ...options?.headers,
-      },
-      body: data ? JSON.stringify(data) : undefined,
-      ...options,
-    });
-
-    return this.handleResponse<T>(response);
-  }
 
   async delete<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
@@ -127,19 +114,6 @@ class HttpClient {
     return this.handleResponse<T>(response);
   }
 
-  async patch<T>(endpoint: string, data?: unknown, options?: RequestInit): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        ...options?.headers,
-      },
-      body: data ? JSON.stringify(data) : undefined,
-      ...options,
-    });
-
-    return this.handleResponse<T>(response);
-  }
 
   // Helper method for direct blob downloads
   async getBlob(endpoint: string, options?: RequestInit): Promise<Blob> {

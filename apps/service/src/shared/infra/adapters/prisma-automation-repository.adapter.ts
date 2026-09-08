@@ -105,6 +105,65 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
         }
     }
 
+    /**
+     * Fail a run that has not already finished, and say why.
+     *
+     * Scoped for the same reason recordHeartbeat is: a failure callback used to
+     * be applied unconditionally, so replaying a captured
+     * complete-onepager-error demoted a COMPLETED automation to FAILED and
+     * discarded a good run from the screen. Signed timestamps now make that
+     * replay hard; this makes it harmless.
+     *
+     * Returns whether it applied, so a caller can tell "marked failed" from
+     * "arrived after the run had already completed" instead of assuming.
+     */
+    async markFailed(id: string, reason: string): Promise<boolean> {
+        try {
+            const { count } = await prisma.automation.updateMany({
+                where: { id, status: { notIn: ["COMPLETED", "FAILED"] } },
+                data: { status: "FAILED", failureReason: reason },
+            })
+            if (count === 0) {
+                this.logger.warn(
+                    `Ignored a failure for automation ${id}: it is already in a terminal state. Reason offered: ${reason}`,
+                )
+            }
+            return count > 0
+        } catch (error) {
+            const cause = error as Error
+            this.logger.error(
+                `Failed to mark automation ${id} as failed: ${cause.message}`,
+                cause.stack,
+            )
+            throw new DatabaseAccessError("Failed to mark automation as failed")
+        }
+    }
+
+    /**
+     * Remove a set of automations, used only to clear a stage-2 run whose every
+     * child failed so it can be started again.
+     *
+     * Scoped to FAILED in the query as well as by the caller: a delete that
+     * trusts its argument is one bad id away from removing a run someone is
+     * still reading.
+     */
+    async deleteMany(ids: string[]): Promise<number> {
+        if (ids.length === 0) return 0
+        try {
+            const { count } = await prisma.automation.deleteMany({
+                where: { id: { in: ids }, status: "FAILED" },
+            })
+            return count
+        } catch (error) {
+            const cause = error as Error
+            this.logger.error(
+                `Failed to delete automations ${ids.join(", ")}: ${cause.message}`,
+                cause.stack,
+            )
+            throw new DatabaseAccessError("Failed to delete automations")
+        }
+    }
+
     async updateStatus(id: string, status: AutomationStatus): Promise<void> {
         try {
             await prisma.automation.update({
@@ -144,6 +203,10 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
                         update: {
                             reportUrl: data.reportData.reportUrl,
                             status: "COMPLETED",
+                            // The column the migration described as "written
+                            // now, read later". Until this, never written.
+                            analysis: data.reportData
+                                .analysis as Prisma.InputJsonValue,
                             updatedAt: new Date(),
                         },
                         create: {
@@ -151,6 +214,8 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
                             companyId: data.reportData.companyId,
                             domain: data.reportData.domain,
                             reportUrl: data.reportData.reportUrl,
+                            analysis: data.reportData
+                                .analysis as Prisma.InputJsonValue,
                             status: "COMPLETED",
                         },
                     })
@@ -363,28 +428,6 @@ export class PrismaAutomationRepositoryAdapter implements IAutomationRepository 
             )
             throw new DatabaseAccessError(
                 "Failed to find OnePager by automation ID",
-            )
-        }
-    }
-
-    async findLatestOnePagerByCompanyId(
-        companyId: string,
-    ): Promise<{ id: string; url: string } | null> {
-        try {
-            const onePager = await prisma.onePager.findFirst({
-                where: { companyId },
-                orderBy: { createdAt: "desc" },
-                select: { id: true, url: true },
-            })
-
-            return onePager
-        } catch (error) {
-            this.logger.error(
-                `Failed to find latest OnePager for company ${companyId}: ${error.message}`,
-                error.stack,
-            )
-            throw new DatabaseAccessError(
-                "Failed to find latest OnePager by company ID",
             )
         }
     }

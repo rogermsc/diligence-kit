@@ -114,7 +114,12 @@ export class StaleAutomationReaper implements OnModuleInit, OnModuleDestroy {
                         { heartbeatAt: null, updatedAt: { lt: cutoff } },
                     ],
                 },
-                data: { status: "FAILED" },
+                data: {
+                    status: "FAILED",
+                    failureReason:
+                        "The agent stopped reporting and the run timed out. " +
+                        "Work in progress is not resumable; start the run again.",
+                },
             })
 
             if (count > 0) {

@@ -10,6 +10,12 @@ import {
     AutomationStatus,
 } from "@/shared/domain/entities/automation.entity"
 import { IAutomationRepository } from "@/shared/repository/automation-repository.interface"
+import type { OverrideRepository } from "@/features/overrides/domain/repository/override-repository.interface"
+import { resolveEffective } from "@/features/overrides/use-case/list-overrides.usecase"
+import {
+    mergeOverrides,
+    type MergedAnalysis,
+} from "@/features/overrides/domain/merge-overrides"
 import { Usecase } from "@/shared/interfaces/usecase"
 
 export interface GetCompanyAnalysisInput {
@@ -24,6 +30,13 @@ export interface GetCompanyAnalysisOutput {
      * error: the PDF is still there and the caller falls back to the download.
      */
     analysis: unknown
+    /**
+     * Values a person changed, with the reason and who gave it. Null when
+     * nobody has overridden anything.
+     */
+    overrides: MergedAnalysis["overrides"]
+    /** Notes attached to the run that change no value. */
+    annotations: MergedAnalysis["annotations"]
 }
 
 /**
@@ -42,6 +55,8 @@ export class GetCompanyAnalysisUseCase implements Usecase<
     constructor(
         @Inject("AutomationRepository")
         private readonly automationRepository: IAutomationRepository,
+        @Inject("OverrideRepository")
+        private readonly overrides: OverrideRepository,
     ) {}
 
     async execute(
@@ -71,10 +86,25 @@ export class GetCompanyAnalysisUseCase implements Usecase<
             throw new OnePagerNotFoundError(input.automationId)
         }
 
+        // The merge the schema has always described. Judgement is stored beside
+        // the analysis, never inside it, so the model's own output stays exactly
+        // as it was produced and a reader can see which values a person changed
+        // and why.
+        const history = await this.overrides.listByAutomation(
+            input.automationId,
+        )
+        const merged = mergeOverrides(
+            onePager.analysis ?? null,
+            resolveEffective(history),
+            history.filter((row) => row.targetType === "ANNOTATION"),
+        )
+
         return {
             automationId: input.automationId,
             onePagerUrl: onePager.url,
-            analysis: onePager.analysis ?? null,
+            analysis: merged.analysis,
+            overrides: merged.overrides,
+            annotations: merged.annotations,
         }
     }
 }

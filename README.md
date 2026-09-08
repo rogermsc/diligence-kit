@@ -199,7 +199,7 @@ words broken across a line break were failing in every one of them. See
 which is why it is a make target rather than a bare script: running the script alone used to leave
 the demo showing the previous one-pager.
 
-The ~575 inherited type-safety lint violations are captured in `apps/service/eslint-suppressions.json`
+The 334 inherited type-safety lint violations are captured in `apps/service/eslint-suppressions.json`
 so they don't block work; any newly introduced error fails the build.
 
 ### Authorization

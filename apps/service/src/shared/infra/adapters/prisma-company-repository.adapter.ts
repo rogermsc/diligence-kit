@@ -184,6 +184,7 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
                     id: automation.id,
                     companyId: automation.companyId,
                     status: automation.status,
+                    failureReason: automation.failureReason,
                     stage: automation.stage,
                     parentAutomationId: automation.parentAutomationId,
                     documents: automation.Documents.map((doc) => ({
@@ -305,6 +306,7 @@ export class PrismaCompanyRepositoryAdapter implements CompanyRepository {
                         id: automation.id,
                         companyId: automation.companyId,
                         status: automation.status,
+                        failureReason: automation.failureReason,
                         stage: automation.stage,
                         parentAutomationId: automation.parentAutomationId,
                         documents: automation.Documents.map((doc) => ({

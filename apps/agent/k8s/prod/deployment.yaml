@@ -17,6 +17,18 @@ spec:
       containers:
         - name: diligence-kit-agent
           image: us-central1-docker.pkg.dev/your-gcp-project-id/diligence-kit-artifacts/diligence-kit-agent-prod:latest
+          # This is the container that runs LibreOffice over documents a
+          # stranger uploaded, and it was the one pod in the repo with no
+          # securityContext at all. readOnlyRootFilesystem is deliberately
+          # absent: soffice writes a profile while converting, and /tmp below
+          # gives it somewhere to do that without the whole filesystem.
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 8000
           env:
