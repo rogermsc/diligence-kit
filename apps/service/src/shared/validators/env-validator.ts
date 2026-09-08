@@ -24,20 +24,7 @@ export interface EnvConfig {
     JWT_EXPIRES_IN?: string
     JWT_REFRESH_EXPIRES_IN?: string
 
-    // Email SMTP
-    SMTP_HOST?: string
-    SMTP_PORT?: string
-    SMTP_USER?: string
-    SMTP_PASS?: string
-    SMTP_SECURE?: string
-
-    // Email providers
-    EMAIL_SENDER?: string
-    EMAIL_DESTINATION?: string
-    RESEND_API_KEY?: string
-
     // Feature flags
-    ONEPAGER_INCREMENTAL_ENABLED?: string
 
     // Agent auth
     AGENT_SECRET: string
@@ -53,7 +40,6 @@ export class EnvValidator {
         "DATABASE_URL",
         "REDIS_HOST",
         "REDIS_PORT",
-        "GCLOUD_STORAGE_BUCKET",
         "AGENT_API_URL",
         "LIAISON_AGENT_URL",
         "LIAISON_API_KEY",
@@ -79,15 +65,6 @@ export class EnvValidator {
         JWT_SECRET: "",
         JWT_EXPIRES_IN: "24h",
         JWT_REFRESH_EXPIRES_IN: "7d",
-        SMTP_HOST: "",
-        SMTP_PORT: "587",
-        SMTP_USER: "",
-        SMTP_PASS: "",
-        SMTP_SECURE: "false",
-        EMAIL_SENDER: "",
-        EMAIL_DESTINATION: "",
-        RESEND_API_KEY: "",
-        ONEPAGER_INCREMENTAL_ENABLED: "false",
         AGENT_SECRET: "",
         AGENT_API_KEY: "",
         WEBHOOK_SECRET: "",
@@ -156,28 +133,23 @@ export class EnvValidator {
             )
         }
 
-        // Validate SMTP_PORT is a number
-        if (config.SMTP_PORT && isNaN(parseInt(config.SMTP_PORT))) {
-            throw new Error(
-                `❌ SMTP_PORT must be a valid number, got: ${config.SMTP_PORT}`,
-            )
-        }
-
-        // Validate boolean flags
-        const booleanVars = ["SMTP_SECURE", "ONEPAGER_INCREMENTAL_ENABLED"]
-        for (const varName of booleanVars) {
-            const value = config[varName as keyof EnvConfig]
-            if (value && !["true", "false"].includes(value.toLowerCase())) {
-                this.logger.warn(
-                    `⚠️ ${varName} should be 'true' or 'false', got: ${value}`,
-                )
-            }
-        }
-
         // Validate URLs
         if (config.AGENT_API_URL && !config.AGENT_API_URL.startsWith("http")) {
             throw new Error(
                 `❌ AGENT_API_URL must be a valid URL, got: ${config.AGENT_API_URL}`,
+            )
+        }
+
+        // Required only for the driver that needs it. The agent already gated
+        // this on storage_driver; the service demanded a bucket name even for a
+        // local-storage run, which is why the demo compose file has to pass a
+        // ceremonial "local-bucket" to get past startup.
+        if (
+            (process.env.STORAGE_DRIVER ?? "gcs") === "gcs" &&
+            !config.GCLOUD_STORAGE_BUCKET
+        ) {
+            throw new Error(
+                "❌ GCLOUD_STORAGE_BUCKET is required when STORAGE_DRIVER=gcs. Set STORAGE_DRIVER=local to run without Google Cloud Storage.",
             )
         }
 
@@ -220,9 +192,6 @@ export class EnvValidator {
         )
         this.logger.log(
             `   🤖 AGENT_API_URL: ${process.env.AGENT_API_URL ? "configured" : "❌ NOT SET"}`,
-        )
-        this.logger.log(
-            `   📄 ONEPAGER_INCREMENTAL: ${process.env.ONEPAGER_INCREMENTAL_ENABLED || "false"}`,
         )
     }
 }

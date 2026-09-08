@@ -6,4 +6,9 @@ export interface ReportPayload {
     reportUrl?: string
     domain: AgentType
     status: ReportStatus
+    /**
+     * The domain run's evidence trail — facts with quotes and pages, coverage,
+     * and the conflicts a rule settled. Stored verbatim, never read inside.
+     */
+    analysis?: unknown
 }

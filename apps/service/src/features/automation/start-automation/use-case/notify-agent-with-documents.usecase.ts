@@ -6,7 +6,7 @@ import {
     AutomationStatus,
 } from "@/shared/domain/entities/automation.entity"
 import { AutomationStatusValidator } from "@/shared/validators/automation-status-validator"
-import { AutomationRepository } from "../domain/repository/automation-repository.interface"
+import { IAutomationRepository as AutomationRepository } from "@/shared/repository/automation-repository.interface"
 import { AutomationCannotStartTriageError } from "@/features/automation/start-automation/domain/errors/automation-errors"
 
 export interface NotifyAgentWithDocumentsInput {
@@ -88,9 +88,9 @@ export class NotifyAgentWithDocumentsUseCase implements Usecase<
 
             this.logger.error("Agent call failed", err?.stack || err)
 
-            await this.automationRepository.updateStatus(
+            await this.automationRepository.markFailed(
                 automation.id,
-                AutomationStatus.FAILED,
+                `The analysis agent could not be reached: ${(err as Error)?.message ?? String(err)}`,
             )
 
             const failedAutomation = automation.updateStatus(

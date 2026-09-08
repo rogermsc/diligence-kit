@@ -1,18 +1,18 @@
+import type { CompanyRepositoryImpl } from "@/data/companies/companyRepositoryImpl";
 import type { Company } from "../models/company";
-import type { CompanyRepository } from "../repositories/companyRepository";
 
 /**
- * Use case for retrieving companies under due diligence
+ * Every company under diligence.
+ *
+ * The error is passed through rather than replaced. This used to swallow the
+ * ApiError — status code, type, and the server's own message — and throw
+ * "Unable to retrieve companies at this time" instead, so a rate limit, an
+ * expired session and a database outage were one sentence on screen.
  */
 export class GetCompaniesUseCase {
-  constructor(private companyRepository: CompanyRepository) {}
+  constructor(private companyRepository: CompanyRepositoryImpl) {}
 
   async execute(): Promise<Company[]> {
-    try {
-      return await this.companyRepository.getCompanies();
-    } catch (error) {
-      console.error("Failed to fetch companies:", error);
-      throw new Error("Unable to retrieve companies at this time");
-    }
+    return this.companyRepository.getCompanies();
   }
 }

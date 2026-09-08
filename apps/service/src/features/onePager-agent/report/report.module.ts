@@ -2,8 +2,6 @@ import { Module } from "@nestjs/common"
 import { CompleteReportController } from "./presentation/complete-report.controller"
 import { ProcessCompletedReportUseCase } from "./use-cases/process-completed-report.usecase"
 import { ProcessFailedReportUseCase } from "./use-cases/process-failed-report.usecase"
-import { VerifyAllReportsAreReceivedUseCase } from "./use-cases/verify-all-reports-are-received.usecase"
-import { ReportCompletedUseCase } from "./use-cases/report-completed.usecase"
 import { PrismaReportRepositoryAdapter } from "@/shared/infra/adapters/prisma-report-repository.adapter"
 import { PrismaAutomationRepositoryAdapter } from "@/shared/infra/adapters/prisma-automation-repository.adapter"
 import { AgentModule } from "@/features/onePager-agent/agent/agent.module"
@@ -21,8 +19,6 @@ import { ReportProcessorFactory } from "./factories/report-processor.factory"
         DelegateSpecificProcessReportUseCase,
         ProcessCompletedReportUseCase,
         ProcessFailedReportUseCase,
-        VerifyAllReportsAreReceivedUseCase,
-        ReportCompletedUseCase,
 
         // Infrastructure
         {
@@ -39,8 +35,6 @@ import { ReportProcessorFactory } from "./factories/report-processor.factory"
         DelegateSpecificProcessReportUseCase,
         ProcessCompletedReportUseCase,
         ProcessFailedReportUseCase,
-        VerifyAllReportsAreReceivedUseCase,
-        ReportCompletedUseCase,
     ],
 })
 export class ReportModule {}

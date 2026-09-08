@@ -43,6 +43,17 @@ export interface Fact {
    * only a file id — which is not the same answer as `false`.
    */
   quote_verified: boolean | null
+  /**
+   * Whether the cited spreadsheet row actually holds this figure. `null` where
+   * the question does not apply — a PDF page reference reaches this too.
+   * Optional because runs recorded before the agent carried it have no value.
+   */
+  cell_verified?: boolean | null
+  /**
+   * `false` when a financial figure states no scale, so "$ 98,011" cannot be
+   * told from ninety-eight thousand. `null` where scale is not applicable.
+   */
+  unit_stated?: boolean | null
 }
 
 /** How a disagreement between documents was settled, and on what grounds. */
@@ -91,6 +102,13 @@ export interface OnePager {
   critical_risk_factors: { risk: string; mitigation: string }[]
   key_success_factors: string[]
   summary_highlights: Record<string, string>
+  /**
+   * Headline lines that print a figure the rule rejected and not the one it
+   * chose — the pipeline reconciling correctly and the memorandum not saying
+   * so. Empty on a healthy run; optional on runs recorded before the check
+   * left the agent's logs.
+   */
+  adjudication_mismatches?: string[]
 }
 
 export interface Analysis {
@@ -102,6 +120,12 @@ export interface Analysis {
   /** Information types no document covered. Absent evidence is evidence. */
   missing: string[]
   conflicts: Conflict[]
+  /**
+   * Disagreements that were raised and then dismissed by the model as the same
+   * figure written two ways, with the reason it gave. A dataroom where nothing
+   * disagreed is not the same as one where a disagreement was waved away.
+   */
+  suppressed_conflicts?: { conflict: Conflict; reason: string }[]
   one_pager: OnePager
 }
 

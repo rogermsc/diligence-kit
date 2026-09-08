@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client"
 import { Injectable, Inject, Logger } from "@nestjs/common"
 import { Usecase } from "@/shared/interfaces/usecase"
-import { AutomationRepository } from "@/features/automation/start-automation/domain/repository/automation-repository.interface"
+import { IAutomationRepository as AutomationRepository } from "@/shared/repository/automation-repository.interface"
 import { AutomationNotFoundError } from "@/features/automation/start-automation/domain/errors/automation-errors"
 import { CompleteOnePagerRequest } from "../data/dtos/complete-onepager.schema"
 import { CompanyRepository } from "@/shared/repository/company-repository.interface"

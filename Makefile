@@ -46,6 +46,7 @@ dev:
 test:
 	pnpm test
 	cd apps/agent && python -m pytest -q
+	cd apps/liaison-agent && python -m pytest -q
 
 lint:
 	pnpm lint

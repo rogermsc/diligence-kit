@@ -1,8 +1,4 @@
-import {
-    FileSystemComponent,
-    Folder,
-    File,
-} from "@/shared/domain/entities/file.entity"
+import { File } from "@/shared/domain/entities/file.entity"
 
 export interface UploadedFile {
     url: string
@@ -11,16 +7,10 @@ export interface UploadedFile {
 }
 
 export interface StorageService {
-    uploadFolderOnEnterpriseRoot(
-        enterpriseName: string,
-        folder: Folder,
-    ): Promise<UploadedFile[]>
     uploadSingleFile(
         path: string,
         file: File,
         subPath?: string,
     ): Promise<UploadedFile>
     downloadFile(filePath: string): Promise<Buffer>
-    deleteFile(filePath: string): Promise<void>
-    deleteFolder(folderPath: string): Promise<void>
 }

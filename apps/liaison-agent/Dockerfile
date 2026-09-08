@@ -39,4 +39,7 @@ COPY --chown=appuser:appuser . .
 
 USER appuser
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Migrations before the server, the way apps/service/entrypoint.sh does it.
+# Without this the liaison database was migrated by hand in dev and by the
+# Makefile in the demo, and in production by nothing at all.
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]

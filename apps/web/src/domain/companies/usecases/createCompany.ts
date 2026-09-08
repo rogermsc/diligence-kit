@@ -1,8 +1,8 @@
+import type { CompanyRepositoryImpl } from "@/data/companies/companyRepositoryImpl";
 import type { Company } from "../models/company";
-import type { CompanyRepository } from "../repositories/companyRepository";
 
 export class CreateCompanyUseCase {
-  constructor(private repository: CompanyRepository) {}
+  constructor(private repository: CompanyRepositoryImpl) {}
 
   async execute(name: string): Promise<Company> {
     if (!name || !name.trim()) {

@@ -66,6 +66,12 @@ model Automation {
   // could not tell a slow healthy run from an abandoned one.
   heartbeatAt DateTime?
 
+  /// Why this run failed, in a sentence. Null on every run that has not.
+  /// FAILED on its own told a user nothing and told support less: a crashed
+  /// agent, an unreachable agent and a four-hour reaper timeout all rendered
+  /// identically.
+  failureReason String?
+
   results   Result[]
   reports   Report[]
   onePagers OnePager[]

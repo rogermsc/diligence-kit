@@ -1,7 +1,7 @@
-import type { CompanyRepository } from "../repositories/companyRepository";
+import type { CompanyRepositoryImpl } from "@/data/companies/companyRepositoryImpl";
 
 export class DeleteCompanyUseCase {
-  constructor(private companyRepository: CompanyRepository) {}
+  constructor(private companyRepository: CompanyRepositoryImpl) {}
 
   async execute(id: string): Promise<{ success: boolean; message: string }> {
     try {

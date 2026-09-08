@@ -168,7 +168,10 @@ class TestTheModelCannotDeleteASettledConflict:
             ]})
 
         monkeypatch.setattr(mod, "complete_json", fake)
-        return asyncio.run(mod.ConflictResolutionService().resolve(conflicts))
+        kept, _suppressed = asyncio.run(
+            mod.ConflictResolutionService().resolve(conflicts)
+        )
+        return kept
 
     def test_a_numeric_disagreement_survives_the_model_calling_it_a_duplicate(self, monkeypatch):
         c = conflict_over(

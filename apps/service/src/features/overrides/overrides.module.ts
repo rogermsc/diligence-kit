@@ -20,6 +20,8 @@ import { RevertOverrideUseCase } from "./use-case/revert-override.usecase"
         ListOverridesUseCase,
         RevertOverrideUseCase,
     ],
-    exports: [ListOverridesUseCase],
+    // The token as well as the use case: the analysis read path merges
+    // overrides itself rather than going through a second use case.
+    exports: [ListOverridesUseCase, "OverrideRepository"],
 })
 export class OverridesModule {}

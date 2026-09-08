@@ -5,24 +5,19 @@ import { CreateCompanyUseCase } from "./use-case/create-company.usecase"
 import { ListCompaniesUseCase } from "./use-case/list-companies.usecase"
 import { GetCompanyDetailsUseCase } from "./use-case/get-company-details.usecase"
 import { GetCompanyOnePagerUseCase } from "./use-case/get-company-one-pager.usecase"
+import { OverridesModule } from "@/features/overrides/overrides.module"
 import { GetCompanyAnalysisUseCase } from "./use-case/get-company-analysis.usecase"
 import { DeleteCompanyUseCase } from "./use-case/delete-company.usecase"
 import { AuthModule } from "@/features/auth/auth.module"
-import { MarkdownFileHelper } from "./domain/helpers/markdown-file.helper"
-import { StorageFileReaderAdapter } from "./domain/interfaces/storage-file-reader.adapter"
 import { AutomationModule as StartAutomationModule } from "@/features/automation/start-automation/automation.module" // ✅ Módulo correto
 
 @Module({
-    imports: [AuthModule, StartAutomationModule],
+    imports: [AuthModule, StartAutomationModule, OverridesModule],
     controllers: [CompanyController],
     providers: [
         {
             provide: "CompanyRepository",
             useClass: PrismaCompanyRepositoryAdapter,
-        },
-        {
-            provide: "FileReaderService",
-            useClass: StorageFileReaderAdapter,
         },
         CreateCompanyUseCase,
         ListCompaniesUseCase,
@@ -30,8 +25,6 @@ import { AutomationModule as StartAutomationModule } from "@/features/automation
         GetCompanyOnePagerUseCase,
         GetCompanyAnalysisUseCase,
         DeleteCompanyUseCase,
-        MarkdownFileHelper,
-        StorageFileReaderAdapter,
     ],
     exports: [
         {
@@ -44,7 +37,6 @@ import { AutomationModule as StartAutomationModule } from "@/features/automation
         GetCompanyOnePagerUseCase,
         GetCompanyAnalysisUseCase,
         DeleteCompanyUseCase,
-        MarkdownFileHelper,
     ],
 })
 export class CompanyModule {}

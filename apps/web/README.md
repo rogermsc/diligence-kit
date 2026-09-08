@@ -1,143 +1,55 @@
 # diligence-kit-web
 
-![Next.js](https://img.shields.io/badge/Next.js-16-black)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6)
-![React](https://img.shields.io/badge/React-19-61DAFB)
+The dashboard. Next.js 16 App Router, TypeScript, Tailwind 4, Radix primitives.
 
-Web frontend for the Diligence Kit due diligence platform. A Next.js BFF that proxies AI-powered document analysis between investment analysts and the Diligence Kit backend, keeping credentials server-side at all times.
+It is a BFF: every call to the backend is proxied through a route under
+`src/app/api/`, so the JWT is set as an httpOnly cookie and never reaches
+browser JavaScript.
 
----
+## Running it
 
-## What it does
-
-Diligence Kit automates investment due diligence. Analysts upload company documents and AI agents classify materials, generate a structured one-pager, and produce specialized reports across four domains: operational, commercial, financial, and cap table & legal.
-
-**Stage 1 — Document triage**
-- Upload a ZIP of company documents
-- AI classifies documents into 7 categories (Team, Financial, Legal, Corporate, Clients, Investment, Company Summary)
-- Missing materials are flagged automatically
-- A One Pager summary is generated in markdown
-
-**Stage 2 — Specialized analysis**
-- Four parallel AI agents run deep analysis per domain
-- Downloadable reports: Operational, Commercial, Financial, Cap Table & Legal
-- AI chat assistant scoped to the company context
-
----
-
-## Stack
-
-| Layer | Technology |
-|---|---|
-| Framework | Next.js 16 (App Router) |
-| Language | TypeScript 5.8 strict |
-| UI | React 19 · Tailwind CSS 4 · Radix UI · Lucide React |
-| Uploads | resumable.js (chunked, resumable transfers) |
-| Rendering | marked · DOMPurify (sanitized markdown) |
-| Infra | Docker · GKE · GCP Secret Manager · GitHub Actions |
-
----
-
-## Getting started
-
-**Prerequisites:** Node.js 24+, access to a running Diligence Kit backend
+This app is part of the pnpm + Turborepo workspace at the repository root. Run
+`pnpm install` there, not here — there is no `package-lock.json` and `npm ci`
+will fail.
 
 ```bash
-# 1. Install dependencies
-npm ci
-
-# 2. Configure environment
-cp .env.example .env.local
-# fill in .env.local — see Environment variables below
-
-# 3. Start dev server
-npm run dev
+cp apps/web/.env.example apps/web/.env   # NEXT_PUBLIC_API_BASE_URL
+pnpm --filter diligence-kit-web dev      # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Requires Node 20 or later, matching the root `package.json` engines field and
+the version CI builds on.
 
----
+To run the whole platform with no cloud account and no API key, use `make demo`
+from the repository root instead.
 
-## Environment variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `NEXT_PUBLIC_API_BASE_URL` | Yes | Base URL of the Diligence Kit backend API (e.g. `https://api.example.com`) |
-
-In production this variable is injected via GCP Secret Manager through the External Secrets Operator (see [`k8s/prod/secrets.yaml`](k8s/prod/secrets.yaml)).
-
----
-
-## Scripts
-
-| Command | Description |
-|---|---|
-| `npm run dev` | Start development server on port 3000 |
-| `npm run build` | Production build |
-| `npm run start` | Start production server |
-| `npm run lint` | Run ESLint |
-
----
-
-## Project structure
+## Layout
 
 ```
 src/
-├── app/
-│   ├── api/          # Server-side proxy routes (auth, automations, chat, company, documents)
-│   └── dashboard/    # Authenticated application pages
-├── domain/           # Entities and use case interfaces
-├── data/             # Use case implementations and repository adapters
-├── presentation/     # React components and ViewModels (hooks)
-├── lib/              # Shared utilities (auth-server, httpClient, getBaseUrl)
-└── middleware.ts     # Rate limiting (auth, upload, chat, automation endpoints)
+├── app/            routes, and the API proxy the browser talks to
+├── components/     Radix + Tailwind primitives, and the modals
+├── data/           repository implementations over the proxy
+├── domain/         models and use cases — pure, and unit-tested
+├── lib/            the HTTP client, auth cookies, small helpers
+└── presentation/   views and view models, one folder per screen
 ```
 
-**Architecture:** Clean Architecture with MVVM on the presentation layer (`Container → ViewModel → View`).
+`domain/analysis/` holds the arithmetic behind what the screens show: the
+evidence index, the scorecard and its weights, the three verification states,
+and how a conflict is described. Those are the files with tests, because they
+are where a wrong answer would be confident rather than obviously broken.
 
-**Key design decisions:**
-- All backend calls go through Next.js API routes — JWT never reaches the browser
-- Rate limiting is enforced server-side at the middleware layer before any handler runs
-- File uploads use resumable chunked transfers — large ZIPs survive network interruptions
-- Markdown output from AI is always sanitized with DOMPurify before rendering
-
----
-
-## Deployment
-
-Production runs on Google Kubernetes Engine. CI/CD is handled by `.github/workflows/deploy.yml` via a shared GKE deployment workflow pinned to a commit SHA. Deployments trigger on push to `main`.
+## Tests
 
 ```bash
-# Build image locally
-docker build -t diligence-kit-web .
-
-# Run with Docker
-docker run -p 3000:3000 \
-  -e NEXT_PUBLIC_API_BASE_URL=https://api.example.com \
-  diligence-kit-web
+pnpm --filter diligence-kit-web test
 ```
 
-**Production infrastructure** (`k8s/prod/`):
+Vitest, over the domain layer only. There is no jsdom and no component test —
+see `vitest.config.ts` for the reasoning.
 
-| Concern | Configuration |
-|---|---|
-| Replicas | 2 (liveness + readiness probes) |
-| Security | Non-root user (1000) · read-only filesystem · all capabilities dropped |
-| Secrets | GCP Secret Manager via External Secrets Operator |
-| Network | NetworkPolicy restricts ingress/egress · HTTPS only via managed certificate |
-| Image | Pinned to digest (`node:24-alpine@sha256:...`) |
+## Deploying
 
----
-
-## Security
-
-This app follows the OWASP Top 10 2025 standard. The JWT is held in an httpOnly cookie and every
-backend call is proxied through a server-side route, so the token never reaches the browser.
-
-To report a vulnerability, open a security advisory on the GitHub repository.
-
----
-
-## License
-
-MIT — see [LICENSE](../../LICENSE) at the repository root.
+`.github/workflows/deploy-web.yml`, which is manual-only. Nothing deploys on a
+push to `main`.

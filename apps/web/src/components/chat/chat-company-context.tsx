@@ -2,9 +2,17 @@
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
 
-interface CompanyInfo {
+export interface CompanyInfo {
   id: string;
   name: string;
+  /** The triage run being viewed, so a question can be tied to one analysis. */
+  automationId?: string;
+  /**
+   * What the pipeline decided and why, built by
+   * domain/analysis/usecases/chatContext. Without it the assistant can only
+   * discuss the platform, not the dataroom on screen.
+   */
+  analysisContext?: Record<string, unknown>;
 }
 
 interface CompanyContextValue {

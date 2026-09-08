@@ -1,0 +1,13 @@
+-- Say why a run failed.
+--
+-- Every failure path collapsed to the string FAILED. An agent that crashed
+-- mid-run, an agent that could not be reached at all, and a run the reaper
+-- timed out after four hours were indistinguishable on the screen and in the
+-- database. The agent even posted back a hardcoded "processing_failed", so the
+-- real exception never left its process.
+--
+-- Nullable, because a healthy run has no reason and rows written before this
+-- have none to backfill. Text rather than an enum: the useful reason is a
+-- sentence naming what broke, and an enum would push every caller back to a
+-- small fixed set, which is the state this replaces.
+ALTER TABLE "automations" ADD COLUMN "failureReason" TEXT;

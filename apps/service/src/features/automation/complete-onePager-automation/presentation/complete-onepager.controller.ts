@@ -11,8 +11,7 @@ import { completeOnePagerSchema } from "../data/dtos/complete-onepager.schema"
 import { PayloadValidator } from "@/shared/validators/payload-validator"
 import { AgentGuard } from "@/features/auth/guards/agent.guard"
 import { WebhookSignatureGuard } from "@/features/auth/guards/webhook-signature.guard"
-import { AutomationRepository } from "@/features/automation/start-automation/domain/repository/automation-repository.interface"
-import { AutomationStatus } from "@/shared/domain/entities/automation.entity"
+import { IAutomationRepository as AutomationRepository } from "@/shared/repository/automation-repository.interface"
 import { DocumentRepository } from "@/shared/repository/document-repository.interface"
 
 @Controller("automation")
@@ -129,13 +128,22 @@ export class CompleteOnePagerController {
         this.logger.error(
             `Agent reported error for automation ${payload.automationId}: ${payload.error}`,
         )
-        await this.automationRepository.updateStatus(
+        // The reason the agent gave is kept, so the screen can say what broke
+        // rather than the word FAILED. markFailed refuses to demote a run that
+        // already completed — see the adapter for why that case exists.
+        const applied = await this.automationRepository.markFailed(
             payload.automationId,
-            AutomationStatus.FAILED,
+            payload.error,
         )
-        this.logger.log(`Automation ${payload.automationId} marked as FAILED`)
+        this.logger.log(
+            applied
+                ? `Automation ${payload.automationId} marked as FAILED`
+                : `Automation ${payload.automationId} had already finished; failure not applied`,
+        )
         return {
-            message: "Error acknowledged, automation marked as FAILED",
+            message: applied
+                ? "Error acknowledged, automation marked as FAILED"
+                : "Error acknowledged, automation had already finished",
             automationId: payload.automationId,
         }
     }

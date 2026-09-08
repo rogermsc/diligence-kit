@@ -1,15 +1,12 @@
-export interface AgentEmitPayload {
-    companyId: string
-    automationId: string
-    documents: Map<string, string[]>
-}
+import { AgentDocument } from "@/features/automation/start-automation/gateway/agent-gateway.interface"
 
-export interface AgentDocument {
-    id: string
-    url: string
-    openai_file_id?: string
-}
-
+/**
+ * What the backend sends the agent to start one domain report.
+ *
+ * `AgentDocument` is imported rather than redeclared: this file used to carry a
+ * byte-identical copy of it, and an `AgentEmitPayload` for an event system that
+ * has no emitters and no listeners anywhere in the codebase.
+ */
 export interface StartReportsPayload {
     automation_id: string
     domain: string

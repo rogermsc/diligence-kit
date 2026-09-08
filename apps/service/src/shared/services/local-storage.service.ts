@@ -1,5 +1,5 @@
 import { StorageService, UploadedFile } from "./storage.service"
-import { File, Folder } from "@/shared/domain/entities/file.entity"
+import { File } from "@/shared/domain/entities/file.entity"
 import { StorageError, StorageErrorType } from "@/shared/errors/storage-error"
 import { Injectable, Logger } from "@nestjs/common"
 import { promises as fs } from "fs"
@@ -77,52 +77,6 @@ export class LocalStorageService implements StorageService {
         }
     }
 
-    async uploadFolderOnEnterpriseRoot(
-        enterpriseName: string,
-        folder: Folder,
-    ): Promise<UploadedFile[]> {
-        if (!enterpriseName) {
-            throw new StorageError(
-                StorageErrorType.UPLOAD_ERROR,
-                "Enterprise name cannot be empty.",
-            )
-        }
-        if (!(folder instanceof Folder)) {
-            throw new StorageError(
-                StorageErrorType.UPLOAD_ERROR,
-                "Parameter folder must be an instance of Folder.",
-            )
-        }
-        return this.uploadFolderRecursive(folder.getName(), folder)
-    }
-
-    private async uploadFolderRecursive(
-        currentPath: string,
-        folder: Folder,
-    ): Promise<UploadedFile[]> {
-        const uploaded: UploadedFile[] = []
-        for (const child of folder.getChildren()) {
-            if (child instanceof File) {
-                uploaded.push(
-                    await this.write(
-                        `${currentPath}/${child.getName()}`,
-                        child.getBuffer(),
-                    ),
-                )
-                continue
-            }
-            if (child instanceof Folder) {
-                uploaded.push(
-                    ...(await this.uploadFolderRecursive(
-                        `${currentPath}/${child.getName()}`,
-                        child,
-                    )),
-                )
-            }
-        }
-        return uploaded
-    }
-
     async uploadSingleFile(
         filePath: string,
         file: File,
@@ -147,49 +101,6 @@ export class LocalStorageService implements StorageService {
             throw new StorageError(
                 StorageErrorType.UPLOAD_ERROR,
                 `Failed to download file ${filePath}: ${err.message}`,
-            )
-        }
-    }
-
-    async deleteFile(filePath: string): Promise<void> {
-        if (!filePath) {
-            throw new StorageError(
-                StorageErrorType.UPLOAD_ERROR,
-                "File path cannot be empty.",
-            )
-        }
-
-        try {
-            await fs.rm(this.resolveKey(filePath), { force: true })
-        } catch (err: any) {
-            if (err instanceof StorageError) throw err
-            this.logger.error(`Failed to delete file ${filePath}:`, err)
-            throw new StorageError(
-                StorageErrorType.UPLOAD_ERROR,
-                "Storage error",
-            )
-        }
-    }
-
-    async deleteFolder(folderPath: string): Promise<void> {
-        if (!folderPath) {
-            throw new StorageError(
-                StorageErrorType.UPLOAD_ERROR,
-                "Folder path cannot be empty.",
-            )
-        }
-
-        try {
-            await fs.rm(this.resolveKey(folderPath.replace(/\/*$/, "")), {
-                recursive: true,
-                force: true,
-            })
-        } catch (err: any) {
-            if (err instanceof StorageError) throw err
-            this.logger.error(`Failed to delete folder ${folderPath}:`, err)
-            throw new StorageError(
-                StorageErrorType.UPLOAD_ERROR,
-                `Failed to delete folder ${folderPath}: ${err.message}`,
             )
         }
     }

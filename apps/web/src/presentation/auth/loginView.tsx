@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Shield } from "lucide-react"
+import Image from "next/image"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuthViewModel } from "./authViewModel"
 import type { LoginRequest } from "@/domain/auth/models/auth"
@@ -65,9 +65,15 @@ export default function LoginView() {
   // Show loading spinner while checking authentication
   if (checkingAuth) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 transition-colors flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
-          <Shield className="h-12 w-12 text-primary mx-auto mb-4 animate-pulse" />
+          <Image
+            src="/diligence-kit-logo.svg"
+            alt=""
+            width={44}
+            height={44}
+            className="mx-auto mb-4 animate-pulse"
+          />
           <p className="text-muted-foreground">Checking authentication...</p>
         </div>
       </div>
@@ -75,7 +81,7 @@ export default function LoginView() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 transition-colors">
+    <div className="min-h-screen bg-background">
       <div className="absolute top-4 right-4 z-10">
         <ThemeToggle />
       </div>
@@ -84,7 +90,13 @@ export default function LoginView() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center mb-6">
-              <Shield className="h-12 w-12 text-primary mr-3" />
+              <Image
+                src="/diligence-kit-logo.svg"
+                alt=""
+                width={44}
+                height={44}
+                className="mr-3"
+              />
               <h1 className="text-4xl font-bold text-foreground">Diligence Kit</h1>
             </div>
             <p className="text-muted-foreground">
@@ -132,7 +144,7 @@ export default function LoginView() {
                 </div>
 
                 {error && (
-                  <div className="text-sm text-red-600 dark:text-red-400 mt-2">
+                  <div className="mt-2 text-sm text-destructive">
                     {error}
                   </div>
                 )}

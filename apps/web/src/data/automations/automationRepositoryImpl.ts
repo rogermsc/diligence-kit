@@ -2,13 +2,12 @@ import type {
     StartStage2Response,
     StartStage2Request,
 } from "@/domain/automations/models/automation";
-import type {AutomationRepository} from "@/domain/automations/repositories/automationRepository";
 import {httpClient} from "@/lib/httpClient";
 
 /**
  * Implementation of AutomationRepository that fetches from internal API routes
  */
-export class AutomationRepositoryImpl implements AutomationRepository {
+export class AutomationRepositoryImpl {
     async downloadOnePagerSummary(automationId: string): Promise<Blob> {
         try {
             return await httpClient.getBlob(

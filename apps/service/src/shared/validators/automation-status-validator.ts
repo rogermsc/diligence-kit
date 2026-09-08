@@ -23,10 +23,6 @@ export class AutomationStatusValidator {
         return automation.stage === "TRIAGE"
     }
 
-    static isDilligence(automation: AutomationLike): boolean {
-        return automation.stage.startsWith("DILLIGENCE_")
-    }
-
     static isStartableStatus(status: StatusLike): boolean {
         return status === "NOT_STARTED" || status === "PENDING"
     }

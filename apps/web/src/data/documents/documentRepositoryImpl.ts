@@ -1,11 +1,10 @@
 import type { GetDocumentsResponse } from "@/domain/documents/models/document";
-import type { DocumentRepository } from "@/domain/documents/repositories/documentRepository";
 import { httpClient } from "@/lib/httpClient";
 
 /**
  * Implementation of DocumentRepository that fetches from internal API routes
  */
-export class DocumentRepositoryImpl implements DocumentRepository {
+export class DocumentRepositoryImpl {
   async getDocumentsByAutomationId(automationId: string): Promise<GetDocumentsResponse> {
     try {
       return await httpClient.get<GetDocumentsResponse>(`/automation/${automationId}/documents`);

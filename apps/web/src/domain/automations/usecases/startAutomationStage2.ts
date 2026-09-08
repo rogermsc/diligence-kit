@@ -1,11 +1,11 @@
+import type { AutomationRepositoryImpl } from "@/data/automations/automationRepositoryImpl";
 import type {
   StartStage2Response,
   StartStage2Request,
 } from "../models/automation";
-import type { AutomationRepository } from "../repositories/automationRepository";
 
 export class StartAutomationStage2UseCase {
-  constructor(private repository: AutomationRepository) {}
+  constructor(private repository: AutomationRepositoryImpl) {}
 
   async execute(
     companyId: string,

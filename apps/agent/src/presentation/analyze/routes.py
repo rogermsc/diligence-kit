@@ -1,14 +1,14 @@
 from typing import List
 
 import httpx
-import jwt
 from fastapi import APIRouter, Depends
 
 from src.core.background import heartbeat, spawn
 from src.core.config import settings
+from src.core.failure import describe_failure
 from src.core.logging import get_logger
 from src.core.security import verify_api_key
-from src.core.signing import canonical_json, sign_payload
+from src.core.signing import build_headers, canonical_json
 from src.domain.analyze.entities import AnalyzeInput, Document, MergedFacts, OnePager
 from src.domain.analyze.use_cases import AnalyzeUseCase
 from src.presentation.analyze.schemas import AnalyzeRequest, AnalyzeResponse
@@ -52,30 +52,19 @@ async def _run_analysis(input: AnalyzeInput):
         await _notify_backend(input.automation_id, pdf_url, documents, merged, one_pager)
     except Exception as e:
         logger.error(f"Analysis failed for automation {input.automation_id}: {e}", exc_info=True)
-        await _notify_backend_error(input.automation_id, "processing_failed")
+        # The real exception, not a constant. This used to post back the fixed
+        # string "processing_failed", so a crash, a bad document and an
+        # unreachable model all reached the screen as the same word and the
+        # cause never left this process. Type and message only — a traceback
+        # would carry file paths and quoted document text to a user.
+        await _notify_backend_error(input.automation_id, describe_failure(e))
 
 
 async def _notify_backend_heartbeat(automation_id: str) -> None:
     url = f"{settings.backend_base_url}/automation/heartbeat"
     body = canonical_json({"automationId": automation_id})
     async with httpx.AsyncClient() as client:
-        await client.post(url, content=body, headers=_build_headers(body), timeout=10.0)
-
-
-def _build_jwt_token() -> str:
-    return jwt.encode(
-        {"sub": "agent", "service": "diligence-kit-agent"},
-        settings.agent_secret,
-        algorithm="HS256",
-    )
-
-
-def _build_headers(body: bytes) -> dict:
-    return {
-        "Authorization": f"Bearer {_build_jwt_token()}",
-        "X-Webhook-Signature": sign_payload(body, settings.webhook_secret),
-        "Content-Type": "application/json",
-    }
+        await client.post(url, content=body, headers=build_headers(body), timeout=10.0)
 
 
 async def _notify_backend(
@@ -120,7 +109,7 @@ async def _notify_backend(
         body = canonical_json(payload)
         logger.info(f"complete_onepager payload: {len(body)} bytes")
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, content=body, headers=_build_headers(body), timeout=30.0)
+            response = await client.post(url, content=body, headers=build_headers(body), timeout=30.0)
             logger.info(f"Backend callback complete_onepager: {response.status_code}")
     except Exception as e:
         logger.error(f"Backend callback failed: {e}")
@@ -135,7 +124,7 @@ async def _notify_backend_error(automation_id: str, error: str):
     try:
         body = canonical_json(payload)
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, content=body, headers=_build_headers(body), timeout=30.0)
+            response = await client.post(url, content=body, headers=build_headers(body), timeout=30.0)
             logger.info(f"Backend callback error: {response.status_code}")
     except Exception as e:
         logger.error(f"Backend error callback failed: {e}")

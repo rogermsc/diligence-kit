@@ -46,7 +46,7 @@ jobs:
               - '.npmrc'
               - '.dockerignore'
               - '.github/workflows/deploy.yml'
-              - '.github/workflows/deploy-service.yml'
+              - '.github/workflows/deploy-app.yml'
             web:
               - 'apps/web/**'
               - 'pnpm-lock.yaml'
@@ -55,40 +55,52 @@ jobs:
               - '.npmrc'
               - '.dockerignore'
               - '.github/workflows/deploy.yml'
-              - '.github/workflows/deploy-web.yml'
+              - '.github/workflows/deploy-app.yml'
             agent:
               - 'apps/agent/**'
               - '.github/workflows/deploy.yml'
-              - '.github/workflows/deploy-agent.yml'
+              - '.github/workflows/deploy-app.yml'
             liaison_agent:
               - 'apps/liaison-agent/**'
               - '.github/workflows/deploy.yml'
-              - '.github/workflows/deploy-liaison-agent.yml'
+              - '.github/workflows/deploy-app.yml'
 
   service:
     name: Deploy service
     needs: changes
     if: needs.changes.outputs.service == 'true'
-    uses: ./.github/workflows/deploy-service.yml
+    uses: ./.github/workflows/deploy-app.yml
+    with:
+      app: service
     secrets: inherit
 
   web:
     name: Deploy web
     needs: changes
     if: needs.changes.outputs.web == 'true'
-    uses: ./.github/workflows/deploy-web.yml
+    uses: ./.github/workflows/deploy-app.yml
+    with:
+      app: web
+      # The web image builds from the repository root: it is part of the pnpm
+      # workspace and needs the lockfile.
+      build_context: .
+      build_secret: diligence-kit-web-api-base-url-prod
     secrets: inherit
 
   agent:
     name: Deploy agent
     needs: changes
     if: needs.changes.outputs.agent == 'true'
-    uses: ./.github/workflows/deploy-agent.yml
+    uses: ./.github/workflows/deploy-app.yml
+    with:
+      app: agent
     secrets: inherit
 
   liaison_agent:
     name: Deploy liaison-agent
     needs: changes
     if: needs.changes.outputs.liaison_agent == 'true'
-    uses: ./.github/workflows/deploy-liaison-agent.yml
+    uses: ./.github/workflows/deploy-app.yml
+    with:
+      app: liaison-agent
     secrets: inherit

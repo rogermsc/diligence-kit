@@ -1,8 +1,8 @@
+import type { DocumentRepositoryImpl } from "@/data/documents/documentRepositoryImpl";
 import type { GetDocumentsResponse } from "../models/document";
-import type { DocumentRepository } from "../repositories/documentRepository";
 
 export class GetDocumentsByAutomationIdUseCase {
-  constructor(private documentRepository: DocumentRepository) {}
+  constructor(private documentRepository: DocumentRepositoryImpl) {}
 
   async execute(automationId: string): Promise<GetDocumentsResponse> {
     try {

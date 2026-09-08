@@ -1,7 +1,6 @@
-import { ChatRepository } from '@/domain/chat/repositories/chatRepository';
 import { ChatRequest, ChatResponse, SessionResponse, MessageHistoryResponse } from '@/domain/chat/models/chat';
 
-export class ChatRepositoryImpl implements ChatRepository {
+export class ChatRepositoryImpl {
   async sendMessage(request: ChatRequest): Promise<ChatResponse> {
     const response = await fetch('/api/chat', {
       method: 'POST',

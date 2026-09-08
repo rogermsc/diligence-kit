@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { IBM_Plex_Mono, IBM_Plex_Sans, Newsreader } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "sonner"
 
 // Three faces, each carrying a meaning rather than a mood. Newsreader for
 // synthesis a model wrote, Plex Sans for interface chrome, and Plex Mono for
@@ -45,6 +46,13 @@ export default function RootLayout({
       <body className={`${sans.variable} ${mono.variable} ${display.variable}`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange={false}>
           {children}
+          {/*
+            The portal sonner renders into. Without it every toast.success and
+            toast.error in the app is a no-op — fourteen of them, covering every
+            download, retry and delete outcome in the primary workflow. The
+            calls were all there; nothing was listening.
+          */}
+          <Toaster position="bottom-right" closeButton richColors />
         </ThemeProvider>
       </body>
     </html>

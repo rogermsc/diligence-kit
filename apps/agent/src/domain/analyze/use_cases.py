@@ -75,7 +75,10 @@ class AnalyzeUseCase:
                 # Step 3b: Resolve false-positive conflicts via LLM
                 if merged.conflicts:
                     logger.info(f"Step 3b: Resolving {len(merged.conflicts)} conflicts")
-                    merged.conflicts = await self._conflict_resolution_service.resolve(merged.conflicts)
+                    (
+                        merged.conflicts,
+                        merged.suppressed_conflicts,
+                    ) = await self._conflict_resolution_service.resolve(merged.conflicts)
 
                 logger.info(
                     f"Analysis complete: "

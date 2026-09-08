@@ -11,7 +11,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": null,
+        "unit_stated": null
       }
     ],
     "industry": [
@@ -25,7 +27,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": null,
+        "unit_stated": null
       }
     ],
     "headquarters": [
@@ -39,7 +43,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": null,
+        "unit_stated": null
       }
     ],
     "founded_year": [
@@ -53,7 +59,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": null,
+        "unit_stated": null
       }
     ],
     "website": [
@@ -67,7 +75,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": null,
+        "unit_stated": null
       }
     ],
     "employees": [
@@ -81,7 +91,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": null,
+        "unit_stated": null
       },
       {
         "field": "employees",
@@ -93,7 +105,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": true,
+        "unit_stated": null
       },
       {
         "field": "employees",
@@ -105,7 +119,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": null,
+        "unit_stated": null
       }
     ],
     "annual_revenue_fy2024": [
@@ -119,7 +135,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": null,
+        "unit_stated": true
       },
       {
         "field": "annual_revenue_fy2024",
@@ -131,7 +149,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": true,
+        "unit_stated": true
       },
       {
         "field": "annual_revenue_fy2024",
@@ -143,7 +163,9 @@
         "document_version": "",
         "document_date": "2024-12-31",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": null,
+        "unit_stated": true
       }
     ],
     "market_position": [
@@ -157,7 +179,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": null,
+        "unit_stated": null
       }
     ],
     "customer_base": [
@@ -171,7 +195,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": null,
+        "unit_stated": null
       }
     ],
     "geographic_presence": [
@@ -185,7 +211,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": null,
+        "unit_stated": null
       }
     ],
     "transaction_value": [
@@ -199,7 +227,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": null,
+        "unit_stated": null
       }
     ],
     "annual_revenue_fy2023": [
@@ -213,7 +243,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": true,
+        "unit_stated": true
       }
     ],
     "ebitda": [
@@ -227,7 +259,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": true,
+        "unit_stated": true
       },
       {
         "field": "ebitda",
@@ -239,7 +273,9 @@
         "document_version": "",
         "document_date": "2024-12-31",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": null,
+        "unit_stated": true
       }
     ],
     "shareholder": [
@@ -253,7 +289,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": true,
+        "unit_stated": null
       },
       {
         "field": "shareholder",
@@ -265,7 +303,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": true,
+        "unit_stated": null
       },
       {
         "field": "shareholder",
@@ -277,7 +317,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": true,
+        "unit_stated": null
       }
     ],
     "key_person": [
@@ -291,7 +333,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": true,
+        "unit_stated": null
       },
       {
         "field": "key_person",
@@ -303,7 +347,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": true,
+        "unit_stated": null
       }
     ],
     "deal_type": [
@@ -317,7 +363,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": true,
+        "unit_stated": null
       }
     ],
     "payment_structure": [
@@ -331,7 +379,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": true,
+        "unit_stated": null
       }
     ],
     "net_income": [
@@ -345,7 +395,9 @@
         "document_version": "",
         "document_date": "2024-12-31",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": null,
+        "unit_stated": true
       }
     ],
     "total_assets": [
@@ -359,7 +411,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": null,
+        "unit_stated": true
       }
     ],
     "risk_factor": [
@@ -373,7 +427,9 @@
         "document_version": "",
         "document_date": "",
         "grounding": "quoted",
-        "quote_verified": true
+        "quote_verified": true,
+        "cell_verified": null,
+        "unit_stated": null
       }
     ]
   },
@@ -447,6 +503,40 @@
       "rationale": "actual beats pro_forma; only 04_audited_accounts.pdf states this on an actual basis (audited accounts)",
       "confidence": 1.0,
       "magnitude": "28% spread, £3.2M to £4.1M"
+    }
+  ],
+  "suppressed_conflicts": [
+    {
+      "conflict": {
+        "field": "employees",
+        "values": [
+          "52 (01_pitch_deck.pdf 1)",
+          "49 (04_audited_accounts.pdf 1)"
+        ],
+        "preferred_value": "49",
+        "preferred_source": "04_audited_accounts.pdf",
+        "resolution_basis": "document_authority",
+        "rationale": "audited accounts outranks pitch deck",
+        "confidence": 0.6,
+        "magnitude": "6% spread, 49 to 52"
+      },
+      "reason": "52 is the headcount at year end and 49 is the average over the year. Both are correct on their own basis."
+    },
+    {
+      "conflict": {
+        "field": "ebitda",
+        "values": [
+          "(£0.31M) FY2024 (02_financial_model.xlsx (Summary) Summary!C7 type=actual)",
+          "(£0.31M) (04_audited_accounts.pdf 1 date=2024-12-31 type=actual)"
+        ],
+        "preferred_value": "(£0.31M)",
+        "preferred_source": "04_audited_accounts.pdf",
+        "resolution_basis": "document_authority",
+        "rationale": "audited accounts outranks financial model",
+        "confidence": 0.6,
+        "magnitude": ""
+      },
+      "reason": "Same figure, one carrying an explicit period label."
     }
   ]
 }

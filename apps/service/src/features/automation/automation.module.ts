@@ -2,15 +2,8 @@ import { Module } from "@nestjs/common"
 import { CompleteOnePagerController } from "./complete-onePager-automation/presentation/complete-onepager.controller"
 import { CompleteOnePagerUseCase } from "./complete-onePager-automation/use-case/complete-onepager.usecase"
 import { PrismaResultRepositoryAdapter } from "@/shared/infra/adapters/prisma-result-repository.adapter"
-import { PrismaOutputDocumentRepositoryAdapter } from "@/shared/infra/adapters/prisma-output-document-repository.adapter"
 import { PrismaAutomationRepositoryAdapter } from "@/shared/infra/adapters/prisma-automation-repository.adapter"
 import { AutomationModule as StartAutomationModule } from "./start-automation/automation.module"
-import {
-    EmailNotificationProvider,
-    NodemailerEmailProvider,
-    UnconfiguredEmailProvider,
-    isSmtpConfigured,
-} from "@/shared/services/email"
 import { GetCompanyByIdUseCase } from "./start-automation/use-case/get-company-by-id.usecase"
 import { PrismaCompanyRepositoryAdapter } from "@/shared/infra/adapters/prisma-company-repository.adapter"
 import { PrismaDocumentRepositoryAdapter } from "@/shared/infra/adapters/prisma-document-repository.adapter"
@@ -24,23 +17,8 @@ import { AuthModule } from "@/features/auth/auth.module"
         CompleteOnePagerUseCase,
         GetCompanyByIdUseCase,
         {
-            provide: EmailNotificationProvider,
-            useFactory: () => {
-                // SMTP is optional. Building the real provider without it threw
-                // from this factory and took startup down with it.
-                const emailProvider = isSmtpConfigured()
-                    ? new NodemailerEmailProvider()
-                    : new UnconfiguredEmailProvider()
-                return new EmailNotificationProvider(emailProvider)
-            },
-        },
-        {
             provide: "IResultRepository",
             useClass: PrismaResultRepositoryAdapter,
-        },
-        {
-            provide: "IOutputDocumentRepository",
-            useClass: PrismaOutputDocumentRepositoryAdapter,
         },
         {
             provide: "IAutomationRepository",

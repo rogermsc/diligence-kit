@@ -1,8 +1,8 @@
+import type { AuthRepositoryImpl } from "@/data/auth/authRepositoryImpl";
 import type { LoginRequest, LoginResponse } from "../models/auth";
-import type { AuthRepository } from "../repositories/authRepository";
 
 export class LoginUseCase {
-  constructor(private repository: AuthRepository) {}
+  constructor(private repository: AuthRepositoryImpl) {}
 
   async execute(credentials: LoginRequest): Promise<LoginResponse> {
     if (!credentials.email || !credentials.email.trim()) {

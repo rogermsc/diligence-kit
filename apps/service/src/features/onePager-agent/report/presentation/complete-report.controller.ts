@@ -9,8 +9,6 @@ import {
 import { AgentGuard } from "@/features/auth/guards/agent.guard"
 import { WebhookSignatureGuard } from "@/features/auth/guards/webhook-signature.guard"
 import { DelegateSpecificProcessReportUseCase } from "@/features/onePager-agent/report/use-cases/delegate-process-report.usecase"
-import { VerifyAllReportsAreReceivedUseCase } from "@/features/onePager-agent/report/use-cases/verify-all-reports-are-received.usecase"
-import { ReportCompletedUseCase } from "@/features/onePager-agent/report/use-cases/report-completed.usecase"
 import { reportPayloadSchema } from "@/features/onePager-agent/report/data/dtos/report-payload.schema"
 import { PayloadValidator } from "@/shared/validators/payload-validator"
 import { IAutomationRepository } from "@/shared/repository/automation-repository.interface"
@@ -23,8 +21,6 @@ export class CompleteReportController {
 
     constructor(
         private readonly processReportUseCase: DelegateSpecificProcessReportUseCase,
-        private readonly verifyAllReportsAreReceivedUseCase: VerifyAllReportsAreReceivedUseCase,
-        private readonly reportCompletedUseCase: ReportCompletedUseCase,
         @Inject("AutomationRepository")
         private readonly automationRepository: IAutomationRepository,
     ) {}
@@ -54,33 +50,11 @@ export class CompleteReportController {
 
         await this.processReportUseCase.execute(validatedPayload)
 
-        const isIncrementalEnabled =
-            process.env.ONEPAGER_INCREMENTAL_ENABLED === "true"
-
-        if (!isIncrementalEnabled) {
-            this.logger.log(
-                `OnePager incremental feature disabled. Skipping completion check for automation ${validatedPayload.automationId}`,
-            )
-            return {
-                message: "Report processed",
-                automationId: payload.automationId,
-            }
-        }
-
-        const allReportsReceived =
-            await this.verifyAllReportsAreReceivedUseCase.execute({
-                automationId: validatedPayload.automationId,
-            })
-
-        if (allReportsReceived) {
-            this.logger.log(
-                `All reports received! Triggering completion for automation ${validatedPayload.automationId}`,
-            )
-            await this.reportCompletedUseCase.execute({
-                automationId: validatedPayload.automationId,
-            })
-        }
-
+        // The "all four reports are in" branch used to live here, behind
+        // ONEPAGER_INCREMENTAL_ENABLED. It could never fire: it counted reports
+        // per automation id, and each domain is its own automation row with a
+        // unique (automationId, domain) constraint, so the count never exceeded
+        // one. The use case it called only logged.
         return {
             message: "Report processed",
             automationId: payload.automationId,

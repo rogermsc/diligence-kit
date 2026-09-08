@@ -317,7 +317,7 @@ async def test_each_domain_report_runs_with_no_network(pipeline, monkeypatch, in
     # previous one's cached facts.
     automation_id = f"{AUTOMATION_ID[:-1]}{index + 2}"
 
-    url = await DiligenceUseCase(domain).execute(
+    url, merged, report = await DiligenceUseCase(domain).execute(
         DiligenceInput(
             company_id=COMPANY_ID,
             company_name=COMPANY,
@@ -329,6 +329,12 @@ async def test_each_domain_report_runs_with_no_network(pipeline, monkeypatch, in
 
     assert url.startswith("gs://local-bucket/")
     assert url.endswith(".pdf")
+
+    # The evidence has to come back with the PDF, not only be written to
+    # storage. It used to return the URL alone, so four complete fact sets were
+    # persisted and reachable by no API and no screen.
+    assert merged.facts, "the domain run must return the facts it extracted"
+    assert report is not None
 
 
 async def test_the_financial_report_carries_the_disagreement_into_stage_two(pipeline, monkeypatch):

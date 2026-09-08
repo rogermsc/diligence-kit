@@ -260,7 +260,7 @@
   },
   "src/shared/infra/adapters/prisma-automation-repository.adapter.ts": {
     "@typescript-eslint/no-unsafe-member-access": {
-      "count": 26
+      "count": 24
     }
   },
   "src/shared/infra/adapters/prisma-company-repository.adapter.ts": {
@@ -338,7 +338,7 @@
       "count": 2
     },
     "@typescript-eslint/no-unsafe-member-access": {
-      "count": 11
+      "count": 9
     },
     "@typescript-eslint/no-unused-vars": {
       "count": 1
@@ -346,7 +346,7 @@
   },
   "src/shared/services/local-storage.service.ts": {
     "@typescript-eslint/no-unsafe-member-access": {
-      "count": 2
+      "count": 1
     }
   },
   "src/shared/services/storage.service.ts": {
@@ -367,10 +367,10 @@
   },
   "src/shared/validators/payload-validator.ts": {
     "@typescript-eslint/no-unsafe-assignment": {
-      "count": 9
+      "count": 7
     },
     "@typescript-eslint/no-unsafe-member-access": {
-      "count": 9
+      "count": 8
     },
     "@typescript-eslint/no-unused-vars": {
       "count": 1

@@ -6,6 +6,7 @@ from datetime import date
 from src.core.llm import complete_json
 from src.core.logging import get_logger
 from src.core.prompts.diligence_synthesis import DOMAIN_SYNTHESIS_PROMPTS
+from src.domain.analyze.conflict_lines import describe_conflict
 from src.domain.analyze.entities import MergedFacts
 from src.domain.diligence.entities import DOMAIN_REPORT_MODELS, DiligenceReport
 
@@ -45,11 +46,7 @@ class DiligenceReportService:
         covered = ", ".join(merged.coverage.keys()) if merged.coverage else "None"
         missing = ", ".join(merged.missing) if merged.missing else "None"
         conflicts = (
-            "\n".join(
-                f"- {c.field}: {c.values}"
-                + (f" → PREFERRED (newest version): {c.preferred_value}" if c.preferred_value else "")
-                for c in merged.conflicts
-            )
+            "\n".join(describe_conflict(c) for c in merged.conflicts)
             if merged.conflicts
             else "No unresolved conflicts."
         )

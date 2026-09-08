@@ -172,11 +172,17 @@ export function ConflictCase({ conflictCase }: { conflictCase: Case }) {
               {" — "}
               {conflictCase.rationale}
             </p>
+            {/*
+              The source path that used to sit here — domain/analyze/authority.py
+              — is not an answer to anything a reader of this screen is asking,
+              and it was hardcoded, so it would have gone on asserting a location
+              after the file moved. The rule is already named above; the
+              confidence is what the reader can act on.
+            */}
             <p className="mt-2 text-xs text-muted-foreground">
               Confidence{" "}
               <span data-numeric>{conflictCase.confidence.toFixed(1)}</span>
-              {" · rule defined in "}
-              <span className="font-mono">domain/analyze/authority.py</span>
+              {" — decided by a fixed rule, not by a model."}
             </p>
           </>
         ) : (

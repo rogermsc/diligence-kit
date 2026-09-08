@@ -1,6 +1,7 @@
 """8-step pipeline for a single diligence domain, mirroring AnalyzeUseCase."""
 
 import asyncio
+from typing import Tuple
 
 from src.core.logging import get_logger, reset_log_context, set_log_context
 from src.core.prompts.diligence_extraction import DOMAIN_EXTRACTION_CONFIGS
@@ -12,8 +13,9 @@ from src.data.analyze.file_preparation_service import FilePreparationService
 from src.data.diligence.document_renderer import render_diligence_docx
 from src.data.diligence.report_service import DiligenceReportService
 from src.data.storage import get_storage
+from src.domain.analyze.entities import MergedFacts
 from src.domain.analyze.fact_merge import merge_facts
-from src.domain.diligence.entities import DiligenceInput
+from src.domain.diligence.entities import DiligenceInput, DiligenceReport
 
 logger = get_logger(__name__)
 
@@ -41,8 +43,16 @@ class DiligenceUseCase:
         self._financial_prefixes = config.financial_prefixes
         self._information_types = config.information_types
 
-    async def execute(self, input: DiligenceInput) -> str:
-        """Run the full diligence pipeline for one domain. Returns gs:// URL of the PDF."""
+    async def execute(self, input: DiligenceInput) -> Tuple[str, MergedFacts, DiligenceReport]:
+        """Run the full diligence pipeline for one domain.
+
+        Returns the PDF's gs:// URL, the merged facts, and the report.
+
+        It used to return the URL alone, so four complete fact sets — quotes,
+        pages, source types, conflicts and the rule that settled each one — were
+        written to storage and reachable by no API and no screen. The user got
+        four PDFs from a pipeline that had computed all of this.
+        """
         set_log_context(company_id=input.company_id, automation_id=input.automation_id)
 
         try:
@@ -90,9 +100,10 @@ class DiligenceUseCase:
                 logger.info(
                     f"[{self._domain}] Step 3b: Resolving {len(merged.conflicts)} conflicts"
                 )
-                merged.conflicts = await self._conflict_resolution_service.resolve(
-                    merged.conflicts
-                )
+                (
+                    merged.conflicts,
+                    merged.suppressed_conflicts,
+                ) = await self._conflict_resolution_service.resolve(merged.conflicts)
 
             logger.info(
                 f"[{self._domain}] Facts complete: "
@@ -145,7 +156,7 @@ class DiligenceUseCase:
             logger.info(
                 f"[{self._domain}] Pipeline complete for '{input.company_name}': {pdf_url}"
             )
-            return pdf_url
+            return pdf_url, merged, report
 
         finally:
             reset_log_context()

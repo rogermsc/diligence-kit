@@ -1,7 +1,8 @@
-import type { DocumentRepository } from "../repositories/documentRepository";
+import type { DocumentRepositoryImpl } from "@/data/documents/documentRepositoryImpl";
+import { saveBlob } from "@/lib/saveBlob";
 
 export class DownloadDocumentUseCase {
-  constructor(private documentRepository: DocumentRepository) {}
+  constructor(private documentRepository: DocumentRepositoryImpl) {}
 
   async execute(documentId: string, fileName: string): Promise<void> {
     try {
@@ -14,24 +15,7 @@ export class DownloadDocumentUseCase {
       }
 
       const blob = await this.documentRepository.downloadDocument(documentId.trim());
-      
-      // Create a URL for the blob
-      const url = window.URL.createObjectURL(blob);
-      
-      // Create a temporary anchor element to trigger the download
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName.trim();
-      link.style.display = 'none';
-      
-      // Add to DOM, click, and remove
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Clean up the blob URL
-      window.URL.revokeObjectURL(url);
-      
+      saveBlob(blob, fileName.trim());
     } catch (error) {
       console.error("Failed to download document:", error);
       throw new Error("Unable to download document at this time");

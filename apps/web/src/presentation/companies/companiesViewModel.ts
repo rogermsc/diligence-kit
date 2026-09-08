@@ -1,77 +1,69 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import type { Company } from "@/domain/companies/models/company"
-import { GetCompaniesUseCase } from "@/domain/companies/usecases/getCompanies"
-import { CreateCompanyUseCase } from "@/domain/companies/usecases/createCompany"
+import { useCallback, useEffect, useState } from "react"
+
 import { CompanyRepositoryImpl } from "@/data/companies/companyRepositoryImpl"
+import type { Company } from "@/domain/companies/models/company"
+import { runState } from "@/domain/automations/usecases/runState"
+import { CreateCompanyUseCase } from "@/domain/companies/usecases/createCompany"
+import { GetCompaniesUseCase } from "@/domain/companies/usecases/getCompanies"
 
 /**
- * ViewModel for managing company dashboard state and interactions
+ * The company list.
+ *
+ * It polls while any run is still moving. Before, only the detail screen
+ * refreshed itself, so the workflow the product is built around — start a run,
+ * go and do something else — left this list showing a status frozen at the
+ * moment it was opened, with a Refresh button as the only way to learn
+ * otherwise.
+ *
+ * The load body used to be written out twice, once in an effect and once in
+ * refetch, which is how two copies of the same fetch drift apart.
  */
+
+const POLL_INTERVAL_MS = 15_000
+
 export function useCompaniesViewModel() {
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const loadCompanies = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-
-        // Dependency injection - create repository and use case
-        const repository = new CompanyRepositoryImpl()
-        const getCompaniesUseCase = new GetCompaniesUseCase(repository)
-
-        const fetchedCompanies = await getCompaniesUseCase.execute()
-        setCompanies(fetchedCompanies)
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred"
-        setError(errorMessage)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadCompanies()
-  }, [])
-
-  const refetch = async () => {
-    const repository = new CompanyRepositoryImpl()
-    const getCompaniesUseCase = new GetCompaniesUseCase(repository)
-
+  const load = useCallback(async () => {
     try {
-      setLoading(true)
+      const useCase = new GetCompaniesUseCase(new CompanyRepositoryImpl())
+      setCompanies(await useCase.execute())
       setError(null)
-      const fetchedCompanies = await getCompaniesUseCase.execute()
-      setCompanies(fetchedCompanies)
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred"
-      setError(errorMessage)
+      setError(
+        err instanceof Error
+          ? err.message
+          : "The companies could not be loaded.",
+      )
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const createCompany = async (name: string): Promise<void> => {
-    const repository = new CompanyRepositoryImpl()
-    const createCompanyUseCase = new CreateCompanyUseCase(repository)
+  useEffect(() => {
+    void load()
+  }, [load])
 
-    try {
-      await createCompanyUseCase.execute(name)
-      await refetch()
-    } catch (err) {
-      // Re-throw the original error to preserve ApiError type and properties
-      throw err
-    }
-  }
+  const anyActive = companies.some((c) => runState(c.automations).active)
 
-  return {
-    companies,
-    loading,
-    error,
-    refetch,
-    createCompany,
-  }
+  useEffect(() => {
+    if (!anyActive) return
+    const id = setInterval(() => void load(), POLL_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [anyActive, load])
+
+  const createCompany = useCallback(
+    async (name: string): Promise<void> => {
+      const useCase = new CreateCompanyUseCase(new CompanyRepositoryImpl())
+      await useCase.execute(name)
+      await load()
+    },
+    [load],
+  )
+
+  return { companies, loading, error, refetch: load, createCompany }
 }

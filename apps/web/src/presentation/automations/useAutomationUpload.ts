@@ -4,14 +4,18 @@ import { useState, useCallback, useRef } from "react";
 import JSZip from "jszip";
 import { analyzeZipFile } from "@/lib/zipFileFilter";
 
-const ALLOWED_EXTENSIONS = [
+// Exported so the upload screen states what this actually accepts. It used to
+// carry its own hand-written list of seven, while this one has sixteen — so the
+// modal told people that pitch decks and scanned documents would be skipped,
+// which are the two document types the product's own demo is built on.
+export const ALLOWED_EXTENSIONS = [
   'pdf', 'csv', 'xls', 'xlsx', 'doc', 'docx', 'txt',
   'ppt', 'pptx',
   'png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp',
 ];
 const MAX_CONCURRENT_UPLOADS = 3;
-const MAX_ZIP_COMPRESSED_SIZE = 200 * 1024 * 1024;  // 200 MB
-const MAX_ZIP_UNCOMPRESSED_SIZE = 500 * 1024 * 1024; // 500 MB
+export const MAX_ZIP_COMPRESSED_SIZE = 200 * 1024 * 1024;  // 200 MB
+export const MAX_ZIP_UNCOMPRESSED_SIZE = 500 * 1024 * 1024; // 500 MB
 
 interface UploadedFileInfo {
   fileName: string;

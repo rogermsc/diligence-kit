@@ -17,7 +17,6 @@ import { CheckCompanyHasProcessingAutomationUseCase } from "./use-case/check-com
 import { DownloadOnePagerUseCase } from "./use-case/download-one-pager.usecase"
 import { DownloadReportUseCase } from "./use-case/download-report.usecase"
 import { AuthModule } from "@/features/auth/auth.module"
-import { UpdateAutomationStatusUseCase } from "./use-case/update-automation-status.usecase"
 import { CreateAutomationUseCase } from "./use-case/create-automation.usecase"
 import { UploadDocumentUseCase } from "./use-case/upload-document.usecase"
 import { ConfirmUploadUseCase } from "./use-case/confirm-upload.usecase"
@@ -38,7 +37,6 @@ import { ConfirmUploadUseCase } from "./use-case/confirm-upload.usecase"
         CheckCompanyHasProcessingAutomationUseCase,
         DownloadOnePagerUseCase,
         DownloadReportUseCase,
-        UpdateAutomationStatusUseCase,
         CreateAutomationUseCase,
         UploadDocumentUseCase,
         ConfirmUploadUseCase,

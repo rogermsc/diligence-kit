@@ -200,15 +200,6 @@
   }
 }
 
-.mask-gradient {
-  mask-image: linear-gradient(to bottom, black 0%, black 70%, transparent 100%);
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    black 0%,
-    black 70%,
-    transparent 100%
-  );
-}
 
 .scrollbar-thin {
   scrollbar-width: thin;
@@ -248,17 +239,6 @@
   @apply bg-gray-800;
 }
 
-/* Selecting a fact washes its quote once, then decays. The only place motion
-   carries meaning here: this text, on this page, is where that number came
-   from. */
-@keyframes evidence-wash {
-  from {
-    background-color: var(--evidence-proforma-bg);
-  }
-  to {
-    background-color: transparent;
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
   *,
